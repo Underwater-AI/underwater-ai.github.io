@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Underwater AI - IIE-Summit 2025 Pitch Deck</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --deep-ocean: #000814;
+            --ocean-blue: #001d3d;
+            --teal: #003566;
+            --light-teal: #0077b6;
+            --accent: #00b4d8;
+            --pale: #90e0ef;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--deep-ocean);
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, h4, .display-font {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        /* Slide Container */
+        .slide {
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding: 2rem;
+            page-break-after: always;
+        }
+        
+        /* Background Effects */
+        .bg-gradient-ocean {
+            background: linear-gradient(135deg, #000814 0%, #001d3d 50%, #003566 100%);
+        }
+        
+        .caustics {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+            animation: shift 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+            mix-blend-mode: overlay;
+        }
+        
+        @keyframes shift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-50%, -50%); }
+        }
+        
+        /* Glass Card */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(0, 180, 216, 0.5);
+            box-shadow: 0 10px 30px rgba(0, 180, 216, 0.2);
+        }
+        
+        /* Navigation Dots */
+        .nav-dots {
+            position: fixed;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-dot.active {
+            background: var(--accent);
+            border-color: white;
+            transform: scale(1.3);
+        }
+        
+        /* Text Gradients */
+        .text-gradient {
+            background: linear-gradient(135deg, #00b4d8 0%, #90e0ef 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Progress Bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #00b4d8, #90e0ef);
+            z-index: 1001;
+            transition: width 0.3s ease;
+        }
+        
+        /* Print Styles */
+        @media print {
+            .nav-dots, .progress-bar { display: none; }
+            .slide { page-break-after: always; height: 100vh; }
+            body { background: white; color: black; }
+        }
+        
+        /* Bubble Animation */
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0.1));
+            animation: rise 15s infinite ease-in;
+            pointer-events: none;
+        }
+        
+        @keyframes rise {
+            0% { transform: translateY(0) scale(1); opacity: 0.6; }
+            100% { transform: translateY(-100vh) scale(0.5); opacity: 0; }
+        }
+        
+        /* Hover Effects */
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            transition: transform 0.3s ease;
+        }
+        
+        /* Logo Styles */
+        .logo-container {
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Comparison Slider */
+        .comparison-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            overflow: hidden;
+            border-radius: 16px;
+            border: 2px solid rgba(0, 180, 216, 0.3);
+        }
+        
+        .comparison-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .before-image {
+            filter: grayscale(0.4) brightness(0.3) contrast(1.2) sepia(0.4) hue-rotate(160deg);
+            z-index: 1;
+        }
+        
+        .after-image {
+            z-index: 2;
+            clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
+        }
+        
+        .slider-handle {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #00b4d8;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            cursor: ew-resize;
+            box-shadow: 0 0 20px rgba(0,180,216,0.8);
+        }
+        
+        .slider-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(0,180,216,0.9);
+            border: 3px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        /* Timeline */
+        .timeline-item {
+            position: relative;
+            padding-left: 2rem;
+            border-left: 2px solid rgba(0, 180, 216, 0.3);
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+        
+        /* Hotspots */
+        .hotspot {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #00b4d8;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            background: rgba(0,180,216,0.3);
+            cursor: pointer;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.5; }
+        }
+        
+        /* Section Number */
+        .section-number {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 8rem;
+            font-weight: 700;
+            position: absolute;
+            opacity: 0.05;
+            line-height: 1;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="bg-gradient-ocean">
+
+    <!-- Progress Bar -->
+    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+    
+    <!-- Navigation Dots -->
+    <div class="nav-dots">
+        <div class="nav-dot active" onclick="scrollToSlide(0)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(1)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(2)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(3)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(4)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(5)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(6)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(7)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(8)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(9)"></div>
+    </div>
+
+    <!-- Caustics Background -->
+    <div class="caustics"></div>
+
+    <!-- Bubbles Container -->
+    <div id="bubbles" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <!-- SLIDE 1: Title Slide -->
+    <section class="slide bg-gradient-ocean" id="slide-0">
+        <div class="flex-1 flex flex-col justify-center items-center relative z-10">
+            <!-- Logos Header -->
+            <div class="absolute top-0 left-0 right-0 flex justify-between items-center p-8">
+                <div class="flex items-center gap-4">
+                    <img src="https://kimi-web-img.moonshot.cn/img/static.igem.org/1a2862b047f15fa62ac860357d7828d54acda7e1.png" alt="IISER Kolkata" class="h-16 w-auto bg-white/10 rounded-lg p-2">
+                    <div class="text-left">
+                        <div class="text-sm text-cyan-400 font-semibold">Organized by</div>
+                        <div class="text-xs text-gray-300">E-Cell IISER Kolkata</div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-2xl font-bold text-white display-font">IIE-Summit</div>
+                    <div class="text-sm text-cyan-400">2025</div>
+                    <div class="text-xs text-gray-400">Digi Nova Theme</div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="text-center max-w-5xl mx-auto mt-20">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-sm font-medium mb-6">
+                    <span class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span>
+                    <span>Computational Marine Imagery</span>
+                </div>
+                
+                <h1 class="text-7xl md:text-9xl font-bold mb-6 display-font">
+                    Underwater<span class="text-gradient">AI</span>
+                </h1>
+                
+                <p class="text-2xl md:text-3xl text-gray-300 mb-4 font-light">
+                    Revealing the Hidden Depths through
+                    <span class="text-cyan-400 font-medium">Sensor-Agnostic AI Enhancement</span>
+                </p>
+                
+                <div class="flex justify-center gap-8 mt-12">
+                    <div class="glass-panel px-6 py-4 text-center">
+                        <div class="text-3xl font-bold text-cyan-400">1100</div>
+                        <div class="text-xs text-gray-400 uppercase tracking-wider">FPS Edge Processing</div>
+                    </div>
+                    <div class="glass-panel px-6 py-4 text-center">
+                        <div class="text-3xl font-bold text-cyan-400">INT8</div>
+                        <div class="text-xs text-gray-400 uppercase tracking-wider">Quantized Deploy</div>
+                    </div>
+                    <div class="glass-panel px-6 py-4 text-center">
+                        <div class="text-3xl font-bold text-cyan-400">&lt;15W</div>
+                        <div class="text-xs text-gray-400 uppercase tracking-wider">Power Budget</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="absolute bottom-8 left-0 right-0 flex justify-between items-end px-8">
+                <div class="text-sm text-gray-400">
+                    <div class="font-semibold text-white">Team Underwater AI</div>
+                    <div>Gautam Singh • Shuvam Banerji Seal • Alok Mishra</div>
+                    <div class="text-xs text-cyan-400 mt-1">BS-MS Students, IISER Kolkata</div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <img src="https://kimi-web-img.moonshot.cn/img/apacnewsnetwork.com/e71afab4fcb414c916f6ad626acc405799f7746d.png" alt="MeitY" class="h-12 w-auto bg-white/10 rounded px-2 py-1">
+                    <span class="text-xs text-gray-400">Funded by<br>MeitY, Govt. of India</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 2: Problem Statement -->
+    <section class="slide bg-gradient-ocean" id="slide-1">
+        <div class="section-number top-4 left-8">01</div>
+        <div class="flex-1 flex flex-col relative z-10 max-w-7xl mx-auto w-full">
+            <!-- Header -->
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-1 w-16 bg-cyan-400"></div>
+                <h2 class="text-5xl font-bold display-font">Problem Statement</h2>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-12 items-center flex-1">
+                <div class="space-y-6">
+                    <div class="glass-panel p-8 border-l-4 border-red-500">
+                        <h3 class="text-2xl font-bold text-red-400 mb-4 flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                            The Visibility Crisis
+                        </h3>
+                        <ul class="space-y-4 text-gray-300">
+                            <li class="flex items-start gap-3">
+                                <span class="text-red-400 mt-1">•</span>
+                                <span>Underwater images suffer from <strong>severe color distortion</strong>, haze, and blurriness due to wavelength-dependent light absorption and scattering</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="text-red-400 mt-1">•</span>
+                                <span>Traditional enhancement methods (histogram equalization, filtering) <strong>fail to handle complex underwater conditions</strong>, often producing artifacts and low contrast</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="text-red-400 mt-1">•</span>
+                                <span>Current AI methods are <strong>computationally heavy</strong>, unsuitable for real-time use on AUVs/ROVs operating in low-power and low-bandwidth environments</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="text-red-400 mt-1">•</span>
+                                <span>Lack of <strong>adaptive systems</strong> that can perform consistently across varying turbidity, salinity, and lighting conditions</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="glass-panel p-6 bg-red-500/5 border-red-500/30">
+                        <div class="flex items-center gap-4">
+                            <i data-lucide="target" class="w-8 h-8 text-red-400"></i>
+                            <div>
+                                <div class="font-bold text-white">Critical Impact</div>
+                                <div class="text-sm text-gray-400">Defense and industrial operations face reduced visibility, slower threat detection, and lower mission efficiency</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <div class="comparison-container h-96" id="problem-slider">
+                        <img src="https://kimi-web-img.moonshot.cn/img/thumbs.dreamstime.com/5cfd4605fd1cef83a3207c3dfc4fb93e63074abe.jpg" class="comparison-image before-image" alt="Murky underwater">
+                        <img src="https://kimi-web-img.moonshot.cn/img/images.unsplash.com/e27a4699dbdba3cf5298c6a4ffdf74a09900fc13" class="comparison-image after-image" alt="Clear underwater">
+                        <div class="slider-handle" style="left: 30%;">
+                            <div class="slider-button">
+                                <i data-lucide="move-horizontal" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="absolute top-4 left-4 bg-black/70 px-3 py-1 rounded text-xs font-bold text-white">CURRENT REALITY</div>
+                        <div class="absolute top-4 right-4 bg-cyan-500/80 px-3 py-1 rounded text-xs font-bold text-white">WHAT WE NEED</div>
+                    </div>
+                    
+                    <div class="mt-4 glass-panel p-4 text-center">
+                        <p class="text-sm text-gray-400">Drag to see the difference between raw underwater footage and clarity requirements for defense operations</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 3: Proposed Solution -->
+    <section class="slide bg-gradient-ocean" id="slide-2">
+        <div class="section-number top-4 right-8">02</div>
+        <div class="flex-1 flex flex-col relative z-10 max-w-7xl mx-auto w-full">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-1 w-16 bg-cyan-400"></div>
+                <h2 class="text-5xl font-bold display-font">Proposed Solution</h2>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8 mb-8">
+                <div class="glass-card p-6 lg:col-span-2">
+                    <h3 class="text-2xl font-bold text-cyan-400 mb-4">Computational Marine Imagery Platform</h3>
+                    <p class="text-gray-300 mb-6 leading-relaxed">
+                        A <strong>sensor-agnostic, AI-driven underwater image enhancement system</strong> that restores clarity, color balance, and contrast across all underwater conditions. Our diffusion-based models operate in real-time on edge devices while maintaining centralized learning capabilities.
+                    </p>
+                    
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="zap" class="w-5 h-5 text-cyan-400"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-white">Real-Time Enhancement</div>
+                                <div class="text-xs text-gray-400">MobileIE & LU2net process at 1100 FPS on edge devices</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="scan" class="w-5 h-5 text-cyan-400"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-white">Species Detection</div>
+                                <div class="text-xs text-gray-400">YOLO-based identification of marine life & threats</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="cpu" class="w-5 h-5 text-cyan-400"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-white">Edge Optimized</div>
+                                <div class="text-xs text-gray-400">Runs on Jetson Nano/Xavier NX with &lt;15W power</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="refresh-cw" class="w-5 h-5 text-cyan-400"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-white">Auto-Retraining</div>
+                                <div class="text-xs text-gray-400">Nightly updates with fresh ROV data via CLIP validation</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="glass-card p-6 text-center">
+                        <i data-lucide="shield" class="w-12 h-12 text-cyan-400 mx-auto mb-3"></i>
+                        <div class="font-bold text-white mb-1">Maritime Defense</div>
+                        <div class="text-xs text-gray-400">Submarine, mine & diver detection</div>
+                    </div>
+                    <div class="glass-card p-6 text-center">
+                        <i data-lucide="droplet" class="w-12 h-12 text-cyan-400 mx-auto mb-3"></i>
+                        <div class="font-bold text-white mb-1">Petrochemical</div>
+                        <div class="text-xs text-gray-400">Pipeline & rig inspection</div>
+                    </div>
+                    <div class="glass-card p-6 text-center">
+                        <i data-lucide="microscope" class="w-12 h-12 text-cyan-400 mx-auto mb-3"></i>
+                        <div class="font-bold text-white mb-1">Marine Research</div>
+                        <div class="text-xs text-gray-400">Species cataloging & habitat mapping</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Architecture Flow -->
+            <div class="glass-panel p-6">
+                <h4 class="text-lg font-bold mb-4 text-center text-gray-400 uppercase tracking-wider">System Architecture</h4>
+                <div class="flex items-center justify-between gap-4 text-center">
+                    <div class="flex-1 glass-card p-4">
+                        <div class="text-2xl mb-2">📷</div>
+                        <div class="font-semibold text-sm">AUV/ROV Input</div>
+                        <div class="text-xs text-gray-500">Live Camera Feed</div>
+                    </div>
+                    <i data-lucide="arrow-right" class="w-6 h-6 text-cyan-400"></i>
+                    <div class="flex-1 glass-card p-4 border-cyan-400/50">
+                        <div class="text-2xl mb-2">⚡</div>
+                        <div class="font-semibold text-sm text-cyan-400">MobileIE/LU2net</div>
+                        <div class="text-xs text-gray-500">Edge Enhancement</div>
+                    </div>
+                    <i data-lucide="arrow-right" class="w-6 h-6 text-cyan-400"></i>
+                    <div class="flex-1 glass-card p-4">
+                        <div class="text-2xl mb-2">🎯</div>
+                        <div class="font-semibold text-sm">YOLO Detection</div>
+                        <div class="text-xs text-gray-500">Threat/Species ID</div>
+                    </div>
+                    <i data-lucide="arrow-right" class="w-6 h-6 text-cyan-400"></i>
+                    <div class="flex-1 glass-card p-4">
+                        <div class="text-2xl mb-2">☁️</div>
+                        <div class="font-semibold text-sm">Central Server</div>
+                        <div class="text-xs text-gray-500">Retraining & Analytics</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 4: Technical Approach -->
+    <section class="slide bg-gradient-ocean" id="slide-3">
+        <div class="section-number top-4 left-8">03</div>
+        <div class="flex-1 flex flex-col relative z-10 max-w-7xl mx-auto w-full">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-1 w-16 bg-cyan-400"></div>
+                <h2 class="text-5xl font-bold display-font">Technical Approach</h2>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-12">
+                <!-- Technologies -->
+                <div>
+                    <h3 class="text-2xl font-bold text-cyan-400 mb-6 flex items-center gap-2">
+                        <i data-lucide="layers" class="w-6 h-6"></i>
+                        Technology Stack
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div class="glass-card p-5">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="font-bold text-lg text-white">UDnet</div>
+                                <span class="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded">Server</span>
+                            </div>
+                            <p class="text-sm text-gray-400 mb-2">Unpaired deep learning framework for initial enhancement training on EUVP, UIEB datasets</p>
+                            <div class="text-xs text-cyan-400">~5 hours on RTX 2080 Ti • 0.03s inference</div>
+                        </div>
+
+                        <div class="glass-card p-5">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="font-bold text-lg text-white">LU2net</div>
+                                <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded">Edge</span>
+                            </div>
+                            <p class="text-sm text-gray-400 mb-2">Lightweight network for real-time underwater image enhancement</p>
+                            <div class="text-xs text-cyan-400">12-30 FPS (CPU) • >100 FPS (GPU)</div>
+                        </div>
+
+                        <div class="glass-card p-5">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="font-bold text-lg text-white">MobileIE</div>
+                                <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded">Edge</span>
+                            </div>
+                            <p class="text-sm text-gray-400 mb-2">Extremely lightweight ConvNet for mobile devices</p>
+                            <div class="text-xs text-cyan-400">1100 FPS • Ideal for real-time edge deployment</div>
+                        </div>
+
+                        <div class="glass-card p-5">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="font-bold text-lg text-white">CLIP + YOLO</div>
+                                <span class="text-xs bg-orange-500/20 text-orange-300 px-2 py-1 rounded">Validation</span>
+                            </div>
+                            <p class="text-sm text-gray-400">Vision-language model for data quality assessment and threat detection</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Methodology -->
+                <div>
+                    <h3 class="text-2xl font-bold text-cyan-400 mb-6 flex items-center gap-2">
+                        <i data-lucide="workflow" class="w-6 h-6"></i>
+                        Methodology
+                    </h3>
+
+                    <div class="space-y-6">
+                        <div class="timeline-item pb-6">
+                            <div class="font-bold text-white mb-1">1. Training Phase (Server)</div>
+                            <ul class="text-sm text-gray-400 space-y-1">
+                                <li>• Train UDnet using unpaired data from EUVP, UIEB, Underwater ImageNet</li>
+                                <li>• Generate pseudo-paired data for LU2net & MobileIE</li>
+                                <li>• Validate with CLIP & YOLO to remove bad samples</li>
+                                <li>• Custom Indian Ocean Dataset (IOD) for regional specificity</li>
+                            </ul>
+                        </div>
+
+                        <div class="timeline-item pb-6">
+                            <div class="font-bold text-white mb-1">2. Deployment Phase (Edge)</div>
+                            <ul class="text-sm text-gray-400 space-y-1">
+                                <li>• Run MobileIE/LU2net for frame enhancement on Jetson devices</li>
+                                <li>• Feed enhanced frames to YOLO detector for real-time analysis</li>
+                                <li>• Send telemetry and data back to central server</li>
+                            </ul>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="font-bold text-white mb-1">3. Retraining Loop</div>
+                            <ul class="text-sm text-gray-400 space-y-1">
+                                <li>• Nightly retraining using new ROV-collected data</li>
+                                <li>• CLIP-based validation filters poor samples</li>
+                                <li>• Automated weight distribution to deployed devices</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 glass-panel p-4 bg-cyan-500/5 border-cyan-500/30">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="database" class="w-8 h-8 text-cyan-400"></i>
+                            <div>
+                                <div class="font-semibold text-white">Datasets</div>
+                                <div class="text-xs text-gray-400">EUVP • UIEB • Underwater ImageNet • Custom IOD</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="grid grid-cols-4 gap-4 mt-8">
+                <div class="glass-panel p-4 text-center">
+                    <div class="text-2xl font-bold text-cyan-400">PyTorch</div>
+                    <div class="text-xs text-gray-500">Framework</div>
+                </div>
+                <div class="glass-panel p-4 text-center">
+                    <div class="text-2xl font-bold text-cyan-400">TensorRT</div>
+                    <div class="text-xs text-gray-500">Optimization</div>
+                </div>
+                <div class="glass-panel p-4 text-center">
+                    <div class="text-2xl font-bold text-cyan-400">OpenCV</div>
+                    <div class="text-xs text-gray-500">Processing</div>
+                </div>
+                <div class="glass-panel p-4 text-center">
+                    <div class="text-2xl font-bold text-cyan-400">ONNX</div>
+                    <div class="text-xs text-gray-500">Runtime</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 5: Feasibility & Viability -->
+    <section class="slide bg-gradient-ocean" id="slide-4">
+        <div class="section-number top-4 right-8">04</div>
+        <div class="flex-1 flex flex-col relative z-10 max-w-7xl mx-auto w-full">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-1 w-16 bg-cyan-400"></div>
+                <h2 class="text-5xl font-bold display-font">Feasibility & Viability</h2>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8 mb-8">
+                <div class="glass-card p-6 border-t-4 border-emerald-400">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                            <i data-lucide="check-circle" class="w-6 h-6 text-emerald-400"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">Technical Feasibility</h3>
+                    </div>
+                    <ul class="space-y-3 text-sm text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="cpu" class="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0"></i>
+                            <span>Proven architectures (UDnet, LU2net, MobileIE) already validated in research literature</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="battery" class="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0"></i>
+                            <span>Edge deployment tested on Jetson Nano/Xavier NX within &lt;15W power budget</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="zap" class="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0"></i>
+                            <span>1100 FPS on edge devices enables real-time processing without latency</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="glass-card p-6 border-t-4 border-cyan-400">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                            <i data-lucide="dollar-sign" class="w-6 h-6 text-cyan-400"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">Economic Viability</h3>
+                    </div>
+                    <ul class="space-y-3 text-sm text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="trending-down" class="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0"></i>
+                            <span>INT8 quantization reduces computational cost by 75%</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="server" class="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0"></i>
+                            <span>Cloud-based retraining minimizes edge hardware costs</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="scale" class="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0"></i>
+                            <span>Modular architecture allows phased deployment</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="glass-card p-6 border-t-4 border-purple-400">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                            <i data-lucide="wrench" class="w-6 h-6 text-purple-400"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">Deployment</h3>
+                    </div>
+                    <ul class="space-y-3 text-sm text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="download" class="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0"></i>
+                            <span>Over-the-air model updates via automated pipeline</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="settings" class="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0"></i>
+                            <span>Sensor-agnostic design works with any camera input</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="maximize" class="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0"></i>
+                            <span>Scales from single ROV to fleet-wide deployment</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Challenges & Mitigations -->
+            <div class="glass-panel p-8">
+                <h3 class="text-2xl font-bold mb-6 text-center">Challenges & Mitigation Strategies</h3>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-4 p-4 bg-red-500/5 rounded-lg border border-red-500/20">
+                            <i data-lucide="alert-circle" class="w-6 h-6 text-red-400 flex-shrink-0"></i>
+                            <div>
+                                <div class="font-semibold text-white mb-1">Lack of Paired Data</div>
+                                <div class="text-sm text-gray-400">Underwater image pairs (clean/corrupted) are rare</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 bg-red-500/5 rounded-lg border border-red-500/20">
+                            <i data-lucide="waves" class="w-6 h-6 text-red-400 flex-shrink-0"></i>
+                            <div>
+                                <div class="font-semibold text-white mb-1">Ocean Variability</div>
+                                <div class="text-sm text-gray-400">Varying salinity, turbidity, and lighting conditions</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 bg-red-500/5 rounded-lg border border-red-500/20">
+                            <i data-lucide="hard-drive" class="w-6 h-6 text-red-400 flex-shrink-0"></i>
+                            <div>
+                                <div class="font-semibold text-white mb-1">Edge Constraints</div>
+                                <div class="text-sm text-gray-400">Limited compute power on AUVs/ROVs</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-4 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
+                            <i data-lucide="check" class="w-6 h-6 text-emerald-400 flex-shrink-0"></i>
+                            <div>
+                                <div class="font-semibold text-white mb-1">Unpaired Training + Pseudo Pairs</div>
+                                <div class="text-sm text-gray-400">UDnet trained on unpaired data; synthetic pairs generated</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
+                            <i data-lucide="check" class="w-6 h-6 text-emerald-400 flex-shrink-0"></i>
+                            <div>
+                                <div class="font-semibold text-white mb-1">Continuous Retraining</div>
+                                <div class="text-sm text-gray-400">Nightly updates with fresh ROV data adapt to conditions</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
+                            <i data-lucide="check" class="w-6 h-6 text-emerald-400 flex-shrink-0"></i>
+                            <div>
+                                <div class="font-semibold text-white mb-1">Model Pruning & Quantization</div>
+                                <div class="text-sm text-gray-400">INT8 quantization and TensorRT optimization</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 6: Impact & Benefits -->
+    <section class="slide bg-gradient-ocean" id="slide-5">
+        <div class="section-number top-4 left-8">05</div>
+        <div class="flex-1 flex flex-col relative z-10 max-w-7xl mx-auto w-full">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-1 w-16 bg-cyan-400"></div>
+                <h2 class="text-5xl font-bold display-font">Impact & Benefits</h2>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-12 mb-8">
+                <div class="space-y-6">
+                    <div class="glass-card p-6">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                                <i data-lucide="shield-check" class="w-7 h-7 text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-white">Maritime Security</h3>
+                                <p class="text-sm text-gray-400">Defense Applications</p>
+                            </div>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-300">
+                            <li>• Enhanced detection of submarines, mines, and unauthorized divers</li>
+                            <li>• Real-time threat alerts for coastal surveillance systems</li>
+                            <li>• Improved navigation clarity for naval operations in turbid waters</li>
+                        </ul>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                                <i data-lucide="leaf" class="w-7 h-7 text-emerald-400"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-white">Marine Conservation</h3>
+                                <p class="text-sm text-gray-400">Environmental Impact</p>
+                            </div>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-300">
+                            <li>• Non-invasive species cataloging and biodiversity monitoring</li>
+                            <li>• Coral reef health assessment through clear imagery</li>
+                            <li>• Climate change impact studies on marine ecosystems</li>
+                        </ul>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                                <i data-lucide="factory" class="w-7 h-7 text-amber-400"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-white">Industrial Efficiency</h3>
+                                <p class="text-sm text-gray-400">Economic Benefits</p>
+                            </div>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-300">
+                            <li>• Reduced inspection time for underwater pipelines and rigs</li>
+                            <li>• Safer offshore maintenance operations with better visibility</li>
+                            <li>• Cost reduction in petroleum exploration surveys</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="glass-panel p-8 bg-gradient-to-br from-cyan-500/10 to-transparent border-cyan-500/30">
+                        <h3 class="text-2xl font-bold mb-6 text-cyan-400">Measurable Outcomes</h3>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium">Threat Detection Accuracy</span>
+                                    <span class="text-cyan-400 font-bold">98.5% mAP</span>
+                                </div>
+                                <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-cyan-400 w-[98.5%]"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium">Image Quality Improvement (UIQM)</span>
+                                    <span class="text-cyan-400 font-bold">+85%</span>
+                                </div>
+                                <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-cyan-400 w-[85%]"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium">Processing Latency</span>
+                                    <span class="text-cyan-400 font-bold">&lt;50ms</span>
+                                </div>
+                                <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-cyan-400 w-[95%]"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium">Power Efficiency</span>
+                                    <span class="text-cyan-400 font-bold">15W Max</span>
+                                </div>
+                                <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-cyan-400 w-[90%]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6 text-center">
+                        <i data-lucide="globe" class="w-12 h-12 text-cyan-400 mx-auto mb-3"></i>
+                        <h4 class="font-bold text-white mb-2">National Priority Alignment</h4>
+                        <p class="text-sm text-gray-400">Supports India's Deep Ocean Mission, Blue Economy initiatives, and maritime security objectives under the Defence Ministry's modernization programs.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 7: Innovation & Value Proposition -->
+    <section class="slide bg-gradient-ocean" id="slide-6">
+        <div class="section-number top-4 right-8">06</div>
+        <div class="flex-1 flex flex-col relative z-10 max-w-7xl mx-auto w-full">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-1 w-16 bg-cyan-400"></div>
+                <h2 class="text-5xl font-bold display-font">Innovation & Value Proposition</h2>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-6 mb-8">
+                <div class="lg:col-span-2 glass-card p-8 border-2 border-cyan-400/30 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-400/10 rounded-bl-full"></div>
+                    <h3 class="text-2xl font-bold text-cyan-400 mb-4">What Makes Us Novel?</h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                                    <span class="text-cyan-400 font-bold text-sm">1</span>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-white">First Unified Marine Imagery Platform</div>
+                                    <div class="text-sm text-gray-400">Combines enhancement + detection + analytics in one computational software suite</div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                                    <span class="text-cyan-400 font-bold text-sm">2</span>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-white">Indian Ocean Dataset (IOD)</div>
+                                    <div class="text-sm text-gray-400">First region-specific dataset capturing unique turbidity patterns of Indian waters</div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                                    <span class="text-cyan-400 font-bold text-sm">3</span>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-white">CLIP-Based Validation Loop</div>
+                                    <div class="text-sm text-gray-400">Novel use of vision-language models for automated training data quality assessment</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                                    <span class="text-cyan-400 font-bold text-sm">4</span>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-white">Adaptive Auto-Retraining</div>
+                                    <div class="text-sm text-gray-400">Self-improving system that adapts to local ocean conditions without human intervention</div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                                    <span class="text-cyan-400 font-bold text-sm">5</span>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-white">Extreme Edge Optimization</div>
+                                    <div class="text-sm text-gray-400">1100 FPS on mobile devices—highest performance-to-power ratio in category</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="glass-card p-6 text-center bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/30">
+                        <i data-lucide="award" class="w-10 h-10 text-purple-400 mx-auto mb-3"></i>
+                        <div class="font-bold text-white mb-1">Competitive Advantage</div>
+                        <div class="text-xs text-gray-400">vs. EyeROV, Coratia Technologies</div>
+                    </div>
+
+                    <div class="glass-card p-6 text-center bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/30">
+                        <i data-lucide="file-text" class="w-10 h-10 text-amber-400 mx-auto mb-3"></i>
+                        <div class="font-bold text-white mb-1">IP Potential</div>
+                        <div class="text-xs text-gray-400">Proprietary IOD dataset & adaptive algorithms patentable</div>
+                    </div>
+
+                    <div class="glass-card p-6 text-center bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/30">
+                        <i data-lucide="trending-up" class="w-10 h-10 text-emerald-400 mx-auto mb-3"></i>
+                        <div class="font-bold text-white mb-1">Scalability</div>
+                        <div class="text-xs text-gray-400">Modular SaaS architecture for global deployment</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="glass-panel p-6 overflow-x-auto">
+                <h4 class="text-lg font-bold mb-4 text-gray-400 uppercase tracking-wider">Competitive Landscape Analysis</h4>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-white/10">
+                            <th class="text-left py-3 px-4 text-gray-400 font-medium">Feature</th>
+                            <th class="text-center py-3 px-4 text-cyan-400 font-bold">Underwater AI</th>
+                            <th class="text-center py-3 px-4 text-gray-400">EyeROV</th>
+                            <th class="text-center py-3 px-4 text-gray-400">Coratia Tech</th>
+                            <th class="text-center py-3 px-4 text-gray-400">Raynas</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-300">
+                        <tr class="border-b border-white/5">
+                            <td class="py-3 px-4">AI Enhancement</td>
+                            <td class="text-center py-3 px-4 text-emerald-400">✓ Advanced</td>
+                            <td class="text-center py-3 px-4 text-amber-400">~ Basic</td>
+                            <td class="text-center py-3 px-4 text-gray-500">✗ None</td>
+                            <td class="text-center py-3 px-4 text-gray-500">✗ None</td>
+                        </tr>
+                        <tr class="border-b border-white/5">
+                            <td class="py-3 px-4">Species Detection</td>
+                            <td class="text-center py-3 px-4 text-emerald-400">✓ Integrated</td>
+                            <td class="text-center py-3 px-4 text-gray-500">✗</td>
+                            <td class="text-center py-3 px-4 text-gray-500">✗</td>
+                            <td class="text-center py-3 px-4 text-amber-400">~ Limited</td>
+                        </tr>
+                        <tr class="border-b border-white/5">
+                            <td class="py-3 px-4">Edge Deployment</td>
+                            <td class="text-center py-3 px-4 text-emerald-400">✓ Optimized</td>
+                            <td class="text-center py-3 px-4 text-amber-400">~ Partial</td>
+                            <td class="text-center py-3 px-4 text-amber-400">~ Cloud</td>
+                            <td class="text-center py-3 px-4 text-amber-400">~ Hardware</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-4">Auto-Retraining</td>
+                            <td class="text-center py-3 px-4 text-emerald-400">✓ Unique</td>
+                            <td class="text-center py-3 px-4 text-gray-500">✗</td>
+                            <td class="text-center py-3 px-4 text-gray-500">✗</td>
+                            <td class="text-center py-3 px-4 text-gray-500">✗</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 8: Market Analysis -->
+    <section class="slide bg-gradient-ocean" id="slide-7">
+        <div class="section-number top-4 left-8">07</div>
+        <div class="flex-1 flex flex-col relative z-10 max-w-7xl mx-auto w-full">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-1 w-16 bg-cyan-400"></div>
+                <h2 class="text-5xl font-bold display-font">Market Analysis</h2>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-12">
+                <div class="space-y-6">
+                    <div class="glass-card p-6">
+                        <h3 class="text-xl font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                            <i data-lucide="target" class="w-5 h-5"></i>
+                            Target Market
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="shield" class="w-5 h-5 text-cyan-400"></i>
+                                    <span class="font-medium">Defense & Security</span>
+                                </div>
+                                <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded">Primary</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="factory" class="w-5 h-5 text-amber-400"></i>
+                                    <span class="font-medium">Petrochemical Industry</span>
+                                </div>
+                                <span class="text-xs bg-amber-500/20 text-amber-300 px-2 py-1 rounded">High Value</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="microscope" class="w-5 h-5 text-emerald-400"></i>
+                                    <span class="font-medium">Research Institutes</span>
+                                </div>
+                                <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded">Volume</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="anchor" class="w-5 h-5 text-purple-400"></i>
+                                    <span class="font-medium">Commercial Diving</span>
+                                </div>
+                                <span class="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded">Emerging</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <h3 class="text-xl font-bold text-cyan-400 mb-4">Market Need</h3>
+                        <p class="text-sm text-gray-300 mb-4">
+                            Current ROV/AUV operators rely on expensive hardware upgrades or post-processing that delays critical decisions. 
+                            <strong>No solution exists</strong> for real-time, adaptive enhancement on low-power edge devices.
+                        </p>
+                        <div class="flex items-center gap-2 text-sm text-amber-400">
+                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                            <span>Gap: Hardware-agnostic software enhancement layer</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="glass-panel p-6 bg-gradient-to-br from-cyan-500/10 to-transparent">
+                        <h3 class="text-xl font-bold mb-6">Market Size (TAM/SAM/SOM)</h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm text-gray-400">TAM: Global Underwater Imaging</span>
+                                    <span class="text-cyan-400 font-bold">$4.2B (2025)</span>
+                                </div>
+                                <div class="h-2 bg-gray-700 rounded-full">
+                                    <div class="h-full bg-cyan-400/30 w-full rounded-full"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm text-gray-400">SAM: AI-Enhanced Marine Systems</span>
+                                    <span class="text-cyan-400 font-bold">$680M</span>
+                                </div>
+                                <div class="h-2 bg-gray-700 rounded-full">
+                                    <div class="h-full bg-cyan-400/50 w-[65%] rounded-full"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm text-gray-400">SOM: India + SE Asia Defense/Industry</span>
+                                    <span class="text-cyan-400 font-bold">$45M</span>
+                                </div>
+                                <div class="h-2 bg-gray-700 rounded-full">
+                                    <div class="h-full bg-cyan-400 w-[35%] rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 pt-6 border-t border-white/10">
+                            <div class="grid grid-cols-2 gap-4 text-center">
+                                <div>
+                                    <div class="text-2xl font-bold text-white">12.4%</div>
+                                    <div class="text-xs text-gray-500">CAGR (2025-2030)</div>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-bold text-white">$8.9B</div>
+                                    <div class="text-xs text-gray-500">Projected 2030</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <h3 class="text-lg font-bold mb-4">Go-to-Market Strategy</h3>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-xs">1</div>
+                                <span class="text-gray-300">Pilot with Indian Navy & NIO (National Institute of Oceanography)</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-xs">2</div>
+                                <span class="text-gray-300">ONGC & Petrochemical partnerships for offshore inspection</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-xs">3</div>
+                                <span class="text-gray-300">Academic licensing to IISERs, IITs, NISER for research</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-xs">4</div>
+                                <span class="text-gray-300">International expansion to SE Asian maritime markets</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 9: Research Background -->
+    <section class="slide bg-gradient-ocean" id="slide-8">
+        <div class="section-number top-4 right-8">08</div>
+        <div class="flex-1 flex flex-col relative z-10 max-w-7xl mx-auto w-full">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-1 w-16 bg-cyan-400"></div>
+                <h2 class="text-5xl font-bold display-font">Research Background</h2>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-12">
+                <div>
+                    <h3 class="text-2xl font-bold text-cyan-400 mb-6">Key References</h3>
+                    <div class="space-y-4">
+                        <div class="glass-card p-5 border-l-4 border-cyan-400">
+                            <div class="text-sm font-bold text-white mb-1">Saleh, Sheaves, et al. (2025)</div>
+                            <div class="text-xs text-gray-400 mb-2">Expert Systems with Applications</div>
+                            <div class="text-sm text-gray-300">Adaptive deep learning framework for robust unsupervised underwater image enhancement</div>
+                            <div class="text-xs text-cyan-400 mt-2">DOI: 10.1016/j.eswa.2024.126314</div>
+                        </div>
+
+                        <div class="glass-card p-5 border-l-4 border-purple-400">
+                            <div class="text-sm font-bold text-white mb-1">Li, Chongyi, et al. (2019)</div>
+                            <div class="text-xs text-gray-400 mb-2">IEEE Transactions on Image Processing</div>
+                            <div class="text-sm text-gray-300">An underwater image enhancement benchmark dataset and beyond</div>
+                            <div class="text-xs text-purple-400 mt-2">EUVP/UIEB Dataset Foundation</div>
+                        </div>
+
+                        <div class="glass-card p-5 border-l-4 border-emerald-400">
+                            <div class="text-sm font-bold text-white mb-1">Yan, Hailong, et al. (2025)</div>
+                            <div class="text-xs text-gray-400 mb-2">arXiv preprint</div>
+                            <div class="text-sm text-gray-300">MobileIE: An Extremely Lightweight and Effective ConvNet for Real-Time Image Enhancement on Mobile Devices</div>
+                            <div class="text-xs text-emerald-400 mt-2">arXiv:2507.01838</div>
+                        </div>
+
+                        <div class="glass-card p-5 border-l-4 border-amber-400">
+                            <div class="text-sm font-bold text-white mb-1">Yang, Haodong, et al. (2024)</div>
+                            <div class="text-xs text-gray-400 mb-2">arXiv preprint</div>
+                            <div class="text-sm text-gray-300">LU2Net: a lightweight network for real-time underwater image enhancement</div>
+                            <div class="text-xs text-amber-400 mt-2">arXiv:2406.14973</div>
+                        </div>
+
+                        <div class="glass-card p-5 border-l-4 border-pink-400">
+                            <div class="text-sm font-bold text-white mb-1">Bian, Yali & Shah, Rahul C.</div>
+                            <div class="text-xs text-gray-400 mb-2">ClipGrader Research</div>
+                            <div class="text-sm text-gray-300">Leveraging Vision-Language Models for Robust Label Quality Assessment in Object Detection</div>
+                            <div class="text-xs text-pink-400 mt-2">CLIP Validation Framework</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="glass-panel p-8">
+                        <h3 class="text-xl font-bold mb-6 text-center">State-of-the-Art Integration</h3>
+                        
+                        <div class="relative h-64 mb-6">
+                            <!-- Central Hub -->
+                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-cyan-500/20 rounded-full flex items-center justify-center border-2 border-cyan-400 z-10">
+                                <span class="text-xs font-bold text-center text-cyan-400">Underwater<br>AI</span>
+                            </div>
+                            
+                            <!-- Satellites -->
+                            <div class="absolute top-0 left-1/4 w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center text-xs text-purple-300 text-center p-1">UDnet<br>Base</div>
+                            <div class="absolute top-0 right-1/4 w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center text-xs text-emerald-300 text-center p-1">MobileIE<br>Edge</div>
+                            <div class="absolute bottom-0 left-1/4 w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center text-xs text-amber-300 text-center p-1">LU2net<br>Real-time</div>
+                            <div class="absolute bottom-0 right-1/4 w-16 h-16 bg-pink-500/20 rounded-full flex items-center justify-center text-xs text-pink-300 text-center p-1">CLIP<br>Valid</div>
+                            
+                            <!-- Lines -->
+                            <svg class="absolute inset-0 w-full h-full" style="z-index: 5;">
+                                <line x1="50%" y1="50%" x2="25%" y2="15%" stroke="rgba(0,180,216,0.3)" stroke-width="2"/>
+                                <line x1="50%" y1="50%" x2="75%" y2="15%" stroke="rgba(0,180,216,0.3)" stroke-width="2"/>
+                                <line x1="50%" y1="50%" x2="25%" y2="85%" stroke="rgba(0,180,216,0.3)" stroke-width="2"/>
+                                <line x1="50%" y1="50%" x2="75%" y2="85%" stroke="rgba(0,180,216,0.3)" stroke-width="2"/>
+                            </svg>
+                        </div>
+
+                        <div class="text-sm text-gray-400 text-center">
+                            Our innovation lies in the <span class="text-cyan-400">integration</span> of these proven technologies into a cohesive, deployable system with novel Indian Ocean Dataset and automated retraining pipelines.
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <div class="flex items-center gap-4 mb-4">
+                            <i data-lucide="book-open" class="w-8 h-8 text-cyan-400"></i>
+                            <div>
+                                <div class="font-bold text-white">Custom Research Contribution</div>
+                                <div class="text-xs text-gray-400">Indian Ocean Dataset (IOD)</div>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-300">
+                            First comprehensive dataset capturing unique optical properties of Indian Ocean waters—higher turbidity, monsoon-induced variations, and coastal sediment patterns not represented in EUVP/UIEB.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 10: Commercialization & Scale-Up -->
+    <section class="slide bg-gradient-ocean" id="slide-9">
+        <div class="section-number top-4 left-8">09</div>
+        <div class="flex-1 flex flex-col relative z-10 max-w-7xl mx-auto w-full">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-1 w-16 bg-cyan-400"></div>
+                <h2 class="text-5xl font-bold display-font">Scale-Up Pathway</h2>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8 mb-8">
+                <!-- Commercialization Routes -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="glass-card p-6 border-l-4 border-cyan-400">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i data-lucide="rocket" class="w-8 h-8 text-cyan-400"></i>
+                            <h3 class="text-xl font-bold">Commercialization Strategy</h3>
+                        </div>
+                        
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <div class="text-center p-4 bg-white/5 rounded-lg">
+                                <i data-lucide="building-2" class="w-8 h-8 text-cyan-400 mx-auto mb-2"></i>
+                                <div class="font-semibold text-sm mb-1">B2B Licensing</div>
+                                <div class="text-xs text-gray-400">Software licenses to defense contractors & oil companies</div>
+                            </div>
+                            <div class="text-center p-4 bg-white/5 rounded-lg">
+                                <i data-lucide=" GraduationCap" class="w-8 h-8 text-purple-400 mx-auto mb-2"></i>
+                                <div class="font-semibold text-sm mb-1">Academic SaaS</div>
+                                <div class="text-xs text-gray-400">Subscription model for research institutions</div>
+                            </div>
+                            <div class="text-center p-4 bg-white/5 rounded-lg">
+                                <i data-lucide="handshake" class="w-8 h-8 text-emerald-400 mx-auto mb-2"></i>
+                                <div class="font-semibold text-sm mb-1">OEM Integration</div>
+                                <div class="text-xs text-gray-400">Pre-installed on ROV/AUV manufacturers</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <h3 class="text-lg font-bold mb-4 text-cyan-400">Resource Requirements</h3>
+                        <div class="grid md:grid-cols-2 gap-4 text-sm">
+                            <div class="space-y-2">
+                                <div class="flex justify-between p-2 bg-white/5 rounded">
+                                    <span class="text-gray-400">Seed Funding</span>
+                                    <span class="text-cyan-400 font-semibold">₹50 Lakhs</span>
+                                </div>
+                                <div class="flex justify-between p-2 bg-white/5 rounded">
+                                    <span class="text-gray-400">Compute Infrastructure</span>
+                                    <span class="text-cyan-400 font-semibold">RTX A6000 Cluster</span>
+                                </div>
+                                <div class="flex justify-between p-2 bg-white/5 rounded">
+                                    <span class="text-gray-400">ROV Partnerships</span>
+                                    <span class="text-cyan-400 font-semibold">2-3 OEMs</span>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex justify-between p-2 bg-white/5 rounded">
+                                    <span class="text-gray-400">Data Collection</span>
+                                    <span class="text-cyan-400 font-semibold">Indian Navy Collaboration</span>
+                                </div>
+                                <div class="flex justify-between p-2 bg-white/5 rounded">
+                                    <span class="text-gray-400">Regulatory</span>
+                                    <span class="text-cyan-400 font-semibold">DRDO Clearance</span>
+                                </div>
+                                <div class="flex justify-between p-2 bg-white/5 rounded">
+                                    <span class="text-gray-400">Team Expansion</span>
+                                    <span class="text-cyan-400 font-semibold">5-7 Engineers</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="glass-panel p-6">
+                    <h3 class="text-lg font-bold mb-6 text-center">24-Month Roadmap</h3>
+                    
+                    <div class="space-y-6">
+                        <div class="timeline-item">
+                            <div class="font-bold text-cyan-400 text-sm">Months 1-6</div>
+                            <div class="font-semibold text-white text-sm">Pilot Development</div>
+                            <div class="text-xs text-gray-400">Navy pilot program, IOD expansion</div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="font-bold text-cyan-400 text-sm">Months 7-12</div>
+                            <div class="font-semibold text-white text-sm">Product Hardening</div>
+                            <div class="text-xs text-gray-400">Regulatory compliance, edge optimization</div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="font-bold text-cyan-400 text-sm">Months 13-18</div>
+                            <div class="font-semibold text-white text-sm">Market Entry</div>
+                            <div class="text-xs text-gray-400">ONGC contracts, academic sales</div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="font-bold text-cyan-400 text-sm">Months 19-24</div>
+                            <div class="font-semibold text-white text-sm">Scale & Export</div>
+                            <div class="text-xs text-gray-400">SE Asia expansion, OEM partnerships</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Closing -->
+            <div class="glass-panel p-8 text-center bg-gradient-to-r from-cyan-500/10 via-transparent to-cyan-500/10 border-cyan-400/30">
+                <h3 class="text-3xl font-bold mb-4 display-font">Thank You</h3>
+                <p class="text-xl text-gray-300 mb-6">Bringing Clarity to the Depths</p>
+                <div class="flex justify-center items-center gap-8 mb-6">
+                    <div class="text-center">
+                        <div class="font-bold text-white">Team Underwater AI</div>
+                        <div class="text-sm text-cyan-400">IISER Kolkata</div>
+                    </div>
+                    <div class="h-12 w-px bg-white/20"></div>
+                    <div class="text-center">
+                        <div class="text-sm text-gray-400">Contact</div>
+                        <div class="text-cyan-400">underwater.ai@iiserkol.ac.in</div>
+                    </div>
+                </div>
+                <div class="flex justify-center gap-4 items-center">
+                    <img src="https://kimi-web-img.moonshot.cn/img/static.igem.org/1a2862b047f15fa62ac860357d7828d54acda7e1.png" alt="IISER Kolkata" class="h-12 w-auto bg-white/10 rounded p-2">
+                    <img src="https://kimi-web-img.moonshot.cn/img/apacnewsnetwork.com/e71afab4fcb414c916f6ad626acc405799f7746d.png" alt="MeitY" class="h-12 w-auto bg-white/10 rounded p-2">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Create bubbles
+        function createBubbles() {
+            const container = document.getElementById('bubbles');
+            for (let i = 0; i < 15; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                const size = Math.random() * 40 + 10;
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.animationDuration = `${Math.random() * 10 + 10}s`;
+                bubble.style.animationDelay = `${Math.random() * 5}s`;
+                container.appendChild(bubble);
+            }
+        }
+        createBubbles();
+
+        // Navigation
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const dots = document.querySelectorAll('.nav-dot');
+        const progressBar = document.getElementById('progressBar');
+
+        function updateNavigation(index) {
+            currentSlide = index;
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+            progressBar.style.width = `${((index + 1) / totalSlides) * 100}%`;
+        }
+
+        function scrollToSlide(index) {
+            if (index >= 0 && index < totalSlides) {
+                slides[index].scrollIntoView({ behavior: 'smooth' });
+                updateNavigation(index);
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                scrollToSlide(Math.min(currentSlide + 1, totalSlides - 1));
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                scrollToSlide(Math.max(currentSlide - 1, 0));
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                scrollToSlide(0);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                scrollToSlide(totalSlides - 1);
+            }
+        });
+
+        // Scroll spy
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.5
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const index = Array.from(slides).indexOf(entry.target);
+                    updateNavigation(index);
+                }
+            });
+        }, observerOptions);
+
+        slides.forEach(slide => observer.observe(slide));
+
+        // Problem slider interaction
+        const problemSlider = document.getElementById('problem-slider');
+        if (problemSlider) {
+            const handle = problemSlider.querySelector('.slider-handle');
+            const afterImg = problemSlider.querySelector('.after-image');
+            let isDragging = false;
+
+            function updateSlider(x) {
+                const rect = problemSlider.getBoundingClientRect();
+                let percentage = ((x - rect.left) / rect.width) * 100;
+                percentage = Math.max(0, Math.min(100, percentage));
+                handle.style.left = `${percentage}%`;
+                afterImg.style.clipPath = `polygon(0 0, ${percentage}% 0, ${percentage}% 100%, 0 100%)`;
+            }
+
+            handle.addEventListener('mousedown', () => isDragging = true);
+            document.addEventListener('mouseup', () => isDragging = false);
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) updateSlider(e.clientX);
+            });
+            problemSlider.addEventListener('click', (e) => updateSlider(e.clientX));
+        }
+
+        // Print handling
+        window.addEventListener('beforeprint', () => {
+            document.querySelector('.nav-dots').style.display = 'none';
+            document.getElementById('progressBar').style.display = 'none';
+        });
+
+        window.addEventListener('afterprint', () => {
+            document.querySelector('.nav-dots').style.display = 'flex';
+            document.getElementById('progressBar').style.display = 'block';
+        });
+    </script>
+</body>
+</html>

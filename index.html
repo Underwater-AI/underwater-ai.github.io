@@ -1,13 +1,18 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en" class="scroll-smooth" style="color-scheme: dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Underwater AI - Computational Marine Imagery</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="theme-color" content="#000814">
+    <meta name="description" content="Underwater AI — sensor-agnostic AI enhancement for underwater exploration. Real-time diffusion models recover lost information from murky footage.">
+    <title>Underwater AI — Computational Marine Imagery</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <style>
@@ -46,22 +51,47 @@
         /* Bubble Animation */
         .bubble {
             position: absolute;
-            bottom: -100px;
-            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0.1));
+            bottom: -120px;
             border-radius: 50%;
             animation: rise 15s infinite ease-in;
             pointer-events: none;
+            /* Glass sphere: specular highlight at top-left, deep tint at bottom-right */
+            background: radial-gradient(
+                circle at 32% 28%,
+                rgba(255, 255, 255, 0.92) 0%,
+                rgba(255, 255, 255, 0.45) 12%,
+                rgba(160, 220, 255, 0.25) 35%,
+                rgba(80, 170, 230, 0.12) 60%,
+                rgba(0, 100, 190, 0.18) 100%
+            );
+            border: 1px solid rgba(160, 220, 255, 0.5);
+            box-shadow:
+                inset -3px -4px 10px rgba(0, 80, 160, 0.35),
+                inset  2px  3px  8px rgba(255, 255, 255, 0.45),
+                0 2px 8px rgba(0, 140, 220, 0.15);
+        }
+        
+        /* Tiny inner reflection dot */
+        .bubble::before {
+            content: '';
+            position: absolute;
+            top: 14%;
+            left: 20%;
+            width: 22%;
+            height: 14%;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.85);
+            filter: blur(1px);
+            transform: rotate(-30deg);
         }
         
         @keyframes rise {
-            0% {
-                transform: translateY(0) scale(1);
-                opacity: 0.6;
-            }
-            100% {
-                transform: translateY(-120vh) scale(0.5);
-                opacity: 0;
-            }
+            0%   { transform: translateY(0)        translateX(0)         scale(1);    opacity: 0.72; }
+            20%  { transform: translateY(-20vh)    translateX(6px)       scale(0.98); opacity: 0.65; }
+            40%  { transform: translateY(-42vh)    translateX(-5px)      scale(0.95); opacity: 0.55; }
+            60%  { transform: translateY(-65vh)    translateX(8px)       scale(0.90); opacity: 0.40; }
+            80%  { transform: translateY(-88vh)    translateX(-4px)      scale(0.75); opacity: 0.20; }
+            100% { transform: translateY(-115vh)   translateX(0)         scale(0.55); opacity: 0; }
         }
         
         /* Before/After Slider Styles */
@@ -87,7 +117,6 @@
         }
         
         .before-image {
-            filter: grayscale(0.4) brightness(0.4) contrast(1.2) sepia(0.3) hue-rotate(160deg);
             z-index: 1;
         }
         
@@ -162,7 +191,8 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 16px;
-            transition: all 0.3s ease;
+            transition: transform 0.3s ease, background-color 0.3s ease,
+                        border-color 0.3s ease, box-shadow 0.3s ease;
         }
         
         .glass-card:hover {
@@ -172,6 +202,23 @@
             box-shadow: 0 20px 40px rgba(0,180,216,0.2);
         }
         
+        /* Skip link */
+        .skip-link {
+            position: absolute;
+            top: -100%;
+            left: 1rem;
+            padding: 0.5rem 1rem;
+            background: #00b4d8;
+            color: #000;
+            font-weight: 700;
+            border-radius: 0 0 8px 8px;
+            z-index: 9999;
+            transition: top 0.2s;
+        }
+        .skip-link:focus {
+            top: 0;
+        }
+
         /* Navigation */
         .nav-glass {
             background: rgba(0,21,36,0.8);
@@ -179,6 +226,37 @@
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         
+        /* Anchor scroll offset */
+        section[id] {
+            scroll-margin-top: 80px;
+        }
+
+        /* Headings */
+        h1, h2 {
+            text-wrap: balance;
+        }
+        h3 {
+            text-wrap: pretty;
+        }
+
+        /* Tabular numbers for stats */
+        .stat-number {
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum";
+        }
+
+        /* Focus visible */
+        :focus-visible {
+            outline: 2px solid #00b4d8;
+            outline-offset: 3px;
+            border-radius: 4px;
+        }
+
+        /* Touch targets */
+        button, [role="button"] {
+            touch-action: manipulation;
+        }
+
         /* Text gradient */
         .text-gradient {
             background: linear-gradient(135deg, #00b4d8 0%, #90e0ef 100%);
@@ -196,12 +274,28 @@
         .reveal {
             opacity: 0;
             transform: translateY(30px);
-            transition: all 0.8s ease-out;
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
         }
         
         .reveal.active {
             opacity: 1;
             transform: translateY(0);
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            .bubble { display: none; }
+            #water-canvas { display: none; }
+            .reveal {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
         }
         
         /* Detection hotspots */
@@ -244,14 +338,17 @@
 </head>
 <body class="antialiased">
 
+    <!-- Skip to main content -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <!-- 3D Water Background Canvas -->
-    <canvas id="water-canvas"></canvas>
+    <canvas id="water-canvas" aria-hidden="true"></canvas>
     
     <!-- Floating Bubbles -->
-    <div id="bubbles-container" class="fixed inset-0 pointer-events-none z-0"></div>
+    <div id="bubbles-container" class="fixed inset-0 pointer-events-none z-0" aria-hidden="true"></div>
 
     <!-- Navigation -->
-    <nav class="fixed top-0 w-full z-50 nav-glass transition-all duration-300" id="navbar">
+    <nav class="fixed top-0 w-full z-50 nav-glass transition-shadow duration-300" id="navbar" aria-label="Main navigation">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <div class="flex items-center space-x-3">
@@ -264,15 +361,16 @@
                 </div>
                 <div class="hidden md:flex space-x-8">
                     <a href="#hero" class="text-gray-300 hover:text-cyan-400 transition-colors font-medium">Home</a>
+                    <a href="#models" class="text-gray-300 hover:text-cyan-400 transition-colors font-medium">Models</a>
                     <a href="#technology" class="text-gray-300 hover:text-cyan-400 transition-colors font-medium">Technology</a>
                     <a href="#detection" class="text-gray-300 hover:text-cyan-400 transition-colors font-medium">Detection</a>
                     <a href="#customers" class="text-gray-300 hover:text-cyan-400 transition-colors font-medium">Solutions</a>
                     <a href="#team" class="text-gray-300 hover:text-cyan-400 transition-colors font-medium">Team</a>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <img src="https://kimi-web-img.moonshot.cn/img/apacnewsnetwork.com/e71afab4fcb414c916f6ad626acc405799f7746d.png" alt="MeitY Funded" class="h-10 w-auto bg-white/10 rounded px-2 py-1">
-                    <button class="md:hidden text-white" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <img src="https://kimi-web-img.moonshot.cn/img/apacnewsnetwork.com/e71afab4fcb414c916f6ad626acc405799f7746d.png" alt="MeitY — Ministry of Electronics and Information Technology, Government of India" class="h-10 w-auto bg-white/10 rounded px-2 py-1" width="120" height="40" loading="lazy">
+                    <button class="md:hidden text-white" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-menu">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
                     </button>
@@ -283,6 +381,7 @@
         <div id="mobile-menu" class="hidden md:hidden bg-slate-900/95 backdrop-blur-lg border-t border-white/10">
             <div class="px-4 pt-2 pb-6 space-y-2">
                 <a href="#hero" class="block px-3 py-2 text-gray-300 hover:text-cyan-400 hover:bg-white/5 rounded-lg">Home</a>
+                <a href="#models" class="block px-3 py-2 text-gray-300 hover:text-cyan-400 hover:bg-white/5 rounded-lg">Models</a>
                 <a href="#technology" class="block px-3 py-2 text-gray-300 hover:text-cyan-400 hover:bg-white/5 rounded-lg">Technology</a>
                 <a href="#detection" class="block px-3 py-2 text-gray-300 hover:text-cyan-400 hover:bg-white/5 rounded-lg">Detection</a>
                 <a href="#customers" class="block px-3 py-2 text-gray-300 hover:text-cyan-400 hover:bg-white/5 rounded-lg">Solutions</a>
@@ -293,7 +392,8 @@
 
     <!-- Hero Section with Interactive Slider -->
     <section id="hero" class="relative min-h-screen flex items-center justify-center pt-20 px-4 overflow-hidden">
-        <div class="caustics"></div>
+        <div id="main-content" tabindex="-1" style="position:absolute;top:0;outline:none" aria-hidden="true"></div>
+        <div class="caustics" aria-hidden="true"></div>
         <div class="max-w-7xl mx-auto w-full z-10">
             <div class="grid lg:grid-cols-2 gap-12 items-center">
                 <div class="space-y-8 reveal active">
@@ -309,13 +409,13 @@
                         Sensor-agnostic AI enhancement for underwater exploration. From murky trenches to sunlit reefs—our diffusion models recover lost information in real-time.
                     </p>
                     <div class="flex flex-wrap gap-4">
-                        <button onclick="document.getElementById('comparison-section').scrollIntoView({behavior: 'smooth'})" class="px-8 py-4 bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold rounded-full transition-all transform hover:scale-105 glow flex items-center gap-2">
+                        <button onclick="document.getElementById('comparison-section').scrollIntoView({behavior: 'smooth'})" class="px-8 py-4 bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold rounded-full transition-colors transform hover:scale-105 glow flex items-center gap-2">
                             <span>See the Magic</span>
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
                             </svg>
                         </button>
-                        <button onclick="document.getElementById('technology').scrollIntoView({behavior: 'smooth'})" class="px-8 py-4 border border-white/20 hover:border-cyan-400 text-white font-medium rounded-full transition-all hover:bg-white/5">
+                        <button onclick="document.getElementById('technology').scrollIntoView({behavior: 'smooth'})" class="px-8 py-4 border border-white/20 hover:border-cyan-400 text-white font-medium rounded-full transition-colors hover:bg-white/5">
                             Explore Technology
                         </button>
                     </div>
@@ -333,7 +433,7 @@
                 <div class="relative reveal active">
                     <div class="absolute -inset-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-3xl opacity-20 blur-2xl animate-pulse"></div>
                     <div class="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-                        <img src="https://kimi-web-img.moonshot.cn/img/thumbs.dreamstime.com/5cfd4605fd1cef83a3207c3dfc4fb93e63074abe.jpg" alt="Underwater Scene" class="w-full h-80 object-cover opacity-60">
+                        <img src="https://kimi-web-img.moonshot.cn/img/thumbs.dreamstime.com/5cfd4605fd1cef83a3207c3dfc4fb93e63074abe.jpg" alt="Underwater marine environment showing a vibrant reef scene" class="w-full h-80 object-cover opacity-60" width="800" height="320" fetchpriority="high">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
                         <div class="absolute bottom-6 left-6 right-6">
                             <p class="text-cyan-400 font-mono text-sm mb-2">REAL-TIME ENHANCEMENT</p>
@@ -352,19 +452,34 @@
                 <h2 class="text-4xl md:text-5xl font-bold mb-4 display-font">Experience the <span class="text-cyan-400">Transformation</span></h2>
                 <p class="text-gray-400 text-lg max-w-2xl mx-auto">Drag the slider to reveal how our AI recovers lost details from murky underwater footage in real-time.</p>
             </div>
-            
+
+            <!-- Model Selector Tabs -->
+            <div class="flex justify-center mb-8 reveal">
+                <div class="inline-flex bg-white/5 border border-white/10 rounded-full p-1">
+                    <button id="tab-model1" onclick="switchModel(1)" class="model-tab px-6 py-2.5 rounded-full text-sm font-semibold transition-colors bg-cyan-500 text-slate-900">Enhancement A</button>
+                    <button id="tab-model2" onclick="switchModel(2)" class="model-tab px-6 py-2.5 rounded-full text-sm font-semibold transition-colors text-gray-400 hover:text-white">Enhancement B</button>
+                </div>
+            </div>
+
+            <!-- Model Info Bar -->
+            <div class="text-center mb-6 reveal">
+                <p id="model-info" class="text-sm text-gray-400" aria-live="polite" aria-atomic="true">
+                    <span class="text-cyan-400 font-semibold">Enhancement Model A</span> &mdash; High-detail underwater super-resolution
+                </p>
+            </div>
+
             <div class="flex justify-center reveal">
                 <div class="comparison-container" id="comparison-slider">
-                    <!-- Before Image (Dark/Murky) -->
-                    <img src="https://kimi-web-img.moonshot.cn/img/thumbs.dreamstime.com/5cfd4605fd1cef83a3207c3dfc4fb93e63074abe.jpg" alt="Before Enhancement" class="comparison-image before-image" id="before-img">
-                    
-                    <!-- After Image (Enhanced) - Using a clearer underwater image -->
-                    <img src="https://kimi-web-img.moonshot.cn/img/images.unsplash.com/e27a4699dbdba3cf5298c6a4ffdf74a09900fc13" alt="After Enhancement" class="comparison-image after-image" id="after-img" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
-                    
+                    <!-- Before Image (Original) -->
+                    <img src="test_images/underwater_test.jpg" alt="Original unprocessed underwater photograph" class="comparison-image before-image" id="before-img" style="filter: none;" width="320" height="213" fetchpriority="high">
+
+                    <!-- After Image (Model Enhanced) -->
+                    <img src="output_images/realesr_general_4x_output.png" alt="AI-enhanced underwater image — Enhancement Model A output" class="comparison-image after-image" id="after-img" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);" width="1280" height="852">
+
                     <!-- Labels -->
                     <div class="absolute top-4 left-4 z-20 bg-black/50 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-white/20">ORIGINAL</div>
-                    <div class="absolute top-4 right-4 z-20 bg-cyan-500/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-cyan-400/50">AI ENHANCED</div>
-                    
+                    <div id="enhanced-label" class="absolute top-4 right-4 z-20 bg-cyan-500/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-cyan-400/50">MODEL A ENHANCED</div>
+
                     <!-- Slider Handle -->
                     <div class="slider-handle" id="slider-handle" style="left: 50%;">
                         <div class="slider-button">
@@ -383,16 +498,138 @@
 
             <div class="grid md:grid-cols-3 gap-6 mt-12 max-w-4xl mx-auto">
                 <div class="glass-card p-6 text-center reveal">
-                    <div class="text-3xl font-bold text-cyan-400 mb-1">0.03s</div>
+                    <div class="text-3xl font-bold text-cyan-400 mb-1 stat-number">0.03s</div>
                     <div class="text-sm text-gray-400">Inference Time</div>
                 </div>
                 <div class="glass-card p-6 text-center reveal">
-                    <div class="text-3xl font-bold text-cyan-400 mb-1">1100</div>
-                    <div class="text-sm text-gray-400">FPS (MobileIE)</div>
+                    <div class="text-3xl font-bold text-cyan-400 mb-1 stat-number">4x</div>
+                    <div class="text-sm text-gray-400">Super Resolution</div>
                 </div>
                 <div class="glass-card p-6 text-center reveal">
-                    <div class="text-3xl font-bold text-cyan-400 mb-1">INT8</div>
+                    <div class="text-3xl font-bold text-cyan-400 mb-1 stat-number">INT8</div>
                     <div class="text-sm text-gray-400">Quantized Edge Deploy</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Model Showcase Section -->
+    <section id="models" class="relative py-24 px-4 bg-gradient-to-b from-transparent to-slate-900/50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-4xl md:text-5xl font-bold mb-4 display-font">Our <span class="text-gradient">Models</span></h2>
+                <p class="text-gray-400 text-lg max-w-3xl mx-auto">Two specialized enhancement models optimized for different underwater scenarios. Compare the results side by side.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- Model A -->
+                <div class="glass-card overflow-hidden reveal group">
+                    <div class="relative">
+                        <img src="output_images/realesr_general_4x_output.png" alt="Enhancement Model A: AI-enhanced underwater image showing improved detail and clarity" class="w-full h-72 object-cover" width="1280" height="852" loading="lazy">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+                        <div class="absolute top-4 left-4 bg-cyan-500/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white">MODEL A</div>
+                    </div>
+                    <div class="p-8">
+                        <h3 class="text-2xl font-bold mb-2 display-font text-white">Enhancement Model A</h3>
+                        <p class="text-gray-400 mb-6 text-sm leading-relaxed">Optimized for broad underwater conditions with strong edge preservation and detail recovery across varying turbidity levels. Designed to perform reliably in complex, low-visibility environments.</p>
+
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                <div class="text-xs text-gray-500 mb-1">Task</div>
+                                <div class="text-sm font-semibold text-white">Super-Resolution</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                <div class="text-xs text-gray-500 mb-1">Scale Factor</div>
+                                <div class="text-sm font-semibold text-white">4&times; Upscale</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                <div class="text-xs text-gray-500 mb-1">Deployment</div>
+                                <div class="text-sm font-semibold text-white">Edge / Mobile</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                <div class="text-xs text-gray-500 mb-1">Best For</div>
+                                <div class="text-sm font-semibold text-white">General Use</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs">Edge Recovery</span>
+                            <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs">High Contrast</span>
+                            <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs">Mobile Ready</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model B -->
+                <div class="glass-card overflow-hidden reveal group">
+                    <div class="relative">
+                        <img src="output_images/purephoto_span_4x_output.png" alt="Enhancement Model B: AI-enhanced underwater image with photorealistic colour fidelity" class="w-full h-72 object-cover" width="1280" height="852" loading="lazy">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+                        <div class="absolute top-4 left-4 bg-emerald-500/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white">MODEL B</div>
+                    </div>
+                    <div class="p-8">
+                        <h3 class="text-2xl font-bold mb-2 display-font text-white">Enhancement Model B</h3>
+                        <p class="text-gray-400 mb-6 text-sm leading-relaxed">Produces natural, photorealistic results with superior colour fidelity and reduced artifacts. Ideal for scientific documentation, marine biology surveys, and archival research imagery.</p>
+
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                <div class="text-xs text-gray-500 mb-1">Task</div>
+                                <div class="text-sm font-semibold text-white">Photo Enhancement</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                <div class="text-xs text-gray-500 mb-1">Scale Factor</div>
+                                <div class="text-sm font-semibold text-white">4&times; Upscale</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                <div class="text-xs text-gray-500 mb-1">Deployment</div>
+                                <div class="text-sm font-semibold text-white">Server / ROV</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                <div class="text-xs text-gray-500 mb-1">Best For</div>
+                                <div class="text-sm font-semibold text-white">Photorealism</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs">Color Fidelity</span>
+                            <span class="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs">Natural Output</span>
+                            <span class="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs">Low Artifacts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side-by-Side Comparison -->
+            <div class="mt-16 reveal">
+                <h3 class="text-2xl font-bold text-center mb-8 display-font">Side-by-Side <span class="text-cyan-400">Comparison</span></h3>
+                <div class="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+                    <div class="glass-card overflow-hidden">
+                        <div class="relative">
+                            <img src="test_images/underwater_test.jpg" alt="Original unprocessed underwater input image" class="w-full h-56 object-cover" width="320" height="213" loading="lazy">
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                                <p class="text-white font-bold text-sm">Original Input</p>
+                                <p class="text-gray-400 text-xs">Unprocessed underwater image</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-card overflow-hidden border-cyan-500/30">
+                        <div class="relative">
+                            <img src="output_images/realesr_general_4x_output.png" alt="Enhancement Model A output" class="w-full h-56 object-cover" width="1280" height="852" loading="lazy">
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                                <p class="text-cyan-400 font-bold text-sm">Model A Output</p>
+                                <p class="text-gray-400 text-xs">High-detail enhancement</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-card overflow-hidden border-emerald-500/30">
+                        <div class="relative">
+                            <img src="output_images/purephoto_span_4x_output.png" alt="Enhancement Model B output" class="w-full h-56 object-cover" width="1280" height="852" loading="lazy">
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                                <p class="text-emerald-400 font-bold text-sm">Model B Output</p>
+                                <p class="text-gray-400 text-xs">Photorealistic enhancement</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -512,7 +749,7 @@
             <div class="grid lg:grid-cols-2 gap-12 items-center">
                 <div class="relative reveal">
                     <div class="relative rounded-2xl overflow-hidden border-2 border-cyan-500/30 shadow-2xl shadow-cyan-500/20">
-                        <img src="https://kimi-web-img.moonshot.cn/img/images.unsplash.com/e27a4699dbdba3cf5298c6a4ffdf74a09900fc13" alt="Detection Example" class="w-full h-96 object-cover">
+                        <img src="https://kimi-web-img.moonshot.cn/img/images.unsplash.com/e27a4699dbdba3cf5298c6a4ffdf74a09900fc13" alt="Underwater reef showing AI detection hotspots on marine species and coral" class="w-full h-96 object-cover" width="800" height="600" loading="lazy">
                         
                         <!-- Detection Hotspots -->
                         <div class="hotspot" style="top: 30%; left: 25%;">
@@ -580,15 +817,15 @@
 
                     <div class="pt-4 flex gap-4">
                         <div class="px-4 py-2 bg-white/5 rounded-lg border border-white/10">
-                            <div class="text-2xl font-bold text-cyan-400">15K+</div>
+                            <div class="text-2xl font-bold text-cyan-400 stat-number">15K+</div>
                             <div class="text-xs text-gray-500">Species Classes</div>
                         </div>
                         <div class="px-4 py-2 bg-white/5 rounded-lg border border-white/10">
-                            <div class="text-2xl font-bold text-cyan-400">98.5%</div>
+                            <div class="text-2xl font-bold text-cyan-400 stat-number">98.5%</div>
                             <div class="text-xs text-gray-500">mAP Score</div>
                         </div>
                         <div class="px-4 py-2 bg-white/5 rounded-lg border border-white/10">
-                            <div class="text-2xl font-bold text-cyan-400">50ms</div>
+                            <div class="text-2xl font-bold text-cyan-400 stat-number">50ms</div>
                             <div class="text-xs text-gray-500">Detection Latency</div>
                         </div>
                     </div>
@@ -695,8 +932,8 @@
                     <p class="text-cyan-400 text-sm mb-3">Co-Founder</p>
                     <p class="text-gray-400 text-sm">BS-MS Student<br>IISER Kolkata</p>
                     <div class="flex justify-center gap-3 mt-4">
-                        <a href="#" class="text-gray-500 hover:text-cyan-400 transition-colors">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                        <a href="#" class="text-gray-500 hover:text-cyan-400 transition-colors" aria-label="Gautam Singh on LinkedIn">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
                         </a>
                     </div>
                 </div>
@@ -713,8 +950,8 @@
                     <p class="text-emerald-400 text-sm mb-3">Co-Founder</p>
                     <p class="text-gray-400 text-sm">BS-MS Student<br>IISER Kolkata</p>
                     <div class="flex justify-center gap-3 mt-4">
-                        <a href="#" class="text-gray-500 hover:text-emerald-400 transition-colors">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                        <a href="#" class="text-gray-500 hover:text-emerald-400 transition-colors" aria-label="Shuvam Banerji Seal on LinkedIn">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
                         </a>
                     </div>
                 </div>
@@ -731,8 +968,8 @@
                     <p class="text-purple-400 text-sm mb-3">Co-Founder</p>
                     <p class="text-gray-400 text-sm">BS-MS Student<br>IISER Kolkata</p>
                     <div class="flex justify-center gap-3 mt-4">
-                        <a href="#" class="text-gray-500 hover:text-purple-400 transition-colors">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                        <a href="#" class="text-gray-500 hover:text-purple-400 transition-colors" aria-label="Alok Mishra on LinkedIn">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
                         </a>
                     </div>
                 </div>
@@ -742,7 +979,7 @@
             <div class="mt-16 text-center reveal">
                 <div class="inline-flex items-center gap-4 glass-card px-8 py-4">
                     <span class="text-gray-400 text-sm">Proudly funded by</span>
-                    <img src="https://kimi-web-img.moonshot.cn/img/apacnewsnetwork.com/e71afab4fcb414c916f6ad626acc405799f7746d.png" alt="MeitY Government of India" class="h-12 w-auto">
+                    <img src="https://kimi-web-img.moonshot.cn/img/apacnewsnetwork.com/e71afab4fcb414c916f6ad626acc405799f7746d.png" alt="MeitY — Ministry of Electronics and Information Technology, Government of India" class="h-12 w-auto" width="180" height="48" loading="lazy">
                     <span class="text-gray-400 text-sm">Government of India</span>
                 </div>
             </div>
@@ -786,29 +1023,78 @@
                 </div>
             </div>
             <div class="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-                <p class="text-gray-500 text-sm">© 2025 Underwater AI. All rights reserved.</p>
+                <p class="text-gray-500 text-sm">&copy;&nbsp;2025 Underwater&nbsp;AI. All rights reserved.</p>
                 <p class="text-gray-600 text-xs">Inter INCI E-Summit 2025 | Digi Nova Theme</p>
             </div>
         </div>
     </footer>
 
     <script>
+        // Model switching logic
+        const modelData = {
+            1: {
+                image: 'output_images/realesr_general_4x_output.png',
+                label: 'MODEL A ENHANCED',
+                info: '<span class="text-cyan-400 font-semibold">Enhancement Model A</span> &mdash; High-detail underwater super-resolution'
+            },
+            2: {
+                image: 'output_images/purephoto_span_4x_output.png',
+                label: 'MODEL B ENHANCED',
+                info: '<span class="text-emerald-400 font-semibold">Enhancement Model B</span> &mdash; Photorealistic colour enhancement'
+            }
+        };
+
+        function switchModel(modelNum) {
+            const data = modelData[modelNum];
+            const afterImg = document.getElementById('after-img');
+            const enhancedLabel = document.getElementById('enhanced-label');
+            const modelInfo = document.getElementById('model-info');
+            const tab1 = document.getElementById('tab-model1');
+            const tab2 = document.getElementById('tab-model2');
+
+            afterImg.src = data.image;
+            afterImg.alt = data.label;
+            enhancedLabel.textContent = data.label;
+            modelInfo.innerHTML = data.info;
+
+            if (modelNum === 1) {
+                tab1.className = 'model-tab px-6 py-2.5 rounded-full text-sm font-semibold transition-colors bg-cyan-500 text-slate-900';
+                tab2.className = 'model-tab px-6 py-2.5 rounded-full text-sm font-semibold transition-colors text-gray-400 hover:text-white';
+                enhancedLabel.className = 'absolute top-4 right-4 z-20 bg-cyan-500/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-cyan-400/50';
+            } else {
+                tab1.className = 'model-tab px-6 py-2.5 rounded-full text-sm font-semibold transition-colors text-gray-400 hover:text-white';
+                tab2.className = 'model-tab px-6 py-2.5 rounded-full text-sm font-semibold transition-colors bg-emerald-500 text-slate-900';
+                enhancedLabel.className = 'absolute top-4 right-4 z-20 bg-emerald-500/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-emerald-400/50';
+            }
+        }
+
         // Create floating bubbles
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
         function createBubbles() {
+            if (prefersReducedMotion) return;
             const container = document.getElementById('bubbles-container');
-            const bubbleCount = 20;
-            
-            for (let i = 0; i < bubbleCount; i++) {
+            // Mix of small (6-18 px), medium (20-45 px), and occasional large (50-90 px)
+            const sizes = [
+                ...Array.from({ length: 9 },  () => 6  + Math.random() * 12),   // small
+                ...Array.from({ length: 7 },  () => 20 + Math.random() * 25),   // medium
+                ...Array.from({ length: 4 },  () => 50 + Math.random() * 40),   // large
+            ];
+
+            sizes.forEach(size => {
                 const bubble = document.createElement('div');
                 bubble.className = 'bubble';
-                const size = Math.random() * 60 + 10;
-                bubble.style.width = `${size}px`;
+                bubble.style.width  = `${size}px`;
                 bubble.style.height = `${size}px`;
-                bubble.style.left = `${Math.random() * 100}%`;
-                bubble.style.animationDuration = `${Math.random() * 10 + 10}s`;
-                bubble.style.animationDelay = `${Math.random() * 5}s`;
+                bubble.style.left   = `${Math.random() * 98}%`;
+                // Smaller bubbles rise faster
+                const speed = 8 + (90 - size) * 0.12 + Math.random() * 6;
+                bubble.style.animationDuration = `${speed}s`;
+                bubble.style.animationDelay    = `${Math.random() * 12}s`;
+                // Slight opacity variance so larger bubbles have a bit more presence
+                bubble.style.opacity = String(0.45 + Math.min(size / 90, 1) * 0.35);
                 container.appendChild(bubble);
-            }
+            });
         }
         
         createBubbles();
@@ -836,74 +1122,162 @@
         });
 
         // Touch support
-        handle.addEventListener('touchstart', () => isDragging = true);
+        handle.addEventListener('touchstart', (e) => { isDragging = true; e.preventDefault(); }, { passive: false });
         document.addEventListener('touchend', () => isDragging = false);
         document.addEventListener('touchmove', (e) => {
             if (!isDragging) return;
             updateSlider(e.touches[0].clientX);
-        });
+        }, { passive: true });
 
         // Click on slider to jump
         slider.addEventListener('click', (e) => {
             updateSlider(e.clientX);
         });
 
+        // Keyboard support for slider handle
+        handle.setAttribute('tabindex', '0');
+        handle.setAttribute('role', 'slider');
+        handle.setAttribute('aria-label', 'Image comparison slider');
+        handle.setAttribute('aria-valuemin', '0');
+        handle.setAttribute('aria-valuemax', '100');
+        handle.setAttribute('aria-valuenow', '50');
+        handle.addEventListener('keydown', (e) => {
+            const rect = slider.getBoundingClientRect();
+            const currentPct = parseFloat(handle.style.left) || 50;
+            let newPct = currentPct;
+            if (e.key === 'ArrowLeft') newPct = Math.max(0, currentPct - 5);
+            if (e.key === 'ArrowRight') newPct = Math.min(100, currentPct + 5);
+            if (e.key === 'Home') newPct = 0;
+            if (e.key === 'End') newPct = 100;
+            if (newPct !== currentPct) {
+                e.preventDefault();
+                handle.style.left = `${newPct}%`;
+                afterImg.style.clipPath = `polygon(0 0, ${newPct}% 0, ${newPct}% 100%, 0 100%)`;
+                handle.setAttribute('aria-valuenow', Math.round(newPct));
+            }
+        });
+
         // 3D Water Canvas Effect
         const canvas = document.getElementById('water-canvas');
+        if (!prefersReducedMotion) {
         const ctx = canvas.getContext('2d');
         let width, height;
-        let waves = [];
 
         function resize() {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
         }
-        
         window.addEventListener('resize', resize);
         resize();
 
-        class Wave {
-            constructor(y, amplitude, period, speed, color) {
-                this.y = y;
-                this.amplitude = amplitude;
-                this.period = period;
-                this.speed = speed;
-                this.offset = Math.random() * Math.PI * 2;
-                this.color = color;
-            }
+        /* ---- Water layer descriptors ---- */
+        const waterLayers = [
+            // { baseY (fraction), amplitude, period, speed, offset, alpha }
+            { baseY: 0.28, amp: 18, per: 0.0028, spd: 0.00055, off: 0.0,          alpha: 0.07,  hue: 185 },
+            { baseY: 0.42, amp: 26, per: 0.0020, spd: 0.00040, off: 1.1,          alpha: 0.055, hue: 200 },
+            { baseY: 0.57, amp: 34, per: 0.0016, spd: 0.00030, off: 2.3,          alpha: 0.07,  hue: 210 },
+            { baseY: 0.72, amp: 42, per: 0.0012, spd: 0.00025, off: 3.7,          alpha: 0.085, hue: 215 },
+            // fast shimmer layer (surface sparkle)
+            { baseY: 0.32, amp:  7, per: 0.0065, spd: 0.00120, off: 0.6,          alpha: 0.035, hue: 170 },
+        ];
 
-            draw(time) {
-                ctx.beginPath();
-                ctx.moveTo(0, this.y);
-                
-                for (let x = 0; x <= width; x += 10) {
-                    const y = this.y + Math.sin(x * this.period + time * this.speed + this.offset) * this.amplitude;
-                    ctx.lineTo(x, y);
-                }
-                
-                ctx.lineTo(width, height);
-                ctx.lineTo(0, height);
-                ctx.closePath();
-                ctx.fillStyle = this.color;
-                ctx.fill();
+        /* ---- Caustic spot descriptors ---- */
+        const causticSpots = Array.from({ length: 18 }, () => ({
+            x: Math.random(),        // 0-1 relative to width
+            y: Math.random() * 0.5,  // upper half only
+            r: 40 + Math.random() * 80,
+            phase: Math.random() * Math.PI * 2,
+            freq:  0.0004 + Math.random() * 0.0008,
+            baseAlpha: 0.018 + Math.random() * 0.024,
+        }));
+
+        /* Build wave path once, reuse for efficiency */
+        function buildWavePath(layer, t) {
+            const baseY = layer.baseY * height;
+            ctx.beginPath();
+            ctx.moveTo(-5, baseY);
+            /* step of 14 px is a good balance between smoothness and speed */
+            for (let x = 0; x <= width + 14; x += 14) {
+                const wave1 = Math.sin(x * layer.per + t * layer.spd + layer.off) * layer.amp;
+                const wave2 = Math.sin(x * layer.per * 1.7 + t * layer.spd * 0.6 + layer.off + 1.2) * (layer.amp * 0.35);
+                ctx.lineTo(x, baseY + wave1 + wave2);
             }
+            ctx.lineTo(width + 5, height + 5);
+            ctx.lineTo(-5, height + 5);
+            ctx.closePath();
         }
 
-        // Create wave layers
-        waves.push(new Wave(height * 0.3, 20, 0.003, 0.001, 'rgba(0, 180, 216, 0.05)'));
-        waves.push(new Wave(height * 0.5, 30, 0.002, 0.0015, 'rgba(0, 119, 182, 0.03)'));
-        waves.push(new Wave(height * 0.7, 40, 0.0015, 0.002, 'rgba(3, 4, 94, 0.05)'));
+        /* Draw a single gradient-filled wave layer */
+        function drawWave(layer, t) {
+            buildWavePath(layer, t);
+            const baseY = layer.baseY * height;
+            const grad = ctx.createLinearGradient(0, baseY - layer.amp, 0, height);
+            grad.addColorStop(0,   `hsla(${layer.hue}, 80%, 55%, ${layer.alpha * 1.6})`);
+            grad.addColorStop(0.3, `hsla(${layer.hue + 10}, 70%, 40%, ${layer.alpha})`);
+            grad.addColorStop(1,   `hsla(${layer.hue + 20}, 60%, 18%, ${layer.alpha * 0.6})`);
+            ctx.fillStyle = grad;
+            ctx.fill();
+        }
+
+        /* Draw caustic light blobs */
+        function drawCaustics(t) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            causticSpots.forEach(s => {
+                const cx  = s.x * width  + Math.sin(t * s.freq * 0.7 + s.phase) * 60;
+                const cy  = s.y * height + Math.cos(t * s.freq + s.phase * 1.3) * 40;
+                const r   = s.r * (0.85 + 0.15 * Math.sin(t * s.freq * 2 + s.phase));
+                const alpha = s.baseAlpha * (0.6 + 0.4 * Math.sin(t * s.freq * 3 + s.phase));
+
+                const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+                rg.addColorStop(0,   `rgba(140, 220, 255, ${alpha})`);
+                rg.addColorStop(0.5, `rgba( 80, 180, 240, ${alpha * 0.5})`);
+                rg.addColorStop(1,   `rgba(  0, 120, 200, 0)`);
+
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fillStyle = rg;
+                ctx.fill();
+            });
+            ctx.restore();
+        }
+
+        /* Draw thin edge-highlight stroke on top wave */
+        function drawSurfaceGlint(t) {
+            const layer = waterLayers[0];
+            buildWavePath(layer, t);
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            const strokeGrad = ctx.createLinearGradient(0, 0, width, 0);
+            for (let i = 0; i <= 10; i++) {
+                const alpha = 0.04 + 0.06 * Math.abs(Math.sin(i * 0.63 + t * 0.0003));
+                strokeGrad.addColorStop(i / 10, `rgba(200, 240, 255, ${alpha})`);
+            }
+            ctx.strokeStyle = strokeGrad;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+        }
 
         let time = 0;
         function animate() {
             ctx.clearRect(0, 0, width, height);
             time += 1;
-            
-            waves.forEach(wave => wave.draw(time));
+
+            // Draw caustics first (behind waves so they only show through gaps)
+            drawCaustics(time);
+
+            // Draw wave layers back-to-front
+            waterLayers.forEach(layer => drawWave(layer, time));
+
+            // Surface glint on topmost wave
+            drawSurfaceGlint(time);
+
             requestAnimationFrame(animate);
         }
-        
+
         animate();
+        } // end !prefersReducedMotion
 
         // Scroll Reveal Animation
         const observerOptions = {
@@ -937,7 +1311,18 @@
             lastScroll = currentScroll;
         });
 
+        // Mobile menu toggle aria-expanded
+        const menuBtn = document.querySelector('[aria-controls="mobile-menu"]');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (menuBtn && mobileMenu) {
+            menuBtn.addEventListener('click', () => {
+                const expanded = !mobileMenu.classList.contains('hidden');
+                menuBtn.setAttribute('aria-expanded', String(!expanded));
+            });
+        }
+
         // GSAP ScrollTrigger for parallax effects
+        if (!prefersReducedMotion) {
         gsap.registerPlugin(ScrollTrigger);
         
         gsap.utils.toArray('.reveal').forEach(element => {
@@ -956,6 +1341,7 @@
                 }
             );
         });
+        } // end !prefersReducedMotion
     </script>
 </body>
 </html>

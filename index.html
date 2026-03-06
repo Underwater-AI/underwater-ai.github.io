@@ -334,6 +334,64 @@
         .hotspot:hover .hotspot-label {
             opacity: 1;
         }
+
+        /* ===== LIGHT MODE ===== */
+        html.light-mode {
+            color-scheme: light;
+        }
+
+        html.light-mode body {
+            background: linear-gradient(180deg, #e0f7ff 0%, #b3ecff 40%, #d0f4de 100%);
+            color: #0d2137;
+        }
+
+        html.light-mode .nav-glass {
+            background: rgba(224, 247, 255, 0.92);
+            border-bottom: 1px solid rgba(0, 100, 150, 0.15);
+        }
+
+        html.light-mode .glass-card {
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(0, 140, 180, 0.2);
+            color: #0d2137;
+        }
+
+        html.light-mode .glass-card:hover {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: rgba(0, 180, 216, 0.6);
+            box-shadow: 0 20px 40px rgba(0, 180, 216, 0.15);
+        }
+
+        html.light-mode .text-white { color: #0d2137 !important; }
+        html.light-mode .text-gray-300 { color: #2a5472 !important; }
+        html.light-mode .text-gray-400 { color: #3a6a8a !important; }
+        html.light-mode .text-gray-500 { color: #4a7a9a !important; }
+        html.light-mode .text-gray-600 { color: #5a8aaa !important; }
+
+        html.light-mode .bg-slate-800 { background: rgba(200, 235, 248, 0.8) !important; }
+        html.light-mode .bg-slate-900\/95 { background: rgba(224, 247, 255, 0.97) !important; }
+        html.light-mode .bg-slate-950 { background: #b3e8f7 !important; }
+        html.light-mode .bg-slate-900\/50 { background: rgba(180, 225, 245, 0.5) !important; }
+
+        html.light-mode .border-white\/10 { border-color: rgba(0, 100, 150, 0.15) !important; }
+        html.light-mode .border-white\/5 { border-color: rgba(0, 100, 150, 0.1) !important; }
+
+        html.light-mode .text-gradient {
+            background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        html.light-mode .bg-white\/5 { background: rgba(0, 120, 180, 0.08) !important; }
+        html.light-mode .hover\:bg-white\/5:hover { background: rgba(0, 120, 180, 0.08) !important; }
+
+        html.light-mode #mobile-menu { background: rgba(224, 247, 255, 0.97) !important; }
+
+        html.light-mode footer { background: #a8dff0 !important; border-color: rgba(0, 100, 150, 0.15) !important; }
+
+        html.light-mode #water-canvas { opacity: 0.15; }
+        html.light-mode .bubble { opacity: 0.4; }
     </style>
 </head>
 <body class="antialiased">
@@ -352,11 +410,33 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                    </div>
+                    <!-- UnderwaterAI SVG Logo -->
+                    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Underwater AI logo" role="img">
+                        <defs>
+                            <linearGradient id="logo-grad" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#00b4d8"/>
+                                <stop offset="100%" stop-color="#0077b6"/>
+                            </linearGradient>
+                            <linearGradient id="wave-grad" x1="0" y1="20" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#90e0ef"/>
+                                <stop offset="100%" stop-color="#00b4d8"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Background circle -->
+                        <circle cx="22" cy="22" r="21" fill="url(#logo-grad)" opacity="0.15" stroke="url(#logo-grad)" stroke-width="1.5"/>
+                        <!-- Wave shape -->
+                        <path d="M4 26 Q10 20 16 26 Q22 32 28 26 Q34 20 40 26" stroke="url(#wave-grad)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                        <path d="M4 30 Q10 24 16 30 Q22 36 28 30 Q34 24 40 30" stroke="url(#wave-grad)" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
+                        <!-- Fish body -->
+                        <path d="M8 22 Q14 16 22 18 Q30 20 34 16 L38 14 L32 20 Q36 22 34 24 L38 28 L34 26 Q30 22 22 24 Q14 26 8 22Z" fill="url(#logo-grad)" opacity="0.9"/>
+                        <!-- Neural dots -->
+                        <circle cx="22" cy="18" r="2.5" fill="#00b4d8"/>
+                        <circle cx="30" cy="14" r="1.8" fill="#90e0ef"/>
+                        <circle cx="15" cy="21" r="1.5" fill="#90e0ef" opacity="0.7"/>
+                        <!-- Eye detail on fish -->
+                        <circle cx="31" cy="18" r="1.5" fill="#caf0f8"/>
+                        <circle cx="31" cy="18" r="0.7" fill="#0077b6"/>
+                    </svg>
                     <span class="text-2xl font-bold display-font text-white">Underwater<span class="text-cyan-400">AI</span></span>
                 </div>
                 <div class="hidden md:flex space-x-8">
@@ -365,10 +445,22 @@
                     <a href="#technology" class="text-gray-300 hover:text-cyan-400 transition-colors font-medium">Technology</a>
                     <a href="#detection" class="text-gray-300 hover:text-cyan-400 transition-colors font-medium">Detection</a>
                     <a href="#customers" class="text-gray-300 hover:text-cyan-400 transition-colors font-medium">Solutions</a>
+                    <a href="#tourism" class="text-gray-300 hover:text-cyan-400 transition-colors font-medium">Tourism</a>
                     <a href="#team" class="text-gray-300 hover:text-cyan-400 transition-colors font-medium">Team</a>
                 </div>
                 <div class="flex items-center space-x-4">
                     <img src="https://kimi-web-img.moonshot.cn/img/apacnewsnetwork.com/e71afab4fcb414c916f6ad626acc405799f7746d.png" alt="MeitY — Ministry of Electronics and Information Technology, Government of India" class="h-10 w-auto bg-white/10 rounded px-2 py-1" width="120" height="40" loading="lazy">
+                    <!-- Light/Dark mode toggle -->
+                    <button id="theme-toggle" onclick="toggleTheme()" aria-pressed="false" class="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/20" aria-label="Toggle light/dark mode" title="Toggle light/dark mode">
+                        <!-- Sun icon (shown in dark mode) -->
+                        <svg id="icon-sun" class="w-5 h-5 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <!-- Moon icon (shown in light mode, hidden by default) -->
+                        <svg id="icon-moon" class="w-5 h-5 text-slate-700 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </button>
                     <button class="md:hidden text-white" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-menu">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
@@ -385,6 +477,7 @@
                 <a href="#technology" class="block px-3 py-2 text-gray-300 hover:text-cyan-400 hover:bg-white/5 rounded-lg">Technology</a>
                 <a href="#detection" class="block px-3 py-2 text-gray-300 hover:text-cyan-400 hover:bg-white/5 rounded-lg">Detection</a>
                 <a href="#customers" class="block px-3 py-2 text-gray-300 hover:text-cyan-400 hover:bg-white/5 rounded-lg">Solutions</a>
+                <a href="#tourism" class="block px-3 py-2 text-gray-300 hover:text-cyan-400 hover:bg-white/5 rounded-lg">Tourism</a>
                 <a href="#team" class="block px-3 py-2 text-gray-300 hover:text-cyan-400 hover:bg-white/5 rounded-lg">Team</a>
             </div>
         </div>
@@ -911,15 +1004,139 @@
         </div>
     </section>
 
+    <!-- Marine Tourism Section -->
+    <section id="tourism" class="relative py-24 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <div class="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-sm font-medium mb-6">
+                    <span class="w-2 h-2 bg-teal-400 rounded-full"></span>
+                    <span>For Marine Enthusiasts</span>
+                </div>
+                <h2 class="text-4xl md:text-5xl font-bold mb-4 display-font">Elevate Your <span class="text-gradient">Ocean Adventures</span></h2>
+                <p class="text-gray-400 text-lg max-w-3xl mx-auto">Whether you're a recreational scuba diver, an underwater photographer, or a marine tourism operator — UnderwaterAI transforms every dive into a crystal-clear experience.</p>
+            </div>
+
+            <!-- Feature cards for tourism -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+                <!-- Scuba Diving -->
+                <div class="glass-card p-8 reveal group hover:border-teal-500/50">
+                    <div class="w-14 h-14 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Scuba Diving Enhancement</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Dive into crystal clarity. Our real-time AI enhancement cuts through murk, green water, and turbidity — giving you vivid, true-colour footage on every dive, regardless of depth or conditions.</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-teal-500/20 text-teal-300 rounded-full text-xs">Real-time Enhancement</span>
+                        <span class="px-3 py-1 bg-teal-500/20 text-teal-300 rounded-full text-xs">All Depths</span>
+                    </div>
+                </div>
+
+                <!-- Underwater Photography -->
+                <div class="glass-card p-8 reveal group hover:border-teal-500/50">
+                    <div class="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Underwater Photography</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Transform your underwater shots. AI-powered colour restoration brings out the vibrant hues of coral reefs, marine life, and underwater landscapes that cameras miss in low-light environments.</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs">Colour Restoration</span>
+                        <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs">RAW Processing</span>
+                    </div>
+                </div>
+
+                <!-- Reef & Marine Tourism -->
+                <div class="glass-card p-8 reveal group hover:border-teal-500/50">
+                    <div class="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Coral Reef Exploration</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">See reefs as they were meant to be seen. Species identification AI identifies 15,000+ marine species in real-time, turning every reef dive into an interactive marine biology tour.</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs">Species ID</span>
+                        <span class="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs">Reef Mapping</span>
+                    </div>
+                </div>
+
+                <!-- Wreck Diving -->
+                <div class="glass-card p-8 reveal group hover:border-teal-500/50">
+                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-10l6-3m0 13l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 10m0 3V7"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Wreck Exploration</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Navigate historic wrecks with confidence. Enhanced low-light visibility reveals intricate details of shipwrecks, making technical diving and exploration safer and more rewarding.</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs">Low-light Vision</span>
+                        <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs">Depth-safe</span>
+                    </div>
+                </div>
+
+                <!-- Tour Operators -->
+                <div class="glass-card p-8 reveal group hover:border-teal-500/50">
+                    <div class="w-14 h-14 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Marine Tour Operators</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Offer unmatched dive experiences. Integrate our API into your dive center's cameras and headsets to provide guests with AI-guided tours, species identification, and stunning HD video memories.</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-violet-500/20 text-violet-300 rounded-full text-xs">API Integration</span>
+                        <span class="px-3 py-1 bg-violet-500/20 text-violet-300 rounded-full text-xs">Guest Experience</span>
+                    </div>
+                </div>
+
+                <!-- Dive Safety -->
+                <div class="glass-card p-8 reveal group hover:border-teal-500/50">
+                    <div class="w-14 h-14 bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Diver Safety &amp; Navigation</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Enhanced situational awareness beneath the waves. Real-time object detection identifies hazards, sea creatures, and navigation landmarks — keeping divers safe and oriented at depth.</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-rose-500/20 text-rose-300 rounded-full text-xs">Hazard Detection</span>
+                        <span class="px-3 py-1 bg-rose-500/20 text-rose-300 rounded-full text-xs">Navigation Aid</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tourism CTA Banner -->
+            <div class="glass-card p-8 md:p-12 reveal text-center bg-gradient-to-r from-teal-900/30 via-cyan-900/20 to-blue-900/30 border-teal-500/30">
+                <h3 class="text-2xl md:text-3xl font-bold mb-4 display-font text-white">Ready to <span class="text-gradient">Dive Deeper?</span></h3>
+                <p class="text-gray-400 mb-8 max-w-2xl mx-auto">Join thousands of divers, photographers, and marine tourism operators who have transformed their underwater experiences with UnderwaterAI.</p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <button type="button" aria-label="Start your free trial of UnderwaterAI" class="px-8 py-4 bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold rounded-full transition-colors transform hover:scale-105 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        Start Free Trial
+                    </button>
+                    <button type="button" aria-label="View UnderwaterAI demo" class="px-8 py-4 border border-teal-500/50 hover:border-teal-400 text-teal-300 font-medium rounded-full transition-colors hover:bg-teal-500/10">
+                        View Demo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Team Section -->
     <section id="team" class="relative py-24 px-4 bg-gradient-to-b from-slate-900/50 to-transparent">
         <div class="max-w-7xl mx-auto">
             <div class="text-center mb-16 reveal">
-                <h2 class="text-4xl md:text-5xl font-bold mb-4 display-font">The <span class="text-gradient">Founders</span></h2>
-                <p class="text-gray-400 text-lg">BS-MS students from IISER Kolkata pushing the boundaries of computational marine science.</p>
+                <h2 class="text-4xl md:text-5xl font-bold mb-4 display-font">Leadership <span class="text-gradient">Team</span></h2>
+                <p class="text-gray-400 text-lg">Our founding leadership team — BS-MS students from IISER Kolkata, shaping the future of underwater intelligence.</p>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
                 <!-- Gautam Singh -->
                 <div class="glass-card p-8 text-center reveal group">
                     <div class="relative w-32 h-32 mx-auto mb-6">
@@ -929,8 +1146,10 @@
                         </div>
                     </div>
                     <h3 class="text-xl font-bold mb-1 text-white">Gautam Singh</h3>
-                    <p class="text-cyan-400 text-sm mb-3">Co-Founder</p>
-                    <p class="text-gray-400 text-sm">BS-MS Student<br>IISER Kolkata</p>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 mb-2">
+                        <span class="text-cyan-400 text-xs font-semibold">CEO — Chief Executive Officer</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">BS-MS Student, IISER Kolkata</p>
                     <div class="flex justify-center gap-3 mt-4">
                         <a href="#" class="text-gray-500 hover:text-cyan-400 transition-colors" aria-label="Gautam Singh on LinkedIn">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
@@ -947,8 +1166,10 @@
                         </div>
                     </div>
                     <h3 class="text-xl font-bold mb-1 text-white">Shuvam Banerji Seal</h3>
-                    <p class="text-emerald-400 text-sm mb-3">Co-Founder</p>
-                    <p class="text-gray-400 text-sm">BS-MS Student<br>IISER Kolkata</p>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 mb-2">
+                        <span class="text-emerald-400 text-xs font-semibold">CTO — Chief Technology Officer</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">BS-MS Student, IISER Kolkata</p>
                     <div class="flex justify-center gap-3 mt-4">
                         <a href="#" class="text-gray-500 hover:text-emerald-400 transition-colors" aria-label="Shuvam Banerji Seal on LinkedIn">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
@@ -956,19 +1177,41 @@
                     </div>
                 </div>
 
-                <!-- Alok Mishra -->
+                <!-- Youktik Sajjan -->
                 <div class="glass-card p-8 text-center reveal group">
                     <div class="relative w-32 h-32 mx-auto mb-6">
-                        <div class="absolute inset-0 bg-gradient-to-br from-purple-400 to-pink-600 rounded-full blur-lg opacity-50 group-hover:opacity-80 transition-opacity"></div>
-                        <div class="relative w-full h-full bg-slate-800 rounded-full flex items-center justify-center border-2 border-purple-500/30">
-                            <span class="text-3xl font-bold text-purple-400">AM</span>
+                        <div class="absolute inset-0 bg-gradient-to-br from-violet-400 to-purple-600 rounded-full blur-lg opacity-50 group-hover:opacity-80 transition-opacity"></div>
+                        <div class="relative w-full h-full bg-slate-800 rounded-full flex items-center justify-center border-2 border-violet-500/30">
+                            <span class="text-3xl font-bold text-violet-400">YS</span>
                         </div>
                     </div>
-                    <h3 class="text-xl font-bold mb-1 text-white">Alok Mishra</h3>
-                    <p class="text-purple-400 text-sm mb-3">Co-Founder</p>
-                    <p class="text-gray-400 text-sm">BS-MS Student<br>IISER Kolkata</p>
+                    <h3 class="text-xl font-bold mb-1 text-white">Youktik Sajjan</h3>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/15 border border-violet-500/30 mb-2">
+                        <span class="text-violet-400 text-xs font-semibold">COO — Chief Operating Officer</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">BS-MS Student, IISER Kolkata</p>
                     <div class="flex justify-center gap-3 mt-4">
-                        <a href="#" class="text-gray-500 hover:text-purple-400 transition-colors" aria-label="Alok Mishra on LinkedIn">
+                        <a href="#" class="text-gray-500 hover:text-violet-400 transition-colors" aria-label="Youktik Sajjan on LinkedIn">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Aman Kumar -->
+                <div class="glass-card p-8 text-center reveal group">
+                    <div class="relative w-32 h-32 mx-auto mb-6">
+                        <div class="absolute inset-0 bg-gradient-to-br from-orange-400 to-amber-600 rounded-full blur-lg opacity-50 group-hover:opacity-80 transition-opacity"></div>
+                        <div class="relative w-full h-full bg-slate-800 rounded-full flex items-center justify-center border-2 border-orange-500/30">
+                            <span class="text-3xl font-bold text-orange-400">AK</span>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold mb-1 text-white">Aman Kumar</h3>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 mb-2">
+                        <span class="text-orange-400 text-xs font-semibold">CPO — Chief Product Officer</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">BS-MS Student, IISER Kolkata</p>
+                    <div class="flex justify-center gap-3 mt-4">
+                        <a href="#" class="text-gray-500 hover:text-orange-400 transition-colors" aria-label="Aman Kumar on LinkedIn">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
                         </a>
                     </div>
@@ -992,11 +1235,27 @@
             <div class="grid md:grid-cols-4 gap-8 mb-8">
                 <div class="col-span-2">
                     <div class="flex items-center gap-3 mb-4">
-                        <div class="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded flex items-center justify-center">
-                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                        </div>
+                        <svg width="34" height="34" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Underwater AI logo" role="img">
+                            <defs>
+                                <linearGradient id="footer-logo-grad" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stop-color="#00b4d8"/>
+                                    <stop offset="100%" stop-color="#0077b6"/>
+                                </linearGradient>
+                                <linearGradient id="footer-wave-grad" x1="0" y1="20" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stop-color="#90e0ef"/>
+                                    <stop offset="100%" stop-color="#00b4d8"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="22" cy="22" r="21" fill="url(#footer-logo-grad)" opacity="0.15" stroke="url(#footer-logo-grad)" stroke-width="1.5"/>
+                            <path d="M4 26 Q10 20 16 26 Q22 32 28 26 Q34 20 40 26" stroke="url(#footer-wave-grad)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                            <path d="M4 30 Q10 24 16 30 Q22 36 28 30 Q34 24 40 30" stroke="url(#footer-wave-grad)" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
+                            <path d="M8 22 Q14 16 22 18 Q30 20 34 16 L38 14 L32 20 Q36 22 34 24 L38 28 L34 26 Q30 22 22 24 Q14 26 8 22Z" fill="url(#footer-logo-grad)" opacity="0.9"/>
+                            <circle cx="22" cy="18" r="2.5" fill="#00b4d8"/>
+                            <circle cx="30" cy="14" r="1.8" fill="#90e0ef"/>
+                            <circle cx="15" cy="21" r="1.5" fill="#90e0ef" opacity="0.7"/>
+                            <circle cx="31" cy="18" r="1.5" fill="#caf0f8"/>
+                            <circle cx="31" cy="18" r="0.7" fill="#0077b6"/>
+                        </svg>
                         <span class="text-xl font-bold display-font">Underwater<span class="text-cyan-400">AI</span></span>
                     </div>
                     <p class="text-gray-400 text-sm max-w-sm">
@@ -1342,6 +1601,60 @@
             );
         });
         } // end !prefersReducedMotion
+
+        // Light/Dark Mode Toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const iconSun = document.getElementById('icon-sun');
+            const iconMoon = document.getElementById('icon-moon');
+            const themeToggle = document.getElementById('theme-toggle');
+            
+            if (html.classList.contains('light-mode')) {
+                // Switch to dark
+                html.classList.remove('light-mode');
+                html.style.colorScheme = 'dark';
+                iconSun.classList.remove('hidden');
+                iconMoon.classList.add('hidden');
+                themeToggle.classList.remove('bg-cyan-100/40', 'border-cyan-300/40');
+                themeToggle.classList.add('bg-white/10', 'border-white/20');
+                themeToggle.setAttribute('aria-pressed', 'false');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                // Switch to light
+                html.classList.add('light-mode');
+                html.style.colorScheme = 'light';
+                iconSun.classList.add('hidden');
+                iconMoon.classList.remove('hidden');
+                themeToggle.classList.remove('bg-white/10', 'border-white/20');
+                themeToggle.classList.add('bg-cyan-100/40', 'border-cyan-300/40');
+                themeToggle.setAttribute('aria-pressed', 'true');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Apply saved theme on load
+        (function() {
+            const saved = localStorage.getItem('theme');
+            const themeToggle = document.getElementById('theme-toggle');
+            if (saved === 'light') {
+                document.documentElement.classList.add('light-mode');
+                document.documentElement.style.colorScheme = 'light';
+                const iconSun = document.getElementById('icon-sun');
+                const iconMoon = document.getElementById('icon-moon');
+                if (iconSun) iconSun.classList.add('hidden');
+                if (iconMoon) iconMoon.classList.remove('hidden');
+                if (themeToggle) {
+                    themeToggle.classList.remove('bg-white/10', 'border-white/20');
+                    themeToggle.classList.add('bg-cyan-100/40', 'border-cyan-300/40');
+                    themeToggle.setAttribute('aria-pressed', 'true');
+                }
+            } else {
+                // Default dark mode
+                if (themeToggle) {
+                    themeToggle.setAttribute('aria-pressed', 'false');
+                }
+            }
+        })();
     </script>
 </body>
 </html>

@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.tailwindcss.com">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <!-- Prevent flash of unstyled content when saved theme is 'light' -->
+    <script>if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.documentElement.style.colorScheme='light';}</script>
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -451,7 +453,7 @@
                 <div class="flex items-center space-x-4">
                     <img src="https://kimi-web-img.moonshot.cn/img/apacnewsnetwork.com/e71afab4fcb414c916f6ad626acc405799f7746d.png" alt="MeitY — Ministry of Electronics and Information Technology, Government of India" class="h-10 w-auto bg-white/10 rounded px-2 py-1" width="120" height="40" loading="lazy">
                     <!-- Light/Dark mode toggle -->
-                    <button id="theme-toggle" onclick="toggleTheme()" aria-pressed="false" class="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/20" aria-label="Toggle light/dark mode" title="Toggle light/dark mode">
+                    <button id="theme-toggle" onclick="toggleTheme()" aria-pressed="false" class="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/20" aria-label="Toggle light/dark mode">
                         <!-- Sun icon (shown in dark mode) -->
                         <svg id="icon-sun" class="w-5 h-5 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
@@ -1117,7 +1119,7 @@
                 <p class="text-gray-400 mb-8 max-w-2xl mx-auto">Join thousands of divers, photographers, and marine tourism operators who have transformed their underwater experiences with UnderwaterAI.</p>
                 <div class="flex flex-wrap justify-center gap-4">
                     <button type="button" aria-label="Start your free trial of UnderwaterAI" class="px-8 py-4 bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold rounded-full transition-colors transform hover:scale-105 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         Start Free Trial
                     </button>
                     <button type="button" aria-label="View UnderwaterAI demo" class="px-8 py-4 border border-teal-500/50 hover:border-teal-400 text-teal-300 font-medium rounded-full transition-colors hover:bg-teal-500/10">
@@ -1602,56 +1604,45 @@
         });
         } // end !prefersReducedMotion
 
-        // Light/Dark Mode Toggle
+        // Light/Dark Mode Toggle — cache elements once
+        const _themeHtml = document.documentElement;
+        const _iconSun = document.getElementById('icon-sun');
+        const _iconMoon = document.getElementById('icon-moon');
+        const _themeToggle = document.getElementById('theme-toggle');
+
         function toggleTheme() {
-            const html = document.documentElement;
-            const iconSun = document.getElementById('icon-sun');
-            const iconMoon = document.getElementById('icon-moon');
-            const themeToggle = document.getElementById('theme-toggle');
-            
-            if (html.classList.contains('light-mode')) {
+            if (_themeHtml.classList.contains('light-mode')) {
                 // Switch to dark
-                html.classList.remove('light-mode');
-                html.style.colorScheme = 'dark';
-                iconSun.classList.remove('hidden');
-                iconMoon.classList.add('hidden');
-                themeToggle.classList.remove('bg-cyan-100/40', 'border-cyan-300/40');
-                themeToggle.classList.add('bg-white/10', 'border-white/20');
-                themeToggle.setAttribute('aria-pressed', 'false');
+                _themeHtml.classList.remove('light-mode');
+                _themeHtml.style.colorScheme = 'dark';
+                _iconSun.classList.remove('hidden');
+                _iconMoon.classList.add('hidden');
+                _themeToggle.classList.remove('bg-cyan-100/40', 'border-cyan-300/40');
+                _themeToggle.classList.add('bg-white/10', 'border-white/20');
+                _themeToggle.setAttribute('aria-pressed', 'false');
                 localStorage.setItem('theme', 'dark');
             } else {
                 // Switch to light
-                html.classList.add('light-mode');
-                html.style.colorScheme = 'light';
-                iconSun.classList.add('hidden');
-                iconMoon.classList.remove('hidden');
-                themeToggle.classList.remove('bg-white/10', 'border-white/20');
-                themeToggle.classList.add('bg-cyan-100/40', 'border-cyan-300/40');
-                themeToggle.setAttribute('aria-pressed', 'true');
+                _themeHtml.classList.add('light-mode');
+                _themeHtml.style.colorScheme = 'light';
+                _iconSun.classList.add('hidden');
+                _iconMoon.classList.remove('hidden');
+                _themeToggle.classList.remove('bg-white/10', 'border-white/20');
+                _themeToggle.classList.add('bg-cyan-100/40', 'border-cyan-300/40');
+                _themeToggle.setAttribute('aria-pressed', 'true');
                 localStorage.setItem('theme', 'light');
             }
         }
 
-        // Apply saved theme on load
+        // Sync toggle button UI with theme already applied by head script
         (function() {
-            const saved = localStorage.getItem('theme');
-            const themeToggle = document.getElementById('theme-toggle');
-            if (saved === 'light') {
-                document.documentElement.classList.add('light-mode');
-                document.documentElement.style.colorScheme = 'light';
-                const iconSun = document.getElementById('icon-sun');
-                const iconMoon = document.getElementById('icon-moon');
-                if (iconSun) iconSun.classList.add('hidden');
-                if (iconMoon) iconMoon.classList.remove('hidden');
-                if (themeToggle) {
-                    themeToggle.classList.remove('bg-white/10', 'border-white/20');
-                    themeToggle.classList.add('bg-cyan-100/40', 'border-cyan-300/40');
-                    themeToggle.setAttribute('aria-pressed', 'true');
-                }
-            } else {
-                // Default dark mode
-                if (themeToggle) {
-                    themeToggle.setAttribute('aria-pressed', 'false');
+            if (_themeHtml.classList.contains('light-mode')) {
+                if (_iconSun) _iconSun.classList.add('hidden');
+                if (_iconMoon) _iconMoon.classList.remove('hidden');
+                if (_themeToggle) {
+                    _themeToggle.classList.remove('bg-white/10', 'border-white/20');
+                    _themeToggle.classList.add('bg-cyan-100/40', 'border-cyan-300/40');
+                    _themeToggle.setAttribute('aria-pressed', 'true');
                 }
             }
         })();

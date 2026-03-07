@@ -572,8 +572,8 @@
                     <img src="output_images/realesr_general_4x_output.png" alt="AI-enhanced underwater image — Enhancement Model A output" class="comparison-image after-image" id="after-img" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);" width="1280" height="852">
 
                     <!-- Labels -->
-                    <div class="absolute top-4 left-4 z-20 bg-black/50 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-white/20">ORIGINAL</div>
-                    <div id="enhanced-label" class="absolute top-4 right-4 z-20 bg-cyan-500/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-cyan-400/50">MODEL A ENHANCED</div>
+                    <div id="enhanced-label" class="absolute top-4 left-4 z-20 bg-cyan-500/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-cyan-400/50">MODEL A ENHANCED</div>
+                    <div class="absolute top-4 right-4 z-20 bg-black/50 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-white/20">ORIGINAL</div>
 
                     <!-- Slider Handle -->
                     <div class="slider-handle" id="slider-handle" style="left: 50%;">
@@ -1321,11 +1321,11 @@
             if (modelNum === 1) {
                 tab1.className = 'model-tab px-6 py-2.5 rounded-full text-sm font-semibold transition-colors bg-cyan-500 text-slate-900';
                 tab2.className = 'model-tab px-6 py-2.5 rounded-full text-sm font-semibold transition-colors text-gray-400 hover:text-white';
-                enhancedLabel.className = 'absolute top-4 right-4 z-20 bg-cyan-500/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-cyan-400/50';
+                enhancedLabel.className = 'absolute top-4 left-4 z-20 bg-cyan-500/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-cyan-400/50';
             } else {
                 tab1.className = 'model-tab px-6 py-2.5 rounded-full text-sm font-semibold transition-colors text-gray-400 hover:text-white';
                 tab2.className = 'model-tab px-6 py-2.5 rounded-full text-sm font-semibold transition-colors bg-emerald-500 text-slate-900';
-                enhancedLabel.className = 'absolute top-4 right-4 z-20 bg-emerald-500/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-emerald-400/50';
+                enhancedLabel.className = 'absolute top-4 left-4 z-20 bg-emerald-500/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-emerald-400/50';
             }
         }
 

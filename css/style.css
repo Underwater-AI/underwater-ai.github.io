@@ -115,6 +115,8 @@ html {
   scroll-behavior: auto; /* Lenis handles smooth scroll */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Smoother scrolling on iOS + remove tap highlight */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -130,6 +132,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-feature-settings: "ss01", "cv11";
+  /* Prevent overscroll glow on iOS */
+  overscroll-behavior-y: none;
 }
 
 img, picture, video, canvas, svg { display: block; max-width: 100%; }
@@ -296,6 +300,9 @@ p { text-wrap: pretty; }
 
 /* ----------------------------------------------------------------------------
    6. PAGE TRANSITION CURTAIN
+   Default: covers the page (drawn from above — translateY(0)).
+   JS adds .is-closing after page load to slide it down off-screen.
+   Noscript fallback hides it entirely.
 ---------------------------------------------------------------------------- */
 .curtain {
   position: fixed;
@@ -303,15 +310,16 @@ p { text-wrap: pretty; }
   z-index: var(--z-curtain);
   background: var(--bg-abyss);
   pointer-events: none;
-  transform: translateY(100%);
+  transform: translateY(0);
   transition: transform 700ms var(--ease-in-out);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  will-change: transform;
 }
 
-.curtain.is-open { transform: translateY(0); }
+.curtain.is-closing { transform: translateY(100%); }
 
 .curtain::before {
   content: '';
@@ -320,6 +328,7 @@ p { text-wrap: pretty; }
   background:
     radial-gradient(circle at 30% 40%, rgba(0, 180, 216, 0.20) 0%, transparent 40%),
     radial-gradient(circle at 70% 70%, rgba(45, 212, 191, 0.15) 0%, transparent 40%);
+  pointer-events: none;
 }
 
 .curtain-logo {
@@ -334,12 +343,10 @@ p { text-wrap: pretty; }
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--t-primary);
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 600ms ease 200ms, transform 600ms var(--ease-out-expo) 200ms;
+  opacity: 1;
 }
 
-.curtain.is-open .curtain-logo { opacity: 1; transform: translateY(0); }
+.curtain.is-closing .curtain-logo { opacity: 0; transition: opacity 400ms ease; }
 
 /* ----------------------------------------------------------------------------
    7. NAVIGATION

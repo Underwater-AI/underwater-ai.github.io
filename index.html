@@ -58,6 +58,19 @@
     .curtain { position: fixed; inset: 0; z-index: 200; background: #000408; }
   </style>
 
+  <!-- Noscript fallback: ensure content is visible without JS -->
+  <noscript>
+    <style>
+      .curtain { display: none !important; }
+      .hero__title-line > span { transform: none !important; animation: none !important; opacity: 1 !important; }
+      .hero__subtitle, .hero__cta, .scroll-cue { opacity: 1 !important; transform: none !important; animation: none !important; }
+      .reveal, .reveal-stagger > * { opacity: 1 !important; transform: none !important; }
+      #scene-canvas { display: none !important; }
+      .cursor-dot, .cursor-ring { display: none !important; }
+      body, a, button { cursor: auto !important; }
+    </style>
+  </noscript>
+
   <!-- Schema.org -->
   <script type="application/ld+json">
   {

@@ -33,15 +33,16 @@
   const CONFIG = {
     // Performance / quality
     isMobile: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent),
+    isLowPower: navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4,
     pixelRatioCap: 2,
-    // Populations
-    bubbleCount: 60,
-    fishCount: 28,
+    // Populations (halved on low-power devices)
+    bubbleCount: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 32 : 60,
+    fishCount: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 16 : 28,
     jellyfishCount: 3,
-    kelpCount: 14,
-    coralCount: 7,
-    particleCount: 220,
-    godRayCount: 7,
+    kelpCount: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 8 : 14,
+    coralCount: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 4 : 7,
+    particleCount: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 110 : 220,
+    godRayCount: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 4 : 7,
     // Visual
     fogColor: 0x001a2c,
     fogNear: 18,

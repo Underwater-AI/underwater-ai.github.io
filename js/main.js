@@ -8,7 +8,7 @@
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Page transition curtain: open on load
+  // Page transition curtain: cover by default, slide away on load
   function bootCurtain() {
     const curtain = document.querySelector('.curtain');
     if (!curtain) return;
@@ -16,14 +16,18 @@
       curtain.style.display = 'none';
       return;
     }
-    // Ensure curtain is "open" (covering) then sweep it away
-    curtain.classList.add('is-open');
+    // Curtain is already covering (translateY(0) by default).
+    // After a short beat, sweep it down off-screen to reveal the page.
     requestAnimationFrame(() => {
+      // Wait a beat so the first paint of the page settles under the curtain
+      const start = document.readyState === 'complete' ? 150 : 350;
       setTimeout(() => {
-        curtain.classList.remove('is-open');
-        // Remove from DOM after transition
-        setTimeout(() => curtain.remove(), 800);
-      }, 700);
+        curtain.classList.add('is-closing');
+        // Remove from DOM after the sweep finishes
+        setTimeout(() => {
+          if (curtain.parentNode) curtain.remove();
+        }, 800);
+      }, start);
     });
   }
 

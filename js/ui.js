@@ -266,18 +266,18 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 7. HERO STAT COUNTER (count-up on first reveal)
+  // 7. NUMBER COUNT-UP (hero stats + about band)
   // ---------------------------------------------------------------------------
   function initHeroStats() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) return;
-    const stats = document.querySelectorAll('.hero__stat-num');
+    // All elements with [data-count] that we want to animate
+    const stats = document.querySelectorAll('[data-count]');
     if (stats.length === 0) return;
 
     function animateOne(el) {
       const target = parseFloat(el.dataset.count);
       if (isNaN(target)) return;
-      // Find numeric span and unit span
       const numSpan = el.querySelector('span:first-child');
       const unitSpan = el.querySelector('.unit');
       if (!numSpan) return;
@@ -287,7 +287,7 @@
       const startVal = 0;
       function tick(now) {
         const t = Math.min(1, (now - start) / duration);
-        const e = 1 - Math.pow(1 - t, 3); // ease-out-cubic
+        const e = 1 - Math.pow(1 - t, 3);
         const v = startVal + (target - startVal) * e;
         numSpan.textContent = isFloat ? v.toFixed(2) : Math.round(v);
         if (t < 1) requestAnimationFrame(tick);
@@ -295,20 +295,28 @@
       requestAnimationFrame(tick);
     }
 
-    const statsBar = stats[0]?.parentElement?.parentElement;
-    if (!statsBar || !('IntersectionObserver' in window)) {
+    // Group stats by their nearest parent band/section so each band
+    // triggers as a unit when its container scrolls into view.
+    const groups = new Map();
+    stats.forEach((el) => {
+      const band = el.closest('.hero__stats, .about__band') || el.parentElement;
+      if (!groups.has(band)) groups.set(band, []);
+      groups.get(band).push(el);
+    });
+
+    if (!('IntersectionObserver' in window)) {
       stats.forEach(animateOne);
       return;
     }
     const io = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          stats.forEach(animateOne);
-          io.disconnect();
+          groups.get(entry.target).forEach(animateOne);
+          io.unobserve(entry.target);
         }
       });
     }, { threshold: 0.3 });
-    io.observe(statsBar);
+    groups.forEach((_, band) => io.observe(band));
   }
 
   // Boot

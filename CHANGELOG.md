@@ -2,6 +2,32 @@
 
 All notable changes to this site are documented here. Dates are YYYY-MM-DD.
 
+## 2025-06-12 (later) — v3.1 — Dramatic visual overhaul (bioluminescent)
+
+### Changed
+- **Color palette overhaul**: deep midnight `#020410` → bioluminescent teal `#00f0e0` as primary. New accents: coral pink `#ff3d6e`, golden amber `#ffd60a`, cyan-glow `#00ffd5`, bioluminescent purple `#c084fc`. Cream-white text. All glass surfaces and borders now tint teal-glow.
+- **Hero typography**: display font-size now `clamp(3.5rem, 11vw, 11rem)` (was 6.5rem max) — viewport-spanning. Title `line-height: 0.88`. New shimmering 5-stop gradient text effect on the accent word.
+- **Primary button**: cyan-glow gradient with bioluminescent glow shadow.
+- **Hero stats bar**: now has gradient backdrop + blur for depth.
+- **Scroll cue**: cyan-glow color (was muted gray).
+- **All PBR materials now glow under RoomEnvironment IBL** thanks to the new envMapIntensity values.
+- **3D scene population**: jellyfish 5 (was 3), particles 380 (was 220), bubbles 90 (was 60), kelp 18 (was 14), coral 9 (was 7), god rays 9 (was 7).
+- **Real BarramundiFish.glb (12.5 MB)** loaded and instanced — 18 fish swimming in circular paths with tail wag.
+
+### Added
+- **Giant hero jellyfish** (4.5× scale) prominently in the foreground at (2, 1.5, 12).
+- **Bioluminescent plankton** — 90 extra-bright glowing cyan particles with twinkle animation.
+- **Data streams** — 6 vertical streams of glowing particles flowing upward, representing AI data flow.
+- **3 floating data tiles** in the hero (DEPTH, LATENCY, SPECIES) with glass-morphism, fade-in animation, and gentle floating loop.
+- **Decorative SVG wave** at the bottom of the hero section.
+- **Per-section accent dividers** — 120px-wide glowing accent bar at the top of each section, unique color per section.
+- **Split-letter text reveals** — every section title is now split into per-character `<span class="char">` wrappers, cascading in with 3D flip animation on viewport intersection.
+
+### Performance
+- Mobile auto-scales 3D instance counts by ~50%.
+- All scripts use `defer` for non-blocking parse.
+- `prefers-reduced-motion: reduce` disables 3D, cursor, smooth scroll, and decorative animations.
+
 ## 2025-06-12 — World-class UI/UX redesign
 
 ### Added

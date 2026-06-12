@@ -192,25 +192,27 @@
   <main id="main">
 
     <!-- ================================================================== -->
-    <!-- HERO                                                                  -->
+    <!-- HERO — full-bleed, viewport-spanning, cinematic                  -->
     <!-- ================================================================== -->
     <section id="hero" class="hero" aria-label="Introduction">
       <div class="hero__content">
         <div class="hero__badge">
           <span class="dot" aria-hidden="true"></span>
-          <span>Computational Marine Imagery</span>
+          <span>Computational Marine Imagery · v1.0</span>
         </div>
 
         <h1 class="hero__title">
           <span class="hero__title-line"><span>Reveal the</span></span>
-          <span class="hero__title-line"><span><em>Hidden Depths</em></span></span>
-          <span class="hero__title-line"><span>of the Ocean</span></span>
+          <span class="hero__title-line hero__title-line--accent">
+            <span><em>Hidden&nbsp;Depths</em></span>
+          </span>
+          <span class="hero__title-line"><span>of&nbsp;the&nbsp;Ocean</span></span>
         </h1>
 
         <p class="hero__subtitle">
           Sensor-agnostic AI enhancement for underwater exploration. From murky
           trenches to sunlit reefs — our diffusion models recover lost information
-          in real-time, on the edge.
+          in real time, on the edge.
         </p>
 
         <div class="hero__cta">
@@ -225,6 +227,20 @@
           <a href="#technology" class="btn btn--ghost">
             <span>Explore Technology</span>
           </a>
+        </div>
+
+        <!-- Floating data cards — only visible in hero -->
+        <div class="hero__floater hero__floater--1" aria-hidden="true">
+          <div class="hero__floater-label">DEPTH</div>
+          <div class="hero__floater-value">−2,400m</div>
+        </div>
+        <div class="hero__floater hero__floater--2" aria-hidden="true">
+          <div class="hero__floater-label">LATENCY</div>
+          <div class="hero__floater-value">30ms</div>
+        </div>
+        <div class="hero__floater hero__floater--3" aria-hidden="true">
+          <div class="hero__floater-label">SPECIES</div>
+          <div class="hero__floater-value">15,000+</div>
         </div>
       </div>
 
@@ -251,6 +267,12 @@
         <span>Scroll</span>
         <div class="scroll-cue__line"></div>
       </div>
+
+      <!-- Decorative wave SVG at bottom of hero -->
+      <svg class="hero__wave" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 60 Q 360 0 720 60 T 1440 60 V 120 H 0 Z" fill="currentColor" opacity="0.6"/>
+        <path d="M0 80 Q 360 40 720 80 T 1440 80 V 120 H 0 Z" fill="currentColor" opacity="0.3"/>
+      </svg>
     </section>
 
     <!-- ================================================================== -->

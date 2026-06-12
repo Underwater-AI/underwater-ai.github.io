@@ -31,14 +31,16 @@ window.UnderwaterScene = Scene;
 const CONFIG = {
   isMobile: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent),
   pixelRatioCap: 2,
-  bubbleCount: 60,
+  bubbleCount: 90,
   fishCount: 18,
-  jellyfishCount: 3,
-  kelpCount: 14,
-  coralCount: 7,
-  particleCount: 220,
-  godRayCount: 7,
-  fogColor: 0x002438,
+  jellyfishCount: 5,        // Up from 3 — more visible creatures
+  kelpCount: 18,
+  coralCount: 9,
+  particleCount: 380,       // Up from 220 — more visible plankton
+  godRayCount: 9,
+  dataStreamCount: 6,       // NEW — vertical data streams
+  heroJellyfishSize: 4.5,   // NEW — giant hero jellyfish
+  fogColor: 0x010820,
   fogNear: 18,
   fogFar: 70,
   cameraStart: { x: 0, y: 4, z: 28 },
@@ -47,12 +49,13 @@ const CONFIG = {
 
 // Mobile 3D population reduction
 if (CONFIG.isMobile) {
-  CONFIG.bubbleCount = 32;
+  CONFIG.bubbleCount = 48;
   CONFIG.fishCount = 8;
-  CONFIG.kelpCount = 8;
-  CONFIG.coralCount = 4;
-  CONFIG.particleCount = 110;
-  CONFIG.godRayCount = 4;
+  CONFIG.kelpCount = 10;
+  CONFIG.coralCount = 5;
+  CONFIG.particleCount = 180;
+  CONFIG.godRayCount = 5;
+  CONFIG.dataStreamCount = 4;
 }
 
 // ---------------------------------------------------------------------------
@@ -500,13 +503,27 @@ function buildJellyfish() {
 const jellyfish = [];
 for (let i = 0; i < CONFIG.jellyfishCount; i++) {
   const j = buildJellyfish();
-  const scale = 1.4 + Math.random() * 1.0;
+  let scale;
+  let position;
+  // First jellyfish: GIANT hero creature, always in the foreground
+  if (i === 0) {
+    scale = CONFIG.heroJellyfishSize;
+    position = new THREE.Vector3(
+      2,                         // slightly to the right
+      1.5,                       // mid-water
+      12                         // close to camera, very visible
+    );
+    j.userData.isHero = true;
+  } else {
+    scale = 1.2 + Math.random() * 1.0;
+    position = new THREE.Vector3(
+      (Math.random() - 0.5) * 30,
+      4 - i * 4,
+      (Math.random() - 0.5) * 20 - 5
+    );
+  }
   j.scale.setScalar(scale);
-  j.position.set(
-    (Math.random() - 0.5) * 30,
-    4 - i * 4,
-    (Math.random() - 0.5) * 20 - 5
-  );
+  j.position.copy(position);
   j.userData.basePos.copy(j.position);
   scene.add(j);
   jellyfish.push(j);
@@ -921,6 +938,126 @@ const marineSnow = buildMarineSnow();
 scene.add(marineSnow);
 
 // ---------------------------------------------------------------------------
+// 14b. BIOLUMINESCENT PLANKTON — bright glowing particles (the "wow" factor)
+// ---------------------------------------------------------------------------
+function buildBioluminescentPlankton() {
+  const count = CONFIG.isMobile ? 50 : 90;
+  const geo = new THREE.BufferGeometry();
+  const positions = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  const phases = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    positions[i * 3 + 0] = (Math.random() - 0.5) * 50;
+    positions[i * 3 + 1] = (Math.random() - 0.5) * 30;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 30 - 5;
+    sizes[i] = 0.15 + Math.random() * 0.30;
+    phases[i] = Math.random() * Math.PI * 2;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+  geo.setAttribute('phase', new THREE.BufferAttribute(phases, 1));
+  const mat = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      attribute float size;
+      attribute float phase;
+      uniform float uTime;
+      varying float vGlow;
+      void main() {
+        vec3 p = position;
+        p.y -= mod(uTime * 0.3 + position.x * 0.05, 30.0) - 15.0;
+        p.x += sin(uTime * 0.4 + phase) * 0.4;
+        p.z += cos(uTime * 0.3 + phase * 1.3) * 0.3;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = size * 80.0 / -mv.z;
+        gl_Position = projectionMatrix * mv;
+        vGlow = 0.5 + 0.5 * sin(uTime * 2.0 + phase * 3.0);
+      }
+    `,
+    fragmentShader: `
+      varying float vGlow;
+      void main() {
+        vec2 c = gl_PointCoord - 0.5;
+        float d = length(c);
+        if (d > 0.5) discard;
+        float a = (1.0 - d * 2.0) * (0.4 + 0.6 * vGlow);
+        // Bioluminescent color: cyan-green glow
+        gl_FragColor = vec4(0.4, 1.0, 0.9, a);
+      }
+    `,
+  });
+  return new THREE.Points(geo, mat);
+}
+const plankton = buildBioluminescentPlankton();
+scene.add(plankton);
+
+// ---------------------------------------------------------------------------
+// 14c. DATA STREAMS — vertical flowing particles (representing AI data flow)
+// ---------------------------------------------------------------------------
+function buildDataStreams() {
+  const group = new THREE.Group();
+  const streamCount = CONFIG.dataStreamCount;
+  for (let i = 0; i < streamCount; i++) {
+    const x = (Math.random() - 0.5) * 40;
+    const y = (Math.random() - 0.5) * 20;
+    const z = (Math.random() - 0.5) * 25 - 5;
+    const count = 30;
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const phases = new Float32Array(count);
+    for (let j = 0; j < count; j++) {
+      positions[j * 3 + 0] = x + (Math.random() - 0.5) * 0.4;
+      positions[j * 3 + 1] = y - j * 0.6;  // vertical stream
+      positions[j * 3 + 2] = z + (Math.random() - 0.5) * 0.4;
+      phases[j] = j * 0.1;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('phase', new THREE.BufferAttribute(phases, 1));
+    const mat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(0x00ffd5) } },
+      vertexShader: `
+        attribute float phase;
+        uniform float uTime;
+        varying float vGlow;
+        void main() {
+          vec3 p = position;
+          // Animate upward
+          float yOffset = mod(uTime * 2.0 + phase, 18.0) - 9.0;
+          p.y += yOffset;
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = 4.0 / -mv.z * 30.0;
+          gl_Position = projectionMatrix * mv;
+          vGlow = sin(yOffset * 0.5) * 0.5 + 0.5;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        varying float vGlow;
+        void main() {
+          vec2 c = gl_PointCoord - 0.5;
+          float d = length(c);
+          if (d > 0.5) discard;
+          float a = (1.0 - d * 2.0) * vGlow * 0.6;
+          gl_FragColor = vec4(uColor, a);
+        }
+      `,
+    });
+    const points = new THREE.Points(geo, mat);
+    points.userData = { mat };
+    group.add(points);
+  }
+  return group;
+}
+const dataStreams = buildDataStreams();
+scene.add(dataStreams);
+
+// ---------------------------------------------------------------------------
 // 15. SCROLL-DRIVEN CAMERA PATH
 // ---------------------------------------------------------------------------
 const cameraWaypoints = [
@@ -1046,7 +1183,12 @@ function animate() {
   });
 
   // Marine snow
+  // Marine snow + plankton + data streams
   marineSnow.material.uniforms.uTime.value = elapsed;
+  plankton.material.uniforms.uTime.value = elapsed;
+  dataStreams.children.forEach((p) => {
+    p.userData.mat.uniforms.uTime.value = elapsed;
+  });
 
   // Caustics scroll
   causticTex.offset.x = (elapsed * 0.02) % 1;

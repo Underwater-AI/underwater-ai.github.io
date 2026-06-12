@@ -24,9 +24,44 @@
   global.UnderwaterUI = UI;
 
   // ---------------------------------------------------------------------------
-  // 1. SECTION REVEAL (IntersectionObserver)
+  // 1. SECTION REVEAL (IntersectionObserver) + SPLIT-LETTER TITLES
   // ---------------------------------------------------------------------------
   function initReveal() {
+    // First, split-letter wrap section titles for dramatic reveal
+    // Only wraps text that isn't already in a <span>/<em>
+    const splitTargets = document.querySelectorAll(
+      '.section-title__main, .hero__title-line > span'
+    );
+    splitTargets.forEach((el) => {
+      // Skip if already split (e.g. hero title)
+      if (el.dataset.split === '1') return;
+      el.dataset.split = '1';
+      // Walk text nodes, wrap each character
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+      const textNodes = [];
+      let node;
+      while ((node = walker.nextNode())) textNodes.push(node);
+      textNodes.forEach((tn) => {
+        const text = tn.textContent;
+        if (!text || !text.trim()) return;
+        const frag = document.createDocumentFragment();
+        let charIndex = el.querySelectorAll('.char').length; // continue numbering
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          if (ch === ' ') {
+            frag.appendChild(document.createTextNode(' '));
+          } else {
+            const s = document.createElement('span');
+            s.className = 'char';
+            s.textContent = ch;
+            s.style.setProperty('--i', String(charIndex++));
+            frag.appendChild(s);
+          }
+        }
+        tn.parentNode.replaceChild(frag, tn);
+      });
+    });
+
     const els = document.querySelectorAll('.reveal, .reveal-stagger');
     if (!('IntersectionObserver' in window) || els.length === 0) {
       els.forEach((el) => el.classList.add('is-visible'));

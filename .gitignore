@@ -7,3 +7,4 @@ underwater_ai_log.txt
 
 # Environment variables
 .env
+.commandcode/

@@ -7,6 +7,7 @@
    ============================================================================ */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 // Guard: bail if Three.js failed to load (impossible since this is ESM).
@@ -30,16 +31,17 @@ window.UnderwaterScene = Scene;
 // ---------------------------------------------------------------------------
 const CONFIG = {
   isMobile: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent),
+  isLowPower: navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4,
   pixelRatioCap: 2,
-  bubbleCount: 90,
-  fishCount: 18,
-  jellyfishCount: 5,        // Up from 3 — more visible creatures
-  kelpCount: 18,
-  coralCount: 9,
-  particleCount: 380,       // Up from 220 — more visible plankton
-  godRayCount: 9,
-  dataStreamCount: 6,       // NEW — vertical data streams
-  heroJellyfishSize: 4.5,   // NEW — giant hero jellyfish
+  bubbleCount: 60,
+  fishCount: 10,              // reduced from 14 — still dense, less geometry load
+  jellyfishCount: 4,
+  kelpCount: 10,               // reduced from 12 — GLB kelp is high-poly
+  coralCount: 6,                // reduced from 7
+  particleCount: 280,
+  godRayCount: 7,
+  dataStreamCount: 5,
+  heroJellyfishSize: 4.5,
   fogColor: 0x010820,
   fogNear: 18,
   fogFar: 70,
@@ -47,15 +49,16 @@ const CONFIG = {
   cameraLookStart: { x: 0, y: 0, z: 0 },
 };
 
-// Mobile 3D population reduction
-if (CONFIG.isMobile) {
-  CONFIG.bubbleCount = 48;
-  CONFIG.fishCount = 8;
-  CONFIG.kelpCount = 10;
-  CONFIG.coralCount = 5;
-  CONFIG.particleCount = 180;
-  CONFIG.godRayCount = 5;
-  CONFIG.dataStreamCount = 4;
+// Mobile / low-power reduction — aggressive
+if (CONFIG.isMobile || CONFIG.isLowPower) {
+  CONFIG.bubbleCount = 24;
+  CONFIG.fishCount = 4;
+  CONFIG.kelpCount = 5;
+  CONFIG.coralCount = 3;
+  CONFIG.particleCount = 100;
+  CONFIG.godRayCount = 3;
+  CONFIG.dataStreamCount = 3;
+  CONFIG.pixelRatioCap = 1.25;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,17 +83,46 @@ Scene.camera = camera;
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
-  antialias: !CONFIG.isMobile,
+  antialias: false, // off on all devices; CSS handles smoothness
   alpha: false,
   powerPreference: 'high-performance',
   stencil: false,
+  logarithmicDepthBuffer: false,
 });
 renderer.setSize(window.innerWidth, window.innerHeight, false);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, CONFIG.pixelRatioCap));
+
+// Adaptive pixel ratio — dynamic resolution scaling
+let adaptivePixelRatio = Math.min(window.devicePixelRatio, CONFIG.pixelRatioCap);
+renderer.setPixelRatio(adaptivePixelRatio);
+
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.95;
 Scene.renderer = renderer;
+
+// FPS monitor → drop pixel ratio when struggling, recover when comfortable
+let frameCount = 0;
+let lastFpsCheck = performance.now();
+let currentFps = 60;
+function monitorFps() {
+  frameCount++;
+  const now = performance.now();
+  if (now - lastFpsCheck >= 2000) {
+    currentFps = frameCount * 1000 / (now - lastFpsCheck);
+    frameCount = 0;
+    lastFpsCheck = now;
+    if (currentFps < 30 && adaptivePixelRatio > 1) {
+      adaptivePixelRatio = Math.max(1, adaptivePixelRatio - 0.25);
+      renderer.setPixelRatio(adaptivePixelRatio);
+      console.log(`[perf] pixel ratio ↓ ${adaptivePixelRatio.toFixed(2)} (fps: ${currentFps.toFixed(0)})`);
+    } else if (currentFps > 55 && adaptivePixelRatio < CONFIG.pixelRatioCap) {
+      adaptivePixelRatio = Math.min(CONFIG.pixelRatioCap, adaptivePixelRatio + 0.25);
+      renderer.setPixelRatio(adaptivePixelRatio);
+      console.log(`[perf] pixel ratio ↑ ${adaptivePixelRatio.toFixed(2)} (fps: ${currentFps.toFixed(0)})`);
+    }
+  }
+}
+window.__underwaterPerformance = { get fps() { return currentFps; }, get pixelRatio() { return adaptivePixelRatio; } };
 
 // ---------------------------------------------------------------------------
 // 2. IBL ENVIRONMENT — RoomEnvironment for PBR reflections
@@ -406,69 +438,80 @@ function buildGodRays() {
 }
 const godRays = buildGodRays();
 
+// Shared DRACOLoader for all compressed GLBs
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+
 // ---------------------------------------------------------------------------
-// 8. JELLYFISH — improved with translucent transmission
-//    Higher poly count, glowing bell, realistic tentacles
+// MODEL LOADING TRACKER — reports progress for the loading UI
 // ---------------------------------------------------------------------------
-function buildJellyfish() {
+const ModelLoader = {
+  total: 8, // fish, jellyfish, kelp, coral, seafloor, turtle, manta, submarine
+  loaded: 0,
+  onProgress: null,
+  report(name) {
+    this.loaded++;
+    console.log(`[model-loader] ${name} loaded (${this.loaded}/${this.total})`);
+    if (this.onProgress) this.onProgress(this.loaded, this.total);
+  },
+};
+window.UnderwaterModelLoader = ModelLoader;
+
+function lazyLoad(fn) {
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(fn, { timeout: 2000 });
+  } else {
+    setTimeout(fn, 100);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 8. JELLYFISH — load real GLB model from Meshy AI
+//    Falls back to procedural if GLB fails to load
+// ---------------------------------------------------------------------------
+const jellyfishGroup = new THREE.Group();
+jellyfishGroup.userData = { jellyData: [], loaded: false };
+scene.add(jellyfishGroup);
+
+const jellyLoader = new GLTFLoader();
+jellyLoader.setDRACOLoader(dracoLoader);
+let jellyfishModel = null;
+
+// Procedural fallback (used if GLB fails)
+function buildProceduralJellyfish() {
   const group = new THREE.Group();
   const hue = 180 + Math.random() * 50;
-
-  // Bell — high-poly half sphere
   const bellGeo = new THREE.SphereGeometry(1, 48, 32, 0, Math.PI * 2, 0, Math.PI / 2);
-  // Soften the silhouette by displacing vertices outward a bit
   const pos = bellGeo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    const r = Math.sqrt(x*x + y*y + z*z);
-    // Slightly flatten the bottom
-    if (y < 0.3) {
-      pos.setX(i, x * 1.08);
-      pos.setZ(i, z * 1.08);
-    }
+    if (y < 0.3) { pos.setX(i, x * 1.08); pos.setZ(i, z * 1.08); }
   }
   bellGeo.computeVertexNormals();
-
   const bellMat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(`hsl(${hue}, 80%, 70%)`),
     emissive: new THREE.Color(`hsl(${hue}, 90%, 55%)`),
-    emissiveIntensity: 0.5,
-    transparent: true,
-    opacity: 0.6,
-    roughness: 0.25,
-    metalness: 0.0,
-    side: THREE.DoubleSide,
+    emissiveIntensity: 0.5, transparent: true, opacity: 0.6,
+    roughness: 0.25, metalness: 0.0, side: THREE.DoubleSide,
   });
-  const bell = new THREE.Mesh(bellGeo, bellMat);
-  group.add(bell);
-
-  // Inner bioluminescent core
+  group.add(new THREE.Mesh(bellGeo, bellMat));
   const glowGeo = new THREE.SphereGeometry(0.45, 16, 16);
   const glowMat = new THREE.MeshBasicMaterial({
     color: new THREE.Color(`hsl(${hue}, 100%, 80%)`),
-    transparent: true,
-    opacity: 0.55,
+    transparent: true, opacity: 0.55,
   });
   const glow = new THREE.Mesh(glowGeo, glowMat);
   glow.position.y = -0.2;
   group.add(glow);
-
-  // Tentacles — long flowing curves with high segment count
-  const tentacleCount = 12;
-  const tentacles = [];
-  for (let i = 0; i < tentacleCount; i++) {
-    const baseAngle = (i / tentacleCount) * Math.PI * 2;
-    const baseR = 0.7;
+  for (let i = 0; i < 12; i++) {
+    const baseAngle = (i / 12) * Math.PI * 2;
     const points = [];
-    const segs = 32;
-    for (let s = 0; s <= segs; s++) {
-      const t = s / segs;
-      const r = baseR - t * 0.45;
-      const angle = baseAngle + Math.sin(t * 3) * 0.3;
+    for (let s = 0; s <= 32; s++) {
+      const t = s / 32;
       points.push(new THREE.Vector3(
-        Math.cos(angle) * r,
+        Math.cos(baseAngle + Math.sin(t * 3) * 0.3) * (0.7 - t * 0.45),
         -t * 3.0,
-        Math.sin(angle) * r
+        Math.sin(baseAngle + Math.sin(t * 3) * 0.3) * (0.7 - t * 0.45)
       ));
     }
     const curve = new THREE.CatmullRomCurve3(points);
@@ -476,58 +519,113 @@ function buildJellyfish() {
     const tubeMat = new THREE.MeshStandardMaterial({
       color: new THREE.Color(`hsl(${hue}, 80%, 70%)`),
       emissive: new THREE.Color(`hsl(${hue}, 90%, 55%)`),
-      emissiveIntensity: 0.35,
-      transparent: true,
-      opacity: 0.55,
-      roughness: 0.4,
-      metalness: 0.0,
+      emissiveIntensity: 0.35, transparent: true, opacity: 0.55,
+      roughness: 0.4, metalness: 0.0,
     });
-    const tent = new THREE.Mesh(tubeGeo, tubeMat);
-    tent.userData = {
-      phase: Math.random() * Math.PI * 2,
-      baseAngle,
-      points: points.map(p => p.clone()),
-      segs,
-    };
-    group.add(tent);
-    tentacles.push(tent);
+    group.add(new THREE.Mesh(tubeGeo, tubeMat));
   }
-
-  group.userData = {
-    bell, glow, tentacles, hue,
-    phase: Math.random() * Math.PI * 2,
-    basePos: new THREE.Vector3(),
-  };
+  group.userData = { isProcedural: true, hue, phase: Math.random() * Math.PI * 2, basePos: new THREE.Vector3() };
   return group;
 }
-const jellyfish = [];
-for (let i = 0; i < CONFIG.jellyfishCount; i++) {
-  const j = buildJellyfish();
-  let scale;
-  let position;
-  // First jellyfish: GIANT hero creature, always in the foreground
-  if (i === 0) {
-    scale = CONFIG.heroJellyfishSize;
-    position = new THREE.Vector3(
-      2,                         // slightly to the right
-      1.5,                       // mid-water
-      12                         // close to camera, very visible
-    );
-    j.userData.isHero = true;
-  } else {
-    scale = 1.2 + Math.random() * 1.0;
-    position = new THREE.Vector3(
-      (Math.random() - 0.5) * 30,
-      4 - i * 4,
-      (Math.random() - 0.5) * 20 - 5
-    );
+
+function buildFallbackJellyfish() {
+  const total = CONFIG.jellyfishCount;
+  const jellyData = [];
+  for (let i = 0; i < total; i++) {
+    const j = buildProceduralJellyfish();
+    let scale, position;
+    if (i === 0) {
+      scale = CONFIG.heroJellyfishSize;
+      position = new THREE.Vector3(2, 1.5, 12);
+      j.userData.isHero = true;
+    } else {
+      scale = 1.2 + Math.random() * 1.0;
+      position = new THREE.Vector3(
+        (Math.random() - 0.5) * 30, 4 - i * 4, (Math.random() - 0.5) * 20 - 5
+      );
+    }
+    j.scale.setScalar(scale);
+    j.position.copy(position);
+    j.userData.basePos.copy(j.position);
+    jellyfishGroup.add(j);
+    jellyData.push({ mesh: j, center: position.clone(), scale, phase: j.userData.phase });
   }
-  j.scale.setScalar(scale);
-  j.position.copy(position);
-  j.userData.basePos.copy(j.position);
-  scene.add(j);
-  jellyfish.push(j);
+  jellyfishGroup.userData.jellyData = jellyData;
+  jellyfishGroup.userData.loaded = true;
+  console.log('[underwater-ai] Using procedural jellyfish (GLB unavailable)');
 }
+
+lazyLoad(() => {
+jellyLoader.load(
+  'assets/3d/jellyfish-v2.glb',
+  (gltf) => {
+    jellyfishModel = gltf.scene;
+    jellyfishModel.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = false;
+        // Make the jellyfish glow — add emissive to all materials
+        if (child.material) {
+          child.material = child.material.clone();
+          child.material.emissive = new THREE.Color(0x00b4d8);
+          child.material.emissiveIntensity = 0.35;
+          child.material.transparent = true;
+          child.material.opacity = 0.8;
+          child.material.side = THREE.DoubleSide;
+        }
+      }
+    });
+    // Scale to a reasonable base size
+    const box = new THREE.Box3().setFromObject(jellyfishModel);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const targetSize = 1.5;
+    const s = targetSize / maxDim;
+    jellyfishModel.scale.setScalar(s);
+
+    const total = CONFIG.jellyfishCount;
+    const jellyData = [];
+    for (let i = 0; i < total; i++) {
+      const clone = jellyfishModel.clone(true);
+      clone.traverse((c) => {
+        if (c.isMesh && c.material) c.material = c.material.clone();
+      });
+      let scale, position;
+      if (i === 0) {
+        scale = CONFIG.heroJellyfishSize;
+        position = new THREE.Vector3(2, 1.5, 12);
+        clone.userData.isHero = true;
+      } else {
+        scale = 1.2 + Math.random() * 1.0;
+        position = new THREE.Vector3(
+          (Math.random() - 0.5) * 30, 4 - i * 4, (Math.random() - 0.5) * 20 - 5
+        );
+      }
+      clone.scale.setScalar(scale);
+      clone.position.copy(position);
+      const data = {
+        mesh: clone,
+        center: position.clone(),
+        scale,
+        phase: Math.random() * Math.PI * 2,
+      };
+      jellyData.push(data);
+      jellyfishGroup.add(clone);
+    }
+    jellyfishGroup.userData.jellyData = jellyData;
+    jellyfishGroup.userData.loaded = true;
+    console.log('[underwater-ai] Jellyfish GLB loaded —', total, 'instances');
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('jellyfish');
+  },
+  undefined,
+  (err) => {
+    console.warn('[underwater-ai] Jellyfish GLB failed — using procedural fallback', err);
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('jellyfish');
+    buildFallbackJellyfish();
+  }
+);
+}); // end lazyLoad jellyfish
 
 // ---------------------------------------------------------------------------
 // 9. FISH — load the real BarramundiFish.glb and instance it
@@ -537,22 +635,24 @@ fishGroup.userData = { fishData: [], loaded: false };
 scene.add(fishGroup);
 
 const fishLoader = new GLTFLoader();
+fishLoader.setDRACOLoader(dracoLoader);
 let fishModel = null;
 let fishAnimTime = 0;
 
+lazyLoad(() => {
 fishLoader.load(
-  'assets/3d/BarramundiFish.glb',
+  'assets/3d/fish-school.glb',
   (gltf) => {
     fishModel = gltf.scene;
-    // Find the actual fish mesh inside the GLB and prepare a template
+    // Ensure materials cast shadows and are properly lit
     fishModel.traverse((child) => {
       if (child.isMesh) {
-        // Ensure the material casts/receives shadows if needed; for now keep default
         child.castShadow = true;
         child.receiveShadow = false;
+        if (child.material) child.material.fog = true;
       }
     });
-    // The Khronos BarramundiFish is ~30 units long — scale down
+    // Scale tuna to a reasonable school-fish size
     const targetSize = 1.0;
     const box = new THREE.Box3().setFromObject(fishModel);
     const size = new THREE.Vector3();
@@ -598,6 +698,7 @@ fishLoader.load(
     fishGroup.userData.fishData = fishData;
     fishGroup.userData.loaded = true;
     console.log('[underwater-ai] Fish model loaded —', totalFish, 'instances');
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('fish');
   },
   (progress) => {
     const pct = (progress.loaded / progress.total) * 100;
@@ -605,9 +706,11 @@ fishLoader.load(
   },
   (err) => {
     console.warn('[underwater-ai] Fish model failed to load — falling back to procedural fish', err);
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('fish');
     buildFallbackFish();
   }
 );
+}); // end lazyLoad fish
 
 function buildFallbackFish() {
   // Tiny procedural fallback (used only if GLB load fails)
@@ -644,6 +747,172 @@ function buildFallbackFish() {
   fishGroup.userData.fishData = fishData;
   fishGroup.userData.loaded = true;
 }
+
+// ---------------------------------------------------------------------------
+// 9b. SEA TURTLE — slow graceful glide (2 instances, foreground mid-water)
+// ---------------------------------------------------------------------------
+const turtleGroup = new THREE.Group();
+turtleGroup.userData = { data: [], loaded: false };
+scene.add(turtleGroup);
+
+const turtleLoader = new GLTFLoader();
+turtleLoader.setDRACOLoader(dracoLoader);
+
+lazyLoad(() => {
+turtleLoader.load(
+  'assets/3d/sea-turtle.glb',
+  (gltf) => {
+    const model = gltf.scene;
+    model.traverse((c) => {
+      if (c.isMesh && c.material) {
+        c.material = c.material.clone();
+        c.castShadow = true;
+      }
+    });
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const s = 1.4 / Math.max(size.x, size.y, size.z);
+    model.scale.setScalar(s);
+
+    const data = [];
+    for (let i = 0; i < 2; i++) {
+      const clone = model.clone(true);
+      clone.traverse((c) => { if (c.isMesh && c.material) c.material = c.material.clone(); });
+      const d = {
+        mesh: clone,
+        center: new THREE.Vector3(i === 0 ? -6 : 10, -2 - i * 2, -4 - i * 3),
+        radius: 6 + i * 3,
+        speed: 0.06 + i * 0.02,
+        offset: Math.random() * Math.PI * 2,
+        bobAmp: 0.8,
+        flapPhase: Math.random() * Math.PI * 2,
+        scale: 1.0 - i * 0.25,
+      };
+      clone.position.copy(d.center);
+      clone.scale.setScalar(d.scale);
+      turtleGroup.add(clone);
+      data.push(d);
+    }
+    turtleGroup.userData.data = data;
+    turtleGroup.userData.loaded = true;
+    console.log('[underwater-ai] Sea turtle loaded — 2 instances');
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('sea turtle');
+  },
+  undefined,
+  (err) => {
+    console.warn('[underwater-ai] Sea turtle GLB failed — skipping', err.message);
+    turtleGroup.userData.loaded = true; // mark loaded so we don't block; just skip rendering
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('sea turtle');
+  }
+);
+}); // end lazyLoad turtle
+
+// ---------------------------------------------------------------------------
+// 9c. MANTA RAY — one large majestic glider in deep water
+// ---------------------------------------------------------------------------
+const mantaGroup = new THREE.Group();
+mantaGroup.userData = { data: null, loaded: false };
+scene.add(mantaGroup);
+
+const mantaLoader = new GLTFLoader();
+mantaLoader.setDRACOLoader(dracoLoader);
+
+lazyLoad(() => {
+mantaLoader.load(
+  'assets/3d/manta-ray.glb',
+  (gltf) => {
+    const model = gltf.scene;
+    model.traverse((c) => {
+      if (c.isMesh && c.material) {
+        c.material = c.material.clone();
+        c.castShadow = true;
+      }
+    });
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const s = 3.2 / Math.max(size.x, size.y, size.z);
+    model.scale.setScalar(s);
+
+    const d = {
+      mesh: model,
+      center: new THREE.Vector3(0, -6, -8),
+      radiusX: 14,
+      radiusZ: 9,
+      speed: 0.045,
+      offset: Math.random() * Math.PI * 2,
+      rollAmp: 0.18,
+    };
+    model.position.copy(d.center);
+    mantaGroup.add(model);
+    mantaGroup.userData.data = d;
+    mantaGroup.userData.loaded = true;
+    console.log('[underwater-ai] Manta ray loaded');
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('manta ray');
+  },
+  undefined,
+  (err) => {
+    console.warn('[underwater-ai] Manta ray GLB failed — skipping', err.message);
+    mantaGroup.userData.loaded = true;
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('manta ray');
+  }
+);
+}); // end lazyLoad manta
+
+// ---------------------------------------------------------------------------
+// 9d. SUBMARINE — distant threat silhouette drifting across the abyss
+// ---------------------------------------------------------------------------
+const subGroup = new THREE.Group();
+subGroup.userData = { data: null, loaded: false };
+scene.add(subGroup);
+
+const subLoader = new GLTFLoader();
+subLoader.setDRACOLoader(dracoLoader);
+
+lazyLoad(() => {
+subLoader.load(
+  'assets/3d/submarine.glb',
+  (gltf) => {
+    const model = gltf.scene;
+    model.traverse((c) => {
+      if (c.isMesh && c.material) {
+        c.material = c.material.clone();
+        // Darken for silhouette effect
+        if (c.material.color) c.material.color.multiplyScalar(0.35);
+        c.castShadow = false;
+      }
+    });
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const s = 7.0 / Math.max(size.x, size.y, size.z);
+    model.scale.setScalar(s);
+
+    const d = {
+      mesh: model,
+      startX: -38,
+      endX: 38,
+      y: -9,
+      z: -22,
+      speed: 0.012,   // very slow crossing
+      t: 0,
+    };
+    model.position.set(d.startX, d.y, d.z);
+    subGroup.add(model);
+    subGroup.userData.data = d;
+    subGroup.userData.loaded = true;
+    console.log('[underwater-ai] Submarine loaded');
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('submarine');
+  },
+  undefined,
+  (err) => {
+    console.warn('[underwater-ai] Submarine GLB failed — skipping', err.message);
+    subGroup.userData.loaded = true;
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('submarine');
+  }
+);
+}); // end lazyLoad submarine
 
 // ---------------------------------------------------------------------------
 // 10. BUBBLES — MeshPhysicalMaterial with transmission (real glass)
@@ -687,122 +956,194 @@ const bubbles = buildBubbles();
 scene.add(bubbles.mesh);
 
 // ---------------------------------------------------------------------------
-// 11. KELP — vertex-shader animated ribbons with PBR material
+// 11. KELP — load real GLB model, with procedural fallback
 // ---------------------------------------------------------------------------
-function buildKelp() {
-  const group = new THREE.Group();
+const kelpGroup = new THREE.Group();
+kelpGroup.userData = { items: [], loaded: false };
+scene.add(kelpGroup);
+
+const kelpLoader = new GLTFLoader();
+kelpLoader.setDRACOLoader(dracoLoader);
+
+function buildFallbackKelp() {
   const items = [];
   for (let i = 0; i < CONFIG.kelpCount; i++) {
     const height = 5 + Math.random() * 6;
     const width = 0.6 + Math.random() * 0.4;
     const geo = new THREE.PlaneGeometry(width, height, 1, 24);
     geo.translate(0, height / 2, 0);
-
     const mat = new THREE.ShaderMaterial({
-      transparent: true,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-      fog: false,
+      transparent: true, side: THREE.DoubleSide, depthWrite: false, fog: false,
       uniforms: {
-        uTime:      { value: 0 },
-        uPhase:     { value: Math.random() * Math.PI * 2 },
+        uTime: { value: 0 }, uPhase: { value: Math.random() * Math.PI * 2 },
         uBaseColor: { value: new THREE.Color(0x0d4a3a) },
-        uTipColor:  { value: new THREE.Color(0x2dd4bf) },
-        uBend:      { value: 0.3 + Math.random() * 0.4 },
-        uHeight:    { value: height },
-        uFogColor:  { value: new THREE.Color(0x002438) },
-        uFogFar:    { value: 70 },
+        uTipColor: { value: new THREE.Color(0x2dd4bf) },
+        uBend: { value: 0.3 + Math.random() * 0.4 },
+        uHeight: { value: height },
+        uFogColor: { value: new THREE.Color(0x002438) }, uFogFar: { value: 70 },
       },
       vertexShader: `
-        uniform float uTime;
-        uniform float uPhase;
-        uniform float uBend;
-        uniform float uHeight;
-        varying float vY;
-        varying vec3 vWorldNormal;
-        varying vec3 vWorldPos;
-        varying float vDist;
+        uniform float uTime, uPhase, uBend, uHeight;
+        varying float vY; varying vec3 vWorldNormal, vWorldPos; varying float vDist;
         void main() {
           vec3 p = position;
           float t = (p.y + uHeight * 0.5) / uHeight;
-          float wave = sin(uTime * 0.6 + uPhase + t * 4.0) * uBend * t;
-          float wave2 = cos(uTime * 0.4 + uPhase * 0.7 + t * 2.0) * uBend * 0.6 * t;
-          p.x += wave;
-          p.z += wave2;
-          vY = t;
-          vWorldNormal = normalize(normalMatrix * normal);
-          vec4 wp = modelMatrix * vec4(p, 1.0);
-          vWorldPos = wp.xyz;
+          p.x += sin(uTime * 0.6 + uPhase + t * 4.0) * uBend * t;
+          p.z += cos(uTime * 0.4 + uPhase * 0.7 + t * 2.0) * uBend * 0.6 * t;
+          vY = t; vWorldNormal = normalize(normalMatrix * normal);
+          vec4 wp = modelMatrix * vec4(p, 1.0); vWorldPos = wp.xyz;
           vDist = length(cameraPosition - wp.xyz);
           gl_Position = projectionMatrix * viewMatrix * wp;
-        }
-      `,
+        }`,
       fragmentShader: `
-        uniform vec3 uBaseColor;
-        uniform vec3 uTipColor;
-        uniform vec3 uFogColor;
-        uniform float uFogFar;
-        varying float vY;
-        varying vec3 vWorldNormal;
-        varying vec3 vWorldPos;
-        varying float vDist;
+        uniform vec3 uBaseColor, uTipColor, uFogColor; uniform float uFogFar;
+        varying float vY; varying vec3 vWorldNormal; varying float vDist;
         void main() {
           float facing = abs(vWorldNormal.z);
-          vec3 col = mix(uBaseColor, uTipColor, vY);
-          col *= 0.5 + 0.5 * facing;
-          // Manual fog
+          vec3 col = mix(uBaseColor, uTipColor, vY) * (0.5 + 0.5 * facing);
           float fogFactor = 1.0 - exp(-pow(vDist / uFogFar, 2.0) * 1.5);
           col = mix(col, uFogColor, clamp(fogFactor, 0.0, 1.0));
           gl_FragColor = vec4(col, 0.92);
-        }
-      `,
+        }`,
     });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(
-      (Math.random() - 0.5) * 60,
-      -10,
-      (Math.random() - 0.5) * 30 - 10
-    );
+    mesh.position.set((Math.random() - 0.5) * 60, -10, (Math.random() - 0.5) * 30 - 10);
     mesh.rotation.y = Math.random() * Math.PI;
-    mesh.userData = { mat };
-    group.add(mesh);
+    mesh.userData = { mat, isProcedural: true, phase: Math.random() * Math.PI * 2 };
+    kelpGroup.add(mesh);
     items.push(mesh);
   }
-  group.userData = { items };
-  return group;
+  kelpGroup.userData.items = items;
+  kelpGroup.userData.loaded = true;
+  console.log('[underwater-ai] Using procedural kelp');
 }
-const kelp = buildKelp();
-scene.add(kelp);
+
+lazyLoad(() => {
+kelpLoader.load(
+  'assets/3d/kelp.glb',
+  (gltf) => {
+    const model = gltf.scene;
+    model.traverse((child) => {
+      if (child.isMesh && child.material) {
+        child.material = child.material.clone();
+        child.material.side = THREE.DoubleSide;
+        child.material.transparent = true;
+        child.material.opacity = 0.9;
+      }
+    });
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const targetH = 6;
+    const s = targetH / Math.max(size.y, 0.1);
+    model.scale.setScalar(s);
+
+    const items = [];
+    for (let i = 0; i < CONFIG.kelpCount; i++) {
+      const clone = model.clone(true);
+      clone.traverse((c) => { if (c.isMesh && c.material) c.material = c.material.clone(); });
+      clone.position.set(
+        (Math.random() - 0.5) * 60, -10, (Math.random() - 0.5) * 30 - 10
+      );
+      clone.rotation.y = Math.random() * Math.PI;
+      clone.userData = { phase: Math.random() * Math.PI * 2, isProcedural: false };
+      kelpGroup.add(clone);
+      items.push(clone);
+    }
+    kelpGroup.userData.items = items;
+    kelpGroup.userData.loaded = true;
+    console.log('[underwater-ai] Kelp GLB loaded —', CONFIG.kelpCount, 'instances');
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('kelp');
+  },
+  undefined,
+  (err) => {
+    console.warn('[underwater-ai] Kelp GLB failed — using procedural fallback', err);
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('kelp');
+    buildFallbackKelp();
+  }
+);
+}); // end lazyLoad kelp
 
 // ---------------------------------------------------------------------------
-// 12. SAND FLOOR — displaced plane with PBR material + caustics
+// 12. SEAFLOOR — load real GLB model, with procedural fallback
 // ---------------------------------------------------------------------------
-function buildSandFloor() {
+const seafloorGroup = new THREE.Group();
+scene.add(seafloorGroup);
+
+const seafloorLoader = new GLTFLoader();
+seafloorLoader.setDRACOLoader(dracoLoader);
+
+function buildFallbackSeafloor() {
   const geo = new THREE.PlaneGeometry(160, 120, 80, 50);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
-    const y = (Math.sin(x * 0.15) * 0.4 +
-               Math.cos(z * 0.13) * 0.3 +
-               Math.sin(x * 0.04 + z * 0.04) * 0.7);
+    const y = (Math.sin(x * 0.15) * 0.4 + Math.cos(z * 0.13) * 0.3 + Math.sin(x * 0.04 + z * 0.04) * 0.7);
     pos.setY(i, y);
   }
   geo.computeVertexNormals();
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0xc8a878,
-    emissive: 0x223344,
-    emissiveIntensity: 0.05,
-    roughness: 0.85,
-    metalness: 0.0,
-  });
+  const mat = new THREE.MeshStandardMaterial({ color: 0xc8a878, emissive: 0x223344, emissiveIntensity: 0.05, roughness: 0.85, metalness: 0.0 });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.y = -12;
-  return mesh;
+  seafloorGroup.add(mesh);
+  console.log('[underwater-ai] Using procedural seafloor');
 }
-const sand = buildSandFloor();
-scene.add(sand);
+
+lazyLoad(() => {
+seafloorLoader.load(
+  'assets/3d/seafloor-v2.glb',
+  (gltf) => {
+    const model = gltf.scene;
+    // Apply uniform material treatment so it blends with the scene fog + lighting
+    model.traverse((child) => {
+      if (child.isMesh && child.material) {
+        child.material = child.material.clone();
+        // Kill over-bright emissive — let scene lighting do the work
+        if (child.material.emissive) {
+          child.material.emissive = new THREE.Color(0x0a1628);
+          child.material.emissiveIntensity = 0.12;
+        }
+        // Sand-tinted, high roughness for believable underwater floor
+        if (child.material.color) {
+          child.material.color.multiplyScalar(0.85);
+        }
+        child.material.roughness = 0.92;
+        child.material.metalness = 0.02;
+        child.receiveShadow = true;
+        child.castShadow = false;
+      }
+    });
+    // Proper centering + scale — fill a wide area without vertical stretching
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    // Center at origin in X/Z, keep Y position tight to seafloor plane
+    model.position.x = -center.x;
+    model.position.z = -center.z;
+    // Uniform scaling — use the larger horizontal dimension, cap it
+    const targetHoriz = 90;   // 90 square units of floor coverage
+    const sH = targetHoriz / Math.max(size.x, size.z, 0.01);
+    model.scale.setScalar(sH);
+    // Clamp vertical scale so bumps don't spike into camera
+    model.scale.y = Math.min(model.scale.y * 0.8, 3);
+    // Position at the seafloor level
+    model.position.y = -13;
+    seafloorGroup.add(model);
+    console.log('[underwater-ai] Seafloor GLB loaded (centered, fog-blended)');
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('seafloor');
+  },
+  undefined,
+  (err) => {
+    console.warn('[underwater-ai] Seafloor GLB failed — using procedural fallback', err);
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('seafloor');
+    buildFallbackSeafloor();
+  }
+);
+}); // end lazyLoad seafloor
 
 // Animated caustics projected on sand (separate transparent plane)
 const causticMat = new THREE.MeshBasicMaterial({
@@ -820,71 +1161,103 @@ causticMesh.position.y = -11.7;
 scene.add(causticMesh);
 
 // ---------------------------------------------------------------------------
-// 13. CORAL — high-detail organic shapes with proper PBR
+// 13. CORAL — load real GLB model, with procedural fallback
 // ---------------------------------------------------------------------------
-function buildCoral() {
-  const items = [];
-  const palette = [
-    0xff5577, 0x8844cc, 0xff9944, 0x44aaff,
-    0xff66aa, 0x66ddaa, 0xffaa33, 0xaa55ff,
-  ];
+const coralGroup = new THREE.Group();
+coralGroup.userData = { items: [], loaded: false };
+scene.add(coralGroup);
+
+const coralLoader = new GLTFLoader();
+coralLoader.setDRACOLoader(dracoLoader);
+
+function buildFallbackCoral() {
+  const palette = [0xff5577, 0x8844cc, 0xff9944, 0x44aaff, 0xff66aa, 0x66ddaa, 0xffaa33, 0xaa55ff];
   for (let i = 0; i < CONFIG.coralCount; i++) {
     const h = 0.8 + Math.random() * 1.8;
     const segs = 5 + Math.floor(Math.random() * 4);
     const geo = new THREE.ConeGeometry(0.5 + Math.random() * 0.4, h, segs, 3);
-    // Vertex jitter
     const pos = geo.attributes.position;
     for (let v = 0; v < pos.count; v++) {
       const y = pos.getY(v);
       if (y < h / 2 - 0.1) {
         pos.setX(v, pos.getX(v) + (Math.random() - 0.5) * 0.2);
         pos.setZ(v, pos.getZ(v) + (Math.random() - 0.5) * 0.2);
-        if (Math.random() < 0.4) {
-          pos.setY(v, pos.getY(v) + (Math.random() - 0.5) * 0.1);
-        }
+        if (Math.random() < 0.4) pos.setY(v, pos.getY(v) + (Math.random() - 0.5) * 0.1);
       }
     }
     geo.computeVertexNormals();
     const col = palette[Math.floor(Math.random() * palette.length)];
     const mat = new THREE.MeshStandardMaterial({
-      color: col,
-      emissive: col,
-      emissiveIntensity: 0.20,
-      roughness: 0.55,
-      metalness: 0.0,
-      flatShading: true,  // makes facets look more organic
+      color: col, emissive: col, emissiveIntensity: 0.20,
+      roughness: 0.55, metalness: 0.0, flatShading: true,
     });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(
-      (Math.random() - 0.5) * 50,
-      -11.5 + h / 2,
-      (Math.random() - 0.5) * 25 - 8
-    );
+    mesh.position.set((Math.random() - 0.5) * 50, -11.5 + h / 2, (Math.random() - 0.5) * 25 - 8);
     mesh.scale.setScalar(0.8 + Math.random() * 0.6);
     mesh.rotation.y = Math.random() * Math.PI;
-    scene.add(mesh);
-    items.push(mesh);
-
-    // Add a few small "branches" coming off the coral
-    const branchCount = 2 + Math.floor(Math.random() * 3);
-    for (let b = 0; b < branchCount; b++) {
-      const branchGeo = new THREE.ConeGeometry(0.15, 0.6 + Math.random() * 0.4, 4, 2);
-      const branchMesh = new THREE.Mesh(branchGeo, mat);
-      const angle = (b / branchCount) * Math.PI * 2;
-      branchMesh.position.set(
-        mesh.position.x + Math.cos(angle) * 0.3,
-        mesh.position.y + h * 0.3,
-        mesh.position.z + Math.sin(angle) * 0.3
-      );
-      branchMesh.rotation.z = (Math.random() - 0.5) * 0.5;
-      branchMesh.rotation.x = (Math.random() - 0.5) * 0.5;
-      branchMesh.scale.setScalar(0.6 + Math.random() * 0.4);
-      scene.add(branchMesh);
-    }
+    coralGroup.add(mesh);
+    coralGroup.userData.items.push(mesh);
   }
-  return items;
+  coralGroup.userData.loaded = true;
+  console.log('[underwater-ai] Using procedural coral');
 }
-const coral = buildCoral();
+
+lazyLoad(() => {
+coralLoader.load(
+  'assets/3d/coral.glb',
+  (gltf) => {
+    const model = gltf.scene;
+    model.traverse((child) => {
+      if (child.isMesh && child.material) {
+        child.material = child.material.clone();
+        child.material.emissive = child.material.color.clone();
+        child.material.emissiveIntensity = 0.15;
+      }
+    });
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const targetSize = 1.5;
+    const s = targetSize / Math.max(Math.max(size.x, size.y, size.z), 0.1);
+    model.scale.setScalar(s);
+
+    const items = [];
+    for (let i = 0; i < CONFIG.coralCount; i++) {
+      const clone = model.clone(true);
+      clone.traverse((c) => { if (c.isMesh && c.material) c.material = c.material.clone(); });
+      // Randomize color tint per instance
+      const hue = Math.random() * 360;
+      clone.traverse((c) => {
+        if (c.isMesh && c.material && c.material.color) {
+          const col = new THREE.Color().setHSL(hue / 360, 0.7, 0.5);
+          c.material.color.copy(col);
+          c.material.emissive.copy(col);
+        }
+      });
+      clone.position.set(
+        (Math.random() - 0.5) * 50,
+        -11.5,
+        (Math.random() - 0.5) * 25 - 8
+      );
+      clone.rotation.y = Math.random() * Math.PI;
+      clone.scale.setScalar(0.8 + Math.random() * 0.6);
+      coralGroup.add(clone);
+      items.push(clone);
+    }
+    coralGroup.userData.items = items;
+    coralGroup.userData.loaded = true;
+    console.log('[underwater-ai] Coral GLB loaded —', CONFIG.coralCount, 'instances');
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('coral');
+  },
+  undefined,
+  (err) => {
+    console.warn('[underwater-ai] Coral GLB failed — using procedural fallback', err);
+    console.log('CORAL TRACE');
+    if (window.UnderwaterModelLoader) window.UnderwaterModelLoader.report('coral');
+    buildFallbackCoral();
+  }
+);
+}); // end lazyLoad coral
 
 // ---------------------------------------------------------------------------
 // 14. MARINE SNOW — drifting particles
@@ -1058,36 +1431,121 @@ const dataStreams = buildDataStreams();
 scene.add(dataStreams);
 
 // ---------------------------------------------------------------------------
-// 15. SCROLL-DRIVEN CAMERA PATH
+// 15. SCROLL-DRIVEN CAMERA — dramatic cinematic spline system
+//    • CatmullRom splines for position & lookAt (continuous, buttery motion)
+//    • Banking roll in turns  • Velocity-driven FOV  • Section snap-zooms
 // ---------------------------------------------------------------------------
-const cameraWaypoints = [
-  { p: 0.00, cam: { x:  0, y:  4, z: 28 }, look: { x: 0, y:  0, z:  0 } },
-  { p: 0.18, cam: { x:  4, y:  0, z: 24 }, look: { x: 0, y:  0, z:  0 } },
-  { p: 0.32, cam: { x: -6, y: -2, z: 22 }, look: { x: 0, y: -2, z: -5 } },
-  { p: 0.48, cam: { x:  8, y: -4, z: 24 }, look: { x: 0, y: -4, z:  0 } },
-  { p: 0.64, cam: { x:  0, y: -6, z: 26 }, look: { x: 0, y: -6, z:  0 } },
-  { p: 0.78, cam: { x: -4, y: -9, z: 22 }, look: { x: 0, y: -10, z: -4 } },
-  { p: 0.90, cam: { x:  6, y: -2, z: 28 }, look: { x: 0, y: -2, z:  0 } },
-  { p: 1.00, cam: { x:  0, y:  4, z: 30 }, look: { x: 0, y:  0, z:  0 } },
+
+// Cinematic path — verified against actual scene bounds & creature positions
+const cameraSplinePoints = [
+  // [x, y, z] — scroll progress is uniform along the spline
+  [  0,   7,  33 ],  // 0.00  HERO — above surface, wide open
+  [  7,   4,  27 ],  // 0.09  dive begins, swoop right
+  [ -8,   1,  23 ],  // 0.18  hard left bank through bubble fields
+  [  6,  -1,  19 ],  // 0.27  snap back right, kelp forest approach
+  [ -9,  -3,  24 ],  // 0.36  deep swing left, god rays in frame
+  [  8,  -5,  21 ],  // 0.45  push right through fish school
+  [ -6,  -7,  19 ],  // 0.54  turtle territory
+  [  4,  -9,  22 ],  // 0.63  manta ray sweep
+  [  0, -11,  17 ],  // 0.72  seafloor approach, dramatic low angle
+  [ -7, -10,  23 ],  // 0.81  coral garden glide
+  [  8,  -6,  26 ],  // 0.88  ascent begins, wide arc
+  [  0,   5,  31 ],  // 1.00  surface, home again
 ];
-const _tmpA = new THREE.Vector3();
-const _tmpB = new THREE.Vector3();
-function lerpWaypoint(p) {
-  p = Math.max(0, Math.min(1, p));
-  let i = 0;
-  while (i < cameraWaypoints.length - 1 && cameraWaypoints[i + 1].p < p) i++;
-  const a = cameraWaypoints[i];
-  const b = cameraWaypoints[Math.min(i + 1, cameraWaypoints.length - 1)];
-  const range = b.p - a.p || 1;
-  const t = (p - a.p) / range;
-  const e = t * t * (3 - 2 * t);
-  _tmpA.set(a.cam.x, a.cam.y, a.cam.z).lerp(
-    _tmpB.set(b.cam.x, b.cam.y, b.cam.z), e
-  );
-  camera.position.copy(_tmpA);
-  const la = new THREE.Vector3(a.look.x, a.look.y, a.look.z);
-  const lb = new THREE.Vector3(b.look.x, b.look.y, b.look.z);
-  camera.lookAt(la.lerp(lb, e));
+const lookSplinePoints = [
+  [  0,  3,   0 ],
+  [ -2,  2,  -3 ],
+  [  3,  0,  -6 ],
+  [ -3, -2,  -8 ],
+  [  2, -4, -10 ],
+  [ -4, -6,  -6 ],
+  [  5, -8,  -5 ],
+  [ -3, -10, -7 ],
+  [  3, -12,  -4 ],
+  [  0, -11,   3 ],  // look back at coral
+  [ -4,  -4,  -2 ],
+  [  0,   2,   0 ],  // settle at origin
+];
+
+const camPath = new THREE.CatmullRomCurve3(
+  cameraSplinePoints.map(([x, y, z]) => new THREE.Vector3(x, y, z)),
+  false, 'centripetal', 0.5
+);
+const lookPath = new THREE.CatmullRomCurve3(
+  lookSplinePoints.map(([x, y, z]) => new THREE.Vector3(x, y, z)),
+  false, 'centripetal', 0.5
+);
+
+// Hoisted allocations — zero garbage per frame
+const _camPos   = new THREE.Vector3();
+const _camTarget = new THREE.Vector3(); // fresh per-frame camera target (no aliasing)
+const _lookPos  = new THREE.Vector3();
+const _nextPos  = new THREE.Vector3();   // sample slightly ahead for banking
+const _sideVec  = new THREE.Vector3();   // normalized strafe direction
+const _upVec    = new THREE.Vector3();   // up vector for roll
+const _fwdVec   = new THREE.Vector3();
+
+// Camera state
+let cameraRoll = 0;
+let currentFov = camera.fov;
+let prevScrollP = 0;
+let scrollVel = 0;
+
+function updateCamera(scrollP, dt, elapsed) {
+  
+  // Smooth velocity tracking
+  scrollVel += ((scrollP - prevScrollP) / Math.max(dt, 0.001) - scrollVel) * 0.06;
+  prevScrollP = scrollP;
+
+  // Snap zoom: brief FOV push at section boundaries (every 11% of scroll)
+  const sectionPhase = (scrollP * 9) % 1;
+  const snapZoom = Math.exp(-Math.pow((sectionPhase - 0.02) * 14, 2)) * 4;
+  const targetFov = 55 + Math.abs(scrollVel) * 8 + snapZoom;
+  currentFov += (targetFov - currentFov) * 0.05;
+  if (Math.abs(currentFov - camera.fov) > 0.05) {
+    camera.fov = currentFov;
+    camera.updateProjectionMatrix();
+  }
+
+  // Sample the position spline — use getPoint (not getPointAt) for guaranteed interpolation
+  const pt = camPath.getPoint(scrollP);
+  _camTarget.copy(pt);
+
+  // DEBUG: log once
+
+  // Underwater micro-drift — gentle organic bob, always present
+  if (!prefersReducedMotion) {
+    _camTarget.x += Math.sin(elapsed * 0.4) * 0.18;
+    _camTarget.y += Math.sin(elapsed * 0.55) * 0.11;
+    _camTarget.z += Math.cos(elapsed * 0.45) * 0.14;
+  }
+  camera.position.copy(_camTarget);
+
+  // Sample look-at target
+  const lpt = lookPath.getPoint(scrollP);
+  _lookPos.copy(lpt);
+
+  // Gentle mouse parallax — subtle, never fights the spline
+  if (!prefersReducedMotion) {
+    const depthScale = 0.3 + (1 - scrollP) * 0.5;
+    camera.position.x += Scene.mouse.x * 0.7 * depthScale;
+    camera.position.y += Scene.mouse.y * 0.4 * depthScale;
+  }
+
+  camera.lookAt(_lookPos);
+
+  // Sample ahead for banking computation
+  const aheadPt = camPath.getPoint(Math.min(scrollP + 0.015, 1));
+  _nextPos.copy(aheadPt);
+  _sideVec.subVectors(_nextPos, _camTarget).normalize();
+  _upVec.set(0, 1, 0);
+  _sideVec.cross(_upVec).normalize();
+
+  // Bank into turns
+  const lateralVel = _sideVec.dot(_fwdVec.subVectors(_nextPos, _camTarget).normalize());
+  const targetRoll = -lateralVel * 1.4 + scrollVel * 0.02;
+  cameraRoll += (targetRoll - cameraRoll) * 0.08;
+  camera.rotation.z += cameraRoll;
 }
 
 // ---------------------------------------------------------------------------
@@ -1096,24 +1554,37 @@ function lerpWaypoint(p) {
 const clock = new THREE.Clock();
 let elapsed = 0;
 const dummy = new THREE.Object3D();
-const _camPos = new THREE.Vector3();
+const frustum = new THREE.Frustum();
+const projView = new THREE.Matrix4();
+
+// Frustum check: is this object's center inside the camera's view?
+function isVisible(obj) {
+  projView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  frustum.setFromProjectionMatrix(projView);
+  const sphere = new THREE.Sphere(new THREE.Vector3().setFromMatrixPosition(obj.matrixWorld), 2);
+  return frustum.intersectsSphere(sphere);
+}
 
 function animate() {
   requestAnimationFrame(animate);
+  if (document.hidden) return;
+  monitorFps();
   const dt = Math.min(clock.getDelta(), 0.1);
   elapsed += dt;
   fishAnimTime += dt;
 
   // Smooth mouse lerp
-  Scene.mouse.x += (Scene.mouse.tx - Scene.mouse.x) * 0.04;
-  Scene.mouse.y += (Scene.mouse.ty - Scene.mouse.y) * 0.04;
+  Scene.mouse.x += (Scene.mouse.tx - Scene.mouse.x) * 0.06;
+  Scene.mouse.y += (Scene.mouse.ty - Scene.mouse.y) * 0.06;
 
-  // Camera path
-  lerpWaypoint(Scene.scrollProgress);
-  if (!prefersReducedMotion) {
-    camera.position.x += Scene.mouse.x * 0.6;
-    camera.position.y += Scene.mouse.y * 0.3;
-  }
+  // Camera — spline-driven cinematic path
+  updateCamera(Scene.scrollProgress, dt, elapsed);
+
+  // Atmosphere: exposure based on scroll velocity
+  const scrollVelAbs = Math.abs(scrollVel);
+  renderer.toneMappingExposure += (0.95 + scrollVelAbs * 0.3 - renderer.toneMappingExposure) * 0.08;
+  scrollVel *= 0.92;
+
   // Update water uniform with current camera position (for fresnel)
   camera.getWorldPosition(_camPos);
   waterMat.uniforms.uCameraPos.value.copy(_camPos);
@@ -1125,20 +1596,43 @@ function animate() {
     r.position.x = r.userData.baseX + Math.sin(elapsed * 0.1 + idx) * 0.3;
   });
 
-  // Jellyfish: pulse bell + sway tentacles
-  jellyfish.forEach((j, idx) => {
-    const ud = j.userData;
-    const pulse = 1 + Math.sin(elapsed * 1.2 + ud.phase) * 0.08;
-    ud.bell.scale.set(pulse, 1 / pulse, pulse);
-    ud.glow.material.opacity = 0.4 + Math.sin(elapsed * 1.5 + ud.phase) * 0.18;
-    ud.tentacles.forEach((t) => {
-      t.rotation.x = Math.sin(elapsed * 0.7 + t.userData.phase) * 0.18;
-      t.rotation.z = Math.sin(elapsed * 0.5 + t.userData.phase + 1) * 0.18;
+  // Jellyfish: swimming motion + mouse interaction + pulse
+  if (jellyfishGroup.userData.loaded) {
+    const mx = Scene.mouse.x;
+    const my = Scene.mouse.y;
+    jellyfishGroup.userData.jellyData.forEach((j, idx) => {
+      const m = j.mesh;
+      // Swimming: sinusoidal path with depth-dependent speed
+      const swimSpeed = j.isHero ? 0.25 : 0.15 + idx * 0.03;
+      const swimRadius = j.isHero ? 2.0 : 1.2;
+      const swimVertAmp = j.isHero ? 0.8 : 0.4;
+      m.position.x = j.center.x + Math.sin(elapsed * swimSpeed + j.phase) * swimRadius;
+      m.position.y = j.center.y + Math.sin(elapsed * swimSpeed * 0.7 + j.phase * 0.5) * swimVertAmp;
+      m.position.z = j.center.z + Math.cos(elapsed * swimSpeed * 0.5 + j.phase) * 0.6;
+      // Mouse repulsion: jellyfish drift away from cursor
+      const dx = m.position.x - mx * 15;
+      const dy = m.position.y - my * 8;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 8) {
+        const push = (8 - dist) / 8 * 1.5;
+        m.position.x += (dx / dist) * push;
+        m.position.y += (dy / dist) * push;
+      }
+      // Face direction of movement
+      const targetRotY = Math.atan2(
+        Math.cos(elapsed * swimSpeed + j.phase) * swimRadius,
+        -Math.sin(elapsed * swimSpeed * 0.5 + j.phase) * 0.6
+      );
+      m.rotation.y += (targetRotY - m.rotation.y) * 0.02;
+      // Subtle tilt on movement axis
+      m.rotation.z = Math.sin(elapsed * swimSpeed + j.phase) * 0.08;
+      m.rotation.x = Math.sin(elapsed * swimSpeed * 0.6 + j.phase + 1) * 0.05;
+      // Bell contraction pulse (scale breathing)
+      const pulse = 1 + Math.sin(elapsed * 1.8 + j.phase) * 0.08;
+      const pulseY = 1 + Math.sin(elapsed * 1.8 + j.phase + 0.5) * 0.05;
+      m.scale.set(j.scale * pulse, j.scale * pulseY, j.scale * pulse);
     });
-    j.position.x = ud.basePos.x + Math.sin(elapsed * 0.3 + idx) * 1.2;
-    j.position.y = ud.basePos.y + Math.sin(elapsed * 0.4 + idx * 0.7) * 0.6;
-    j.rotation.y = elapsed * 0.05 + idx;
-  });
+  }
 
   // Fish — real GLB model animation (circular paths + tail wag)
   if (fishGroup.userData.loaded) {
@@ -1148,6 +1642,11 @@ function animate() {
       const z = f.center.z + Math.sin(t) * f.radius;
       const y = f.center.y + Math.sin(t * 1.3) * f.bobAmp;
       f.mesh.position.set(x, y, z);
+
+      // Frustum cull: hide + skip anim math for creatures outside camera view
+      f.mesh.visible = isVisible(f.mesh);
+      if (!f.mesh.visible) return;
+
       // Face direction of motion
       const tangX = -Math.sin(t) * f.radius * f.speed;
       const tangZ =  Math.cos(t) * f.radius * f.speed;
@@ -1157,6 +1656,43 @@ function animate() {
       f.mesh.rotation.y += wag * 0.3;
       f.mesh.rotation.z = f.tilt + Math.sin(elapsed * f.wagSpeed * 0.5 + f.wagPhase) * 0.08;
     });
+  }
+
+  // Sea turtles — slow graceful glides
+  if (turtleGroup.userData.loaded && turtleGroup.userData.data.length) {
+    turtleGroup.userData.data.forEach((d) => {
+      const t = elapsed * d.speed + d.offset;
+      d.mesh.position.x = d.center.x + Math.sin(t) * d.radius;
+      d.mesh.position.z = d.center.z + Math.cos(t) * d.radius;
+      d.mesh.position.y = d.center.y + Math.sin(t * 1.4) * d.bobAmp;
+      d.mesh.rotation.y = -t + Math.PI / 2; // face travel direction
+      // flipper "flap": gentle roll oscillation
+      d.mesh.rotation.z = Math.sin(elapsed * 2.2 + d.flapPhase) * 0.08;
+      d.mesh.rotation.x = Math.sin(elapsed * 1.1 + d.flapPhase) * 0.04;
+    });
+  }
+
+  // Manta ray — majestic elliptical glide with banking
+  if (mantaGroup.userData.loaded && mantaGroup.userData.data) {
+    const d = mantaGroup.userData.data;
+    const t = elapsed * d.speed + d.offset;
+    d.mesh.position.x = d.center.x + Math.cos(t) * d.radiusX;
+    d.mesh.position.z = d.center.z + Math.sin(t) * d.radiusZ;
+    d.mesh.position.y = d.center.y + Math.sin(t * 2.0) * 0.5;
+    d.mesh.rotation.y = -t; // face along path
+    // banking into turns
+    d.mesh.rotation.z = Math.sin(t * 2) * d.rollAmp;
+  }
+
+  // Submarine — slow ominous drift across the background, wraps around
+  if (subGroup.userData.loaded && subGroup.userData.data) {
+    const d = subGroup.userData.data;
+    d.t += dt * d.speed * 100;
+    const range = d.endX - d.startX;
+    const x = d.startX + (d.t % (range + 30)) - 15; // extra off-screen margin
+    if (x > d.endX + 15) d.t = 0;
+    d.mesh.position.set(x, d.y, d.z);
+    d.mesh.rotation.y = Math.PI / 2; // nose pointing travel direction
   }
 
   // Bubbles — rise, wobble, glass material reflects env
@@ -1177,18 +1713,27 @@ function animate() {
   });
   bubbles.mesh.instanceMatrix.needsUpdate = true;
 
-  // Kelp
-  kelp.userData.items.forEach((m) => {
-    m.userData.mat.uniforms.uTime.value = elapsed;
-  });
+  // Kelp — sway animation
+  if (kelpGroup.userData.loaded) {
+    kelpGroup.userData.items.forEach((m) => {
+      if (m.userData.isProcedural && m.userData.mat) {
+        m.userData.mat.uniforms.uTime.value = elapsed;
+      } else {
+        // GLB kelp: gentle rotation sway
+        m.rotation.z = Math.sin(elapsed * 0.4 + (m.userData.phase || 0)) * 0.08;
+        m.rotation.x = Math.sin(elapsed * 0.3 + (m.userData.phase || 0) * 0.7) * 0.04;
+      }
+    });
+  }
 
-  // Marine snow
-  // Marine snow + plankton + data streams
-  marineSnow.material.uniforms.uTime.value = elapsed;
-  plankton.material.uniforms.uTime.value = elapsed;
-  dataStreams.children.forEach((p) => {
-    p.userData.mat.uniforms.uTime.value = elapsed;
-  });
+  // Marine snow + plankton + data streams (throttled — every other frame)
+  if (frameCount % 2 === 0) {
+    marineSnow.material.uniforms.uTime.value = elapsed;
+    plankton.material.uniforms.uTime.value = elapsed;
+    dataStreams.children.forEach((p) => {
+      p.userData.mat.uniforms.uTime.value = elapsed;
+    });
+  }
 
   // Caustics scroll
   causticTex.offset.x = (elapsed * 0.02) % 1;
@@ -1208,7 +1753,7 @@ function onResize() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   renderer.setSize(w, h, false);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, CONFIG.pixelRatioCap));
+  renderer.setPixelRatio(adaptivePixelRatio);
 }
 window.addEventListener('resize', onResize);
 

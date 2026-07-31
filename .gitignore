@@ -4,3 +4,6 @@
 # Logs
 underwater_ai_log.txt
 *.log
+
+# Environment variables
+.env

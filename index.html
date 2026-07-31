@@ -31,14 +31,9 @@
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <link rel="preconnect" href="https://assets.meshy.ai">
 
-  <!-- Prefetch 3D models (lazy-loaded after page interactive) -->
+  <!-- Prefetch only hero-critical 3D models. Remaining models load on-demand. -->
   <link rel="prefetch" href="assets/3d/jellyfish-v2.glb" as="fetch" type="model/gltf-binary" crossorigin>
   <link rel="prefetch" href="assets/3d/fish-school.glb" as="fetch" type="model/gltf-binary" crossorigin>
-  <link rel="prefetch" href="assets/3d/kelp.glb" as="fetch" type="model/gltf-binary" crossorigin>
-  <link rel="prefetch" href="assets/3d/seafloor-v2.glb" as="fetch" type="model/gltf-binary" crossorigin>
-  <link rel="prefetch" href="assets/3d/sea-turtle.glb" as="fetch" type="model/gltf-binary" crossorigin>
-  <link rel="prefetch" href="assets/3d/manta-ray.glb" as="fetch" type="model/gltf-binary" crossorigin>
-  <link rel="prefetch" href="assets/3d/submarine.glb" as="fetch" type="model/gltf-binary" crossorigin>
 
   <!-- Fonts: Inter + Space Grotesk + JetBrains Mono -->
   <link rel="preload" as="style"
@@ -52,7 +47,7 @@
   </noscript>
 
   <!-- Local stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=4.0">
+  <link rel="stylesheet" href="css/style.css?v=4.1">
 
   <!-- Inline anti-flash for saved theme -->
   <script>
@@ -1241,14 +1236,14 @@
   <script defer src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
 
   <!-- ====================================================================== -->
-  <!-- APP SCRIPTS (deferred, after libs) — ?v=3.1 busts caches                -->
+  <!-- APP SCRIPTS (deferred, after libs) — ?v=4.1 busts caches (minified)    -->
   <!-- ====================================================================== -->
-  <script type="module" src="js/scene-3d.js?v=5.0"></script>
-  <script defer src="js/scroll.js?v=4.0"></script>
-  <script defer src="js/cursor.js?v=4.0"></script>
-  <script defer src="js/ui.js?v=4.0"></script>
-  <script defer src="js/anime.js?v=4.0"></script>
-  <script defer src="js/main.js?v=4.0"></script>
+  <script type="module" src="js/scene-3d.js?v=5.1"></script>
+  <script defer src="js/scroll.js?v=4.1"></script>
+  <script defer src="js/cursor.js?v=4.1"></script>
+  <script defer src="js/ui.js?v=4.1"></script>
+  <script defer src="js/anime.js?v=4.1"></script>
+  <script defer src="js/main.js?v=4.1"></script>
 
 </body>
 </html>

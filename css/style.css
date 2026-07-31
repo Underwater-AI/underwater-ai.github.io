@@ -214,6 +214,14 @@ p { text-wrap: pretty; }
 #tourism::before { background: linear-gradient(90deg, transparent, var(--c-amber) 50%, transparent); box-shadow: 0 0 24px var(--c-amber); }
 #team::before { background: linear-gradient(90deg, transparent, var(--c-cyan-300) 50%, transparent); box-shadow: 0 0 24px var(--c-cyan-300); }
 
+/* Defer rendering of the last two sections (trust strip + founder cards) to reduce
+   main-thread layout/paint cost during initial page load. The 3D camera spline
+   targets a fixed scroll range, so these deep sections are safe to skip-until-visible. */
+#customers, #team {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 700px;
+}
+
 .grid { display: grid; gap: var(--s-5); }
 
 /* ----------------------------------------------------------------------------

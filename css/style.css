@@ -235,6 +235,10 @@ p { text-wrap: pretty; }
   z-index: 0;
   display: block;
   pointer-events: none; /* Section content gets the events */
+  will-change: transform; /* Hint browser to composite on GPU layer */
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform: translateZ(0); /* Force GPU compositing layer */
 }
 
 /* Subtle vignette so content reads against 3D */

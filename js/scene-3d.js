@@ -1,1 +1,640 @@
-import*as THREE from"three";import{GLTFLoader}from"three/addons/loaders/GLTFLoader.js";import{DRACOLoader}from"three/addons/loaders/DRACOLoader.js";import{RoomEnvironment}from"three/addons/environments/RoomEnvironment.js";const prefersReducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches,Scene={camera:null,renderer:null,isReady:!1,scrollProgress:0,mouse:{x:0,y:0,tx:0,ty:0},setScroll(e){this.scrollProgress=e},setMouse(e,a){this.mouse.tx=e,this.mouse.ty=a}};window.UnderwaterScene=Scene;const CONFIG={isMobile:/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent),isLowPower:navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4,pixelRatioCap:2,bubbleCount:60,fishCount:10,jellyfishCount:4,kelpCount:10,coralCount:6,particleCount:280,godRayCount:7,dataStreamCount:5,heroJellyfishSize:4.5,fogColor:67616,fogNear:18,fogFar:70,cameraStart:{x:0,y:4,z:28},cameraLookStart:{x:0,y:0,z:0}};(CONFIG.isMobile||CONFIG.isLowPower)&&(CONFIG.bubbleCount=24,CONFIG.fishCount=4,CONFIG.kelpCount=5,CONFIG.coralCount=3,CONFIG.particleCount=100,CONFIG.godRayCount=3,CONFIG.dataStreamCount=3,CONFIG.pixelRatioCap=1.25);const canvas=document.getElementById("scene-canvas");if(!canvas)throw new Error("[underwater-ai] #scene-canvas not found");const scene=new THREE.Scene;scene.background=new THREE.Color(CONFIG.fogColor),scene.fog=new THREE.Fog(CONFIG.fogColor,CONFIG.fogNear,CONFIG.fogFar);const camera=new THREE.PerspectiveCamera(55,window.innerWidth/window.innerHeight,.1,250);camera.position.set(CONFIG.cameraStart.x,CONFIG.cameraStart.y,CONFIG.cameraStart.z),camera.lookAt(CONFIG.cameraLookStart.x,CONFIG.cameraLookStart.y,CONFIG.cameraLookStart.z),Scene.camera=camera;const renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:!1,alpha:!1,powerPreference:"high-performance",stencil:!1,logarithmicDepthBuffer:!1,premultipliedAlpha:!1,preserveDrawingBuffer:!1,desynchronized:!0});renderer.setSize(window.innerWidth,window.innerHeight,!1);let adaptivePixelRatio=1;renderer.setPixelRatio(adaptivePixelRatio),renderer.outputColorSpace=THREE.SRGBColorSpace,renderer.toneMapping=THREE.ACESFilmicToneMapping,renderer.toneMappingExposure=.95,Scene.renderer=renderer;let frameCount=0,lastFpsCheck=performance.now(),currentFps=60;function monitorFps(){frameCount++;const e=performance.now();e-lastFpsCheck>=2e3&&(currentFps=1e3*frameCount/(e-lastFpsCheck),frameCount=0,lastFpsCheck=e,currentFps<30&&adaptivePixelRatio>1?(adaptivePixelRatio=Math.max(1,adaptivePixelRatio-.25),renderer.setPixelRatio(adaptivePixelRatio),console.log(`[perf] pixel ratio ↓ ${adaptivePixelRatio.toFixed(2)} (fps: ${currentFps.toFixed(0)})`)):currentFps>55&&adaptivePixelRatio<CONFIG.pixelRatioCap&&(adaptivePixelRatio=Math.min(CONFIG.pixelRatioCap,adaptivePixelRatio+.25),renderer.setPixelRatio(adaptivePixelRatio),console.log(`[perf] pixel ratio ↑ ${adaptivePixelRatio.toFixed(2)} (fps: ${currentFps.toFixed(0)})`)))}window.__underwaterPerformance={get fps(){return currentFps},get pixelRatio(){return adaptivePixelRatio}};const pmremGenerator=new THREE.PMREMGenerator(renderer);pmremGenerator.compileEquirectangularShader();const envTex=pmremGenerator.fromScene(new RoomEnvironment,.04).texture;scene.environment=envTex,pmremGenerator.dispose();const ambient=new THREE.AmbientLight(4491434,.3);scene.add(ambient);const hemi=new THREE.HemisphereLight(8969727,8240,.65);scene.add(hemi);const sun=new THREE.DirectionalLight(13166847,1);sun.position.set(4,30,8),scene.add(sun);const deepFill=new THREE.DirectionalLight(46296,.18);deepFill.position.set(-10,-5,-10),scene.add(deepFill);const sandBounce=new THREE.DirectionalLight(13150328,.18);sandBounce.position.set(0,-20,0),scene.add(sandBounce);const skyGeo=new THREE.SphereGeometry(200,32,16),skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:!1,uniforms:{uTopColor:{value:new THREE.Color(4491434)},uMidColor:{value:new THREE.Color(9272)},uBottomColor:{value:new THREE.Color(1032)}},vertexShader:"\n    varying vec3 vWorld;\n    void main() {\n      vWorld = (modelMatrix * vec4(position, 1.0)).xyz;\n      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n    }\n  ",fragmentShader:"\n    uniform vec3 uTopColor;\n    uniform vec3 uMidColor;\n    uniform vec3 uBottomColor;\n    varying vec3 vWorld;\n    void main() {\n      float h = normalize(vWorld).y; // -1 (down) → 1 (up)\n      vec3 c;\n      if (h > 0.0) {\n        c = mix(uMidColor, uTopColor, smoothstep(0.0, 1.0, h));\n      } else {\n        c = mix(uMidColor, uBottomColor, smoothstep(0.0, 1.0, -h));\n      }\n      gl_FragColor = vec4(c, 1.0);\n    }\n  "}),sky=new THREE.Mesh(skyGeo,skyMat);function makeCausticTexture(){const e=512,a=document.createElement("canvas");a.width=a.height=e;const o=a.getContext("2d"),t=o.createImageData(e,e);for(let a=0;a<e;a++)for(let o=0;o<e;o++){const r=o/e,n=a/e,s=.5*Math.sin((6*r+4*n)*Math.PI)+.5,i=.5*Math.sin((9*r-7*n)*Math.PI)+.5,l=.5*Math.sin((4*r+11*n)*Math.PI)+.5,d=Math.pow(s*i*l,.5),c=4*(a*e+o),u=Math.floor(255*d);t.data[c]=u,t.data[c+1]=u,t.data[c+2]=u,t.data[c+3]=255}o.putImageData(t,0,0);const r=new THREE.CanvasTexture(a);return r.wrapS=r.wrapT=THREE.RepeatWrapping,r.colorSpace=THREE.SRGBColorSpace,r}scene.add(sky);const causticTex=makeCausticTexture();causticTex.repeat.set(8,6);const waterGeo=new THREE.PlaneGeometry(160,160,200,200);waterGeo.rotateX(-Math.PI/2);const waterMat=new THREE.ShaderMaterial({transparent:!0,depthWrite:!1,side:THREE.DoubleSide,fog:!1,uniforms:{uTime:{value:0},uColorDeep:{value:new THREE.Color(6700)},uColorShallow:{value:new THREE.Color(46296)},uColorFoam:{value:new THREE.Color(15663098)},uSkyColor:{value:new THREE.Color(4491434)},uSunDir:{value:new THREE.Vector3(4,30,8).normalize()},uCameraPos:{value:new THREE.Vector3},uFogColor:{value:new THREE.Color(9272)},uFogNear:{value:18},uFogFar:{value:70}},vertexShader:"\n    uniform float uTime;\n    varying vec3 vWorldPos;\n    varying vec3 vNormal;\n    varying float vWaveHeight;\n\n    // Sine wave — used for the gerstner sum\n    float wave(vec2 p, vec2 dir, float wavelength, float steepness, float speed, float t) {\n      float k = 6.2831853 / wavelength;\n      float phase = dot(dir, p) * k - t * speed;\n      return steepness * sin(phase);\n    }\n\n    vec3 gerstnerDisplace(vec3 p, float t) {\n      float h = 0.0;\n      h += wave(p.xy, normalize(vec2( 1.0,  0.6)),  8.0, 0.30, 1.10, t);\n      h += wave(p.xy, normalize(vec2(-0.7,  1.0)),  5.0, 0.22, 1.35, t);\n      h += wave(p.xy, normalize(vec2( 0.5, -1.0)), 12.0, 0.18, 0.75, t);\n      h += wave(p.xy, normalize(vec2(-0.3, -0.5)), 18.0, 0.10, 0.55, t);\n      p.y += h;\n      vWaveHeight = h;\n      return p;\n    }\n\n    void main() {\n      vec3 pos = position;\n      pos = gerstnerDisplace(pos, uTime);\n      // Approx normal via finite difference\n      float e = 0.5;\n      vec3 px = gerstnerDisplace(position + vec3(e, 0.0, 0.0), uTime);\n      vec3 pz = gerstnerDisplace(position + vec3(0.0, 0.0, e), uTime);\n      vNormal = normalize(cross(px - pos, pz - pos));\n      vec4 worldPos = modelMatrix * vec4(pos, 1.0);\n      vWorldPos = worldPos.xyz;\n      gl_Position = projectionMatrix * viewMatrix * worldPos;\n    }\n  ",fragmentShader:"\n    uniform float uTime;\n    uniform vec3 uColorDeep;\n    uniform vec3 uColorShallow;\n    uniform vec3 uColorFoam;\n    uniform vec3 uSkyColor;\n    uniform vec3 uSunDir;\n    uniform vec3 uCameraPos;\n    uniform vec3 uFogColor;\n    uniform float uFogNear;\n    uniform float uFogFar;\n    varying vec3 vWorldPos;\n    varying vec3 vNormal;\n    varying float vWaveHeight;\n\n    // Procedural normal-map style perturbation\n    vec3 perturbNormal(vec3 n, vec2 uv) {\n      float a = sin(uv.x * 18.0 + uTime * 0.7) * cos(uv.y * 22.0 - uTime * 0.5);\n      float b = cos(uv.x * 26.0 - uTime * 0.4) * sin(uv.y * 16.0 + uTime * 0.6);\n      vec3 t1 = vec3(a, 0.0, b);\n      return normalize(n + t1 * 0.18);\n    }\n\n    void main() {\n      vec3 viewDir = normalize(uCameraPos - vWorldPos);\n      vec3 n = normalize(vNormal);\n      vec3 perturbedN = perturbNormal(n, vWorldPos.xz * 0.5);\n\n      // Fresnel (Schlick)\n      float F0 = 0.02;\n      float cosTheta = max(dot(perturbedN, viewDir), 0.0);\n      float fresnel = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);\n\n      // Reflection direction\n      vec3 reflectDir = reflect(-viewDir, perturbedN);\n\n      // Sky color sampled procedurally based on reflection direction\n      float skyY = clamp(reflectDir.y, -1.0, 1.0);\n      vec3 skyCol = mix(\n        vec3(0.0, 0.10, 0.18),    // below horizon\n        vec3(0.30, 0.55, 0.72),    // above horizon\n        smoothstep(-0.1, 0.4, skyY)\n      );\n      // Bright sun spot in the sky reflection\n      float sunDot = max(dot(reflectDir, uSunDir), 0.0);\n      vec3 sunGlint = vec3(1.0, 0.9, 0.6) * pow(sunDot, 64.0) * 1.4;\n\n      // Water body color (deep → shallow, modulated by fresnel)\n      vec3 waterCol = mix(uColorDeep, uColorShallow, fresnel * 0.8);\n\n      // Foam at wave crests\n      float foam = smoothstep(0.6, 1.2, vWaveHeight + 0.3);\n      vec3 foamCol = mix(uColorFoam, vec3(1.0), 0.6) * foam;\n\n      // Specular highlight from the sun\n      float specPow = pow(max(dot(reflectDir, uSunDir), 0.0), 80.0);\n      vec3 specular = vec3(1.0, 0.95, 0.8) * specPow * 0.6;\n\n      // Final color: mix sky and water by fresnel + foam + specular\n      vec3 col = mix(waterCol, skyCol, fresnel);\n      col = mix(col, foamCol, foam);\n      col += specular + sunGlint;\n\n      // Manual exponential fog (so we can keep fog:false on the material)\n      float dist = length(uCameraPos - vWorldPos);\n      float fogFactor = 1.0 - exp(-pow(dist / uFogFar, 2.0) * 1.5);\n      col = mix(col, uFogColor, clamp(fogFactor, 0.0, 1.0));\n\n      gl_FragColor = vec4(col, 0.92);\n    }\n  "}),water=new THREE.Mesh(waterGeo,waterMat);function buildGodRays(){const e=[];for(let a=0;a<CONFIG.godRayCount;a++){const a=28+12*Math.random(),o=4+4*Math.random(),t=new THREE.ConeGeometry(o,a,16,1,!0);t.translate(0,-a/2,0);const r=new THREE.ShaderMaterial({transparent:!0,depthWrite:!1,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:!1,uniforms:{uTime:{value:0},uColor:{value:new THREE.Color(8969727)},uHeight:{value:a},uOpacity:{value:.1+.1*Math.random()}},vertexShader:`\n        varying float vY;\n        varying vec3 vWorld;\n        void main() {\n          vY = (position.y + ${a.toFixed(1)}) / ${a.toFixed(1)};\n          vec4 wp = modelMatrix * vec4(position, 1.0);\n          vWorld = wp.xyz;\n          gl_Position = projectionMatrix * viewMatrix * wp;\n        }\n      `,fragmentShader:"\n        uniform float uTime;\n        uniform vec3 uColor;\n        uniform float uOpacity;\n        varying float vY;\n        varying vec3 vWorld;\n        void main() {\n          // Fade with depth: brightest at top, fade as it descends\n          float topFade = smoothstep(0.0, 0.2, 1.0 - vY);\n          // Add slight horizontal scintillation\n          float a = topFade * 0.8;\n          a *= 0.6 + 0.4 * sin(vY * 10.0 + uTime * 0.4);\n          a *= uOpacity;\n          // Slight bluish shift as the ray descends (depth tint)\n          vec3 col = mix(uColor, vec3(0.2, 0.6, 0.9), 1.0 - vY);\n          gl_FragColor = vec4(col, a);\n        }\n      "}),n=new THREE.Mesh(t,r);n.position.set(50*(Math.random()-.5),14,30*(Math.random()-.5)-5),n.rotation.z=.2*(Math.random()-.5),n.userData={baseX:n.position.x,mat:r},scene.add(n),e.push(n)}return e}water.position.y=14,scene.add(water);const godRays=buildGodRays(),dracoLoader=new DRACOLoader;dracoLoader.setDecoderPath("https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/");const ModelLoader={total:8,loaded:0,onProgress:null,report(e){this.loaded++,console.log(`[model-loader] ${e} loaded (${this.loaded}/${this.total})`),this.onProgress&&this.onProgress(this.loaded,this.total)}};function lazyLoad(e){"requestIdleCallback"in window?requestIdleCallback(e,{timeout:2e3}):setTimeout(e,100)}window.UnderwaterModelLoader=ModelLoader;const jellyfishGroup=new THREE.Group;jellyfishGroup.userData={jellyData:[],loaded:!1},scene.add(jellyfishGroup);const jellyLoader=new GLTFLoader;jellyLoader.setDRACOLoader(dracoLoader);let jellyfishModel=null;function buildProceduralJellyfish(){const e=new THREE.Group,a=180+50*Math.random(),o=new THREE.SphereGeometry(1,48,32,0,2*Math.PI,0,Math.PI/2),t=o.attributes.position;for(let e=0;e<t.count;e++){const a=t.getX(e),o=t.getY(e),r=t.getZ(e);o<.3&&(t.setX(e,1.08*a),t.setZ(e,1.08*r))}o.computeVertexNormals();const r=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${a}, 80%, 70%)`),emissive:new THREE.Color(`hsl(${a}, 90%, 55%)`),emissiveIntensity:.5,transparent:!0,opacity:.6,roughness:.25,metalness:0,side:THREE.DoubleSide});e.add(new THREE.Mesh(o,r));const n=new THREE.SphereGeometry(.45,16,16),s=new THREE.MeshBasicMaterial({color:new THREE.Color(`hsl(${a}, 100%, 80%)`),transparent:!0,opacity:.55}),i=new THREE.Mesh(n,s);i.position.y=-.2,e.add(i);for(let o=0;o<12;o++){const t=o/12*Math.PI*2,r=[];for(let e=0;e<=32;e++){const a=e/32;r.push(new THREE.Vector3(Math.cos(t+.3*Math.sin(3*a))*(.7-.45*a),3*-a,Math.sin(t+.3*Math.sin(3*a))*(.7-.45*a)))}const n=new THREE.CatmullRomCurve3(r),s=new THREE.TubeGeometry(n,48,.022,8,!1),i=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${a}, 80%, 70%)`),emissive:new THREE.Color(`hsl(${a}, 90%, 55%)`),emissiveIntensity:.35,transparent:!0,opacity:.55,roughness:.4,metalness:0});e.add(new THREE.Mesh(s,i))}return e.userData={isProcedural:!0,hue:a,phase:Math.random()*Math.PI*2,basePos:new THREE.Vector3},e}function buildFallbackJellyfish(){const e=CONFIG.jellyfishCount,a=[];for(let o=0;o<e;o++){const e=buildProceduralJellyfish();let t,r;0===o?(t=CONFIG.heroJellyfishSize,r=new THREE.Vector3(2,1.5,12),e.userData.isHero=!0):(t=1.2+1*Math.random(),r=new THREE.Vector3(30*(Math.random()-.5),4-4*o,20*(Math.random()-.5)-5)),e.scale.setScalar(t),e.position.copy(r),e.userData.basePos.copy(e.position),jellyfishGroup.add(e),a.push({mesh:e,center:r.clone(),scale:t,phase:e.userData.phase})}jellyfishGroup.userData.jellyData=a,jellyfishGroup.userData.loaded=!0,console.log("[underwater-ai] Using procedural jellyfish (GLB unavailable)")}lazyLoad(()=>{jellyLoader.load("assets/3d/jellyfish-v2.glb",e=>{jellyfishModel=e.scene,jellyfishModel.traverse(e=>{e.isMesh&&(e.castShadow=!0,e.receiveShadow=!1,e.material&&(e.material=e.material.clone(),e.material.emissive=new THREE.Color(46296),e.material.emissiveIntensity=.35,e.material.transparent=!0,e.material.opacity=.8,e.material.side=THREE.DoubleSide))});const a=(new THREE.Box3).setFromObject(jellyfishModel),o=new THREE.Vector3;a.getSize(o);const t=1.5/Math.max(o.x,o.y,o.z);jellyfishModel.scale.setScalar(t);const r=CONFIG.jellyfishCount,n=[];for(let e=0;e<r;e++){const a=jellyfishModel.clone(!0);let o,t;a.traverse(e=>{e.isMesh&&e.material&&(e.material=e.material.clone())}),0===e?(o=CONFIG.heroJellyfishSize,t=new THREE.Vector3(2,1.5,12),a.userData.isHero=!0):(o=1.2+1*Math.random(),t=new THREE.Vector3(30*(Math.random()-.5),4-4*e,20*(Math.random()-.5)-5)),a.scale.setScalar(o),a.position.copy(t);const r={mesh:a,center:t.clone(),scale:o,phase:Math.random()*Math.PI*2};n.push(r),jellyfishGroup.add(a)}jellyfishGroup.userData.jellyData=n,jellyfishGroup.userData.loaded=!0,console.log("[underwater-ai] Jellyfish GLB loaded —",r,"instances"),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("jellyfish")},void 0,e=>{console.warn("[underwater-ai] Jellyfish GLB failed — using procedural fallback",e),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("jellyfish"),buildFallbackJellyfish()})});const fishGroup=new THREE.Group;fishGroup.userData={fishData:[],loaded:!1},scene.add(fishGroup);const fishLoader=new GLTFLoader;fishLoader.setDRACOLoader(dracoLoader);let fishModel=null,fishAnimTime=0;function buildFallbackFish(){const e=CONFIG.fishCount,a=[];for(let o=0;o<e;o++){const e={center:new THREE.Vector3(40*(Math.random()-.5),14*(Math.random()-.5)-2,30*(Math.random()-.5)-10),radius:4+8*Math.random(),speed:.15+.25*Math.random(),offset:Math.random()*Math.PI*2,bobAmp:.4+.6*Math.random(),tilt:.2*(Math.random()-.5),scale:.6+.6*Math.random(),wagPhase:Math.random()*Math.PI*2,wagSpeed:3+2*Math.random(),mesh:new THREE.Group},o=new THREE.ConeGeometry(.18,.7,6);o.rotateZ(-Math.PI/2);const t=new THREE.Mesh(o,new THREE.MeshStandardMaterial({color:6737134,emissive:1131622,emissiveIntensity:.4}));e.mesh.add(t),e.mesh.position.copy(e.center),e.mesh.scale.setScalar(e.scale),fishGroup.add(e.mesh),a.push(e)}fishGroup.userData.fishData=a,fishGroup.userData.loaded=!0}lazyLoad(()=>{fishLoader.load("assets/3d/fish-school.glb",e=>{fishModel=e.scene,fishModel.traverse(e=>{e.isMesh&&(e.castShadow=!0,e.receiveShadow=!1,e.material&&(e.material.fog=!0))});const a=(new THREE.Box3).setFromObject(fishModel),o=new THREE.Vector3;a.getSize(o);const t=1/Math.max(o.x,o.y,o.z);fishModel.scale.setScalar(t);new THREE.Object3D;const r=CONFIG.fishCount,n=[];for(let e=0;e<r;e++){const e={center:new THREE.Vector3(40*(Math.random()-.5),14*(Math.random()-.5)-2,30*(Math.random()-.5)-10),radius:4+8*Math.random(),speed:.15+.25*Math.random(),offset:Math.random()*Math.PI*2,bobAmp:.4+.6*Math.random(),tilt:.2*(Math.random()-.5),scale:.7+.7*Math.random(),wagPhase:Math.random()*Math.PI*2,wagSpeed:2+2*Math.random()};n.push(e);const a=fishModel.clone(!0);a.traverse(e=>{e.isMesh&&e.material&&(e.material=e.material.clone())}),a.position.copy(e.center),a.scale.setScalar(e.scale),fishGroup.add(a),e.mesh=a}fishGroup.userData.fishData=n,fishGroup.userData.loaded=!0,console.log("[underwater-ai] Fish model loaded —",r,"instances"),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("fish")},e=>{const a=e.loaded/e.total*100;Math.random()<.1&&console.log(`[fish] ${a.toFixed(0)}%`)},e=>{console.warn("[underwater-ai] Fish model failed to load — falling back to procedural fish",e),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("fish"),buildFallbackFish()})});const turtleGroup=new THREE.Group;turtleGroup.userData={data:[],loaded:!1},scene.add(turtleGroup);const turtleLoader=new GLTFLoader;turtleLoader.setDRACOLoader(dracoLoader),lazyLoad(()=>{turtleLoader.load("assets/3d/sea-turtle.glb",e=>{const a=e.scene;a.traverse(e=>{e.isMesh&&e.material&&(e.material=e.material.clone(),e.castShadow=!0)});const o=(new THREE.Box3).setFromObject(a),t=new THREE.Vector3;o.getSize(t);const r=1.4/Math.max(t.x,t.y,t.z);a.scale.setScalar(r);const n=[];for(let e=0;e<2;e++){const o=a.clone(!0);o.traverse(e=>{e.isMesh&&e.material&&(e.material=e.material.clone())});const t={mesh:o,center:new THREE.Vector3(0===e?-6:10,-2-2*e,-4-3*e),radius:6+3*e,speed:.06+.02*e,offset:Math.random()*Math.PI*2,bobAmp:.8,flapPhase:Math.random()*Math.PI*2,scale:1-.25*e};o.position.copy(t.center),o.scale.setScalar(t.scale),turtleGroup.add(o),n.push(t)}turtleGroup.userData.data=n,turtleGroup.userData.loaded=!0,console.log("[underwater-ai] Sea turtle loaded — 2 instances"),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("sea turtle")},void 0,e=>{console.warn("[underwater-ai] Sea turtle GLB failed — skipping",e.message),turtleGroup.userData.loaded=!0,window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("sea turtle")})});const mantaGroup=new THREE.Group;mantaGroup.userData={data:null,loaded:!1},scene.add(mantaGroup);const mantaLoader=new GLTFLoader;mantaLoader.setDRACOLoader(dracoLoader),lazyLoad(()=>{mantaLoader.load("assets/3d/manta-ray.glb",e=>{const a=e.scene;a.traverse(e=>{e.isMesh&&e.material&&(e.material=e.material.clone(),e.castShadow=!0)});const o=(new THREE.Box3).setFromObject(a),t=new THREE.Vector3;o.getSize(t);const r=3.2/Math.max(t.x,t.y,t.z);a.scale.setScalar(r);const n={mesh:a,center:new THREE.Vector3(0,-6,-8),radiusX:14,radiusZ:9,speed:.045,offset:Math.random()*Math.PI*2,rollAmp:.18};a.position.copy(n.center),mantaGroup.add(a),mantaGroup.userData.data=n,mantaGroup.userData.loaded=!0,console.log("[underwater-ai] Manta ray loaded"),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("manta ray")},void 0,e=>{console.warn("[underwater-ai] Manta ray GLB failed — skipping",e.message),mantaGroup.userData.loaded=!0,window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("manta ray")})});const subGroup=new THREE.Group;subGroup.userData={data:null,loaded:!1},scene.add(subGroup);const subLoader=new GLTFLoader;function buildBubbles(){const e=new THREE.SphereGeometry(1,20,14),a=new THREE.MeshStandardMaterial({color:16777215,transparent:!0,opacity:.42,roughness:.02,metalness:.1,envMapIntensity:1.4}),o=new THREE.InstancedMesh(e,a,CONFIG.bubbleCount),t=new THREE.Object3D,r=[];for(let e=0;e<CONFIG.bubbleCount;e++){const a={x:40*(Math.random()-.5),y:26*(Math.random()-.5)+2,z:30*(Math.random()-.5)-8,r:.06+.3*Math.random(),speed:.6+1.2*Math.random(),wobble:Math.random()*Math.PI*2};r.push(a),t.position.set(a.x,a.y,a.z),t.scale.setScalar(a.r),t.updateMatrix(),o.setMatrixAt(e,t.matrix)}return o.instanceMatrix.needsUpdate=!0,{mesh:o,data:r,dummy:t}}subLoader.setDRACOLoader(dracoLoader),lazyLoad(()=>{subLoader.load("assets/3d/submarine.glb",e=>{const a=e.scene;a.traverse(e=>{e.isMesh&&e.material&&(e.material=e.material.clone(),e.material.color&&e.material.color.multiplyScalar(.35),e.castShadow=!1)});const o=(new THREE.Box3).setFromObject(a),t=new THREE.Vector3;o.getSize(t);const r=7/Math.max(t.x,t.y,t.z);a.scale.setScalar(r);const n={mesh:a,startX:-38,endX:38,y:-9,z:-22,speed:.012,t:0};a.position.set(n.startX,n.y,n.z),subGroup.add(a),subGroup.userData.data=n,subGroup.userData.loaded=!0,console.log("[underwater-ai] Submarine loaded"),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("submarine")},void 0,e=>{console.warn("[underwater-ai] Submarine GLB failed — skipping",e.message),subGroup.userData.loaded=!0,window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("submarine")})});const bubbles=buildBubbles();scene.add(bubbles.mesh);const kelpGroup=new THREE.Group;kelpGroup.userData={items:[],loaded:!1},scene.add(kelpGroup);const kelpLoader=new GLTFLoader;function buildFallbackKelp(){const e=[];for(let a=0;a<CONFIG.kelpCount;a++){const a=5+6*Math.random(),o=.6+.4*Math.random(),t=new THREE.PlaneGeometry(o,a,1,24);t.translate(0,a/2,0);const r=new THREE.ShaderMaterial({transparent:!0,side:THREE.DoubleSide,depthWrite:!1,fog:!1,uniforms:{uTime:{value:0},uPhase:{value:Math.random()*Math.PI*2},uBaseColor:{value:new THREE.Color(870970)},uTipColor:{value:new THREE.Color(3003583)},uBend:{value:.3+.4*Math.random()},uHeight:{value:a},uFogColor:{value:new THREE.Color(9272)},uFogFar:{value:70}},vertexShader:"\n        uniform float uTime, uPhase, uBend, uHeight;\n        varying float vY; varying vec3 vWorldNormal, vWorldPos; varying float vDist;\n        void main() {\n          vec3 p = position;\n          float t = (p.y + uHeight * 0.5) / uHeight;\n          p.x += sin(uTime * 0.6 + uPhase + t * 4.0) * uBend * t;\n          p.z += cos(uTime * 0.4 + uPhase * 0.7 + t * 2.0) * uBend * 0.6 * t;\n          vY = t; vWorldNormal = normalize(normalMatrix * normal);\n          vec4 wp = modelMatrix * vec4(p, 1.0); vWorldPos = wp.xyz;\n          vDist = length(cameraPosition - wp.xyz);\n          gl_Position = projectionMatrix * viewMatrix * wp;\n        }",fragmentShader:"\n        uniform vec3 uBaseColor, uTipColor, uFogColor; uniform float uFogFar;\n        varying float vY; varying vec3 vWorldNormal; varying float vDist;\n        void main() {\n          float facing = abs(vWorldNormal.z);\n          vec3 col = mix(uBaseColor, uTipColor, vY) * (0.5 + 0.5 * facing);\n          float fogFactor = 1.0 - exp(-pow(vDist / uFogFar, 2.0) * 1.5);\n          col = mix(col, uFogColor, clamp(fogFactor, 0.0, 1.0));\n          gl_FragColor = vec4(col, 0.92);\n        }"}),n=new THREE.Mesh(t,r);n.position.set(60*(Math.random()-.5),-10,30*(Math.random()-.5)-10),n.rotation.y=Math.random()*Math.PI,n.userData={mat:r,isProcedural:!0,phase:Math.random()*Math.PI*2},kelpGroup.add(n),e.push(n)}kelpGroup.userData.items=e,kelpGroup.userData.loaded=!0,console.log("[underwater-ai] Using procedural kelp")}kelpLoader.setDRACOLoader(dracoLoader),lazyLoad(()=>{kelpLoader.load("assets/3d/kelp.glb",e=>{const a=e.scene;a.traverse(e=>{e.isMesh&&e.material&&(e.material=e.material.clone(),e.material.side=THREE.DoubleSide,e.material.transparent=!0,e.material.opacity=.9)});const o=(new THREE.Box3).setFromObject(a),t=new THREE.Vector3;o.getSize(t);const r=6/Math.max(t.y,.1);a.scale.setScalar(r);const n=[];for(let e=0;e<CONFIG.kelpCount;e++){const e=a.clone(!0);e.traverse(e=>{e.isMesh&&e.material&&(e.material=e.material.clone())}),e.position.set(60*(Math.random()-.5),-10,30*(Math.random()-.5)-10),e.rotation.y=Math.random()*Math.PI,e.userData={phase:Math.random()*Math.PI*2,isProcedural:!1},kelpGroup.add(e),n.push(e)}kelpGroup.userData.items=n,kelpGroup.userData.loaded=!0,console.log("[underwater-ai] Kelp GLB loaded —",CONFIG.kelpCount,"instances"),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("kelp")},void 0,e=>{console.warn("[underwater-ai] Kelp GLB failed — using procedural fallback",e),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("kelp"),buildFallbackKelp()})});const seafloorGroup=new THREE.Group;scene.add(seafloorGroup);const seafloorLoader=new GLTFLoader;function buildFallbackSeafloor(){const e=new THREE.PlaneGeometry(160,120,80,50);e.rotateX(-Math.PI/2);const a=e.attributes.position;for(let e=0;e<a.count;e++){const o=a.getX(e),t=a.getZ(e),r=.4*Math.sin(.15*o)+.3*Math.cos(.13*t)+.7*Math.sin(.04*o+.04*t);a.setY(e,r)}e.computeVertexNormals();const o=new THREE.MeshStandardMaterial({color:13150328,emissive:2241348,emissiveIntensity:.05,roughness:.85,metalness:0}),t=new THREE.Mesh(e,o);t.position.y=-12,seafloorGroup.add(t),console.log("[underwater-ai] Using procedural seafloor")}seafloorLoader.setDRACOLoader(dracoLoader),lazyLoad(()=>{seafloorLoader.load("assets/3d/seafloor-v2.glb",e=>{const a=e.scene;a.traverse(e=>{e.isMesh&&e.material&&(e.material=e.material.clone(),e.material.emissive&&(e.material.emissive=new THREE.Color(661032),e.material.emissiveIntensity=.12),e.material.color&&e.material.color.multiplyScalar(.85),e.material.roughness=.92,e.material.metalness=.02,e.receiveShadow=!0,e.castShadow=!1)});const o=(new THREE.Box3).setFromObject(a),t=new THREE.Vector3;o.getSize(t);const r=new THREE.Vector3;o.getCenter(r),a.position.x=-r.x,a.position.z=-r.z;const n=90/Math.max(t.x,t.z,.01);a.scale.setScalar(n),a.scale.y=Math.min(.8*a.scale.y,3),a.position.y=-13,seafloorGroup.add(a),console.log("[underwater-ai] Seafloor GLB loaded (centered, fog-blended)"),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("seafloor")},void 0,e=>{console.warn("[underwater-ai] Seafloor GLB failed — using procedural fallback",e),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("seafloor"),buildFallbackSeafloor()})});const causticMat=new THREE.MeshBasicMaterial({map:causticTex,transparent:!0,opacity:.3,blending:THREE.AdditiveBlending,depthWrite:!1,side:THREE.DoubleSide}),causticGeo=new THREE.PlaneGeometry(140,100);causticGeo.rotateX(-Math.PI/2);const causticMesh=new THREE.Mesh(causticGeo,causticMat);causticMesh.position.y=-11.7,scene.add(causticMesh);const coralGroup=new THREE.Group;coralGroup.userData={items:[],loaded:!1},scene.add(coralGroup);const coralLoader=new GLTFLoader;function buildFallbackCoral(){const e=[16733559,8930508,16750916,4500223,16737962,6741418,16755251,11163135];for(let a=0;a<CONFIG.coralCount;a++){const a=.8+1.8*Math.random(),o=5+Math.floor(4*Math.random()),t=new THREE.ConeGeometry(.5+.4*Math.random(),a,o,3),r=t.attributes.position;for(let e=0;e<r.count;e++){r.getY(e)<a/2-.1&&(r.setX(e,r.getX(e)+.2*(Math.random()-.5)),r.setZ(e,r.getZ(e)+.2*(Math.random()-.5)),Math.random()<.4&&r.setY(e,r.getY(e)+.1*(Math.random()-.5)))}t.computeVertexNormals();const n=e[Math.floor(Math.random()*e.length)],s=new THREE.MeshStandardMaterial({color:n,emissive:n,emissiveIntensity:.2,roughness:.55,metalness:0,flatShading:!0}),i=new THREE.Mesh(t,s);i.position.set(50*(Math.random()-.5),a/2-11.5,25*(Math.random()-.5)-8),i.scale.setScalar(.8+.6*Math.random()),i.rotation.y=Math.random()*Math.PI,coralGroup.add(i),coralGroup.userData.items.push(i)}coralGroup.userData.loaded=!0,console.log("[underwater-ai] Using procedural coral")}function buildMarineSnow(){const e=CONFIG.particleCount,a=new THREE.BufferGeometry,o=new Float32Array(3*e),t=new Float32Array(e);for(let a=0;a<e;a++)o[3*a+0]=60*(Math.random()-.5),o[3*a+1]=30*(Math.random()-.5),o[3*a+2]=40*(Math.random()-.5)-5,t[a]=.05+.12*Math.random();a.setAttribute("position",new THREE.BufferAttribute(o,3)),a.setAttribute("size",new THREE.BufferAttribute(t,1));const r=new THREE.ShaderMaterial({transparent:!0,depthWrite:!1,blending:THREE.AdditiveBlending,uniforms:{uTime:{value:0}},vertexShader:"\n      attribute float size;\n      uniform float uTime;\n      varying float vSize;\n      void main() {\n        vec3 p = position;\n        p.y -= mod(uTime * 0.4 + position.x * 0.1, 30.0) - 15.0;\n        p.x += sin(uTime * 0.3 + position.z) * 0.3;\n        vec4 mv = modelViewMatrix * vec4(p, 1.0);\n        gl_PointSize = size * 50.0 / -mv.z;\n        gl_Position = projectionMatrix * mv;\n        vSize = size;\n      }\n    ",fragmentShader:"\n      varying float vSize;\n      void main() {\n        vec2 c = gl_PointCoord - 0.5;\n        float d = length(c);\n        if (d > 0.5) discard;\n        float a = 0.45 * (1.0 - d * 2.0);\n        gl_FragColor = vec4(0.7, 0.85, 1.0, a);\n      }\n    "});return new THREE.Points(a,r)}coralLoader.setDRACOLoader(dracoLoader),lazyLoad(()=>{coralLoader.load("assets/3d/coral.glb",e=>{const a=e.scene;a.traverse(e=>{e.isMesh&&e.material&&(e.material=e.material.clone(),e.material.emissive=e.material.color.clone(),e.material.emissiveIntensity=.15)});const o=(new THREE.Box3).setFromObject(a),t=new THREE.Vector3;o.getSize(t);const r=1.5/Math.max(Math.max(t.x,t.y,t.z),.1);a.scale.setScalar(r);const n=[];for(let e=0;e<CONFIG.coralCount;e++){const e=a.clone(!0);e.traverse(e=>{e.isMesh&&e.material&&(e.material=e.material.clone())});const o=360*Math.random();e.traverse(e=>{if(e.isMesh&&e.material&&e.material.color){const a=(new THREE.Color).setHSL(o/360,.7,.5);e.material.color.copy(a),e.material.emissive.copy(a)}}),e.position.set(50*(Math.random()-.5),-11.5,25*(Math.random()-.5)-8),e.rotation.y=Math.random()*Math.PI,e.scale.setScalar(.8+.6*Math.random()),coralGroup.add(e),n.push(e)}coralGroup.userData.items=n,coralGroup.userData.loaded=!0,console.log("[underwater-ai] Coral GLB loaded —",CONFIG.coralCount,"instances"),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("coral")},void 0,e=>{console.warn("[underwater-ai] Coral GLB failed — using procedural fallback",e),console.log("CORAL TRACE"),window.UnderwaterModelLoader&&window.UnderwaterModelLoader.report("coral"),buildFallbackCoral()})});const marineSnow=buildMarineSnow();function buildBioluminescentPlankton(){const e=CONFIG.isMobile?50:90,a=new THREE.BufferGeometry,o=new Float32Array(3*e),t=new Float32Array(e),r=new Float32Array(e);for(let a=0;a<e;a++)o[3*a+0]=50*(Math.random()-.5),o[3*a+1]=30*(Math.random()-.5),o[3*a+2]=30*(Math.random()-.5)-5,t[a]=.15+.3*Math.random(),r[a]=Math.random()*Math.PI*2;a.setAttribute("position",new THREE.BufferAttribute(o,3)),a.setAttribute("size",new THREE.BufferAttribute(t,1)),a.setAttribute("phase",new THREE.BufferAttribute(r,1));const n=new THREE.ShaderMaterial({transparent:!0,depthWrite:!1,blending:THREE.AdditiveBlending,uniforms:{uTime:{value:0}},vertexShader:"\n      attribute float size;\n      attribute float phase;\n      uniform float uTime;\n      varying float vGlow;\n      void main() {\n        vec3 p = position;\n        p.y -= mod(uTime * 0.3 + position.x * 0.05, 30.0) - 15.0;\n        p.x += sin(uTime * 0.4 + phase) * 0.4;\n        p.z += cos(uTime * 0.3 + phase * 1.3) * 0.3;\n        vec4 mv = modelViewMatrix * vec4(p, 1.0);\n        gl_PointSize = size * 80.0 / -mv.z;\n        gl_Position = projectionMatrix * mv;\n        vGlow = 0.5 + 0.5 * sin(uTime * 2.0 + phase * 3.0);\n      }\n    ",fragmentShader:"\n      varying float vGlow;\n      void main() {\n        vec2 c = gl_PointCoord - 0.5;\n        float d = length(c);\n        if (d > 0.5) discard;\n        float a = (1.0 - d * 2.0) * (0.4 + 0.6 * vGlow);\n        // Bioluminescent color: cyan-green glow\n        gl_FragColor = vec4(0.4, 1.0, 0.9, a);\n      }\n    "});return new THREE.Points(a,n)}scene.add(marineSnow);const plankton=buildBioluminescentPlankton();function buildDataStreams(){const e=new THREE.Group,a=CONFIG.dataStreamCount;for(let o=0;o<a;o++){const a=40*(Math.random()-.5),o=20*(Math.random()-.5),t=25*(Math.random()-.5)-5,r=30,n=new THREE.BufferGeometry,s=new Float32Array(3*r),i=new Float32Array(r);for(let e=0;e<r;e++)s[3*e+0]=a+.4*(Math.random()-.5),s[3*e+1]=o-.6*e,s[3*e+2]=t+.4*(Math.random()-.5),i[e]=.1*e;n.setAttribute("position",new THREE.BufferAttribute(s,3)),n.setAttribute("phase",new THREE.BufferAttribute(i,1));const l=new THREE.ShaderMaterial({transparent:!0,depthWrite:!1,blending:THREE.AdditiveBlending,uniforms:{uTime:{value:0},uColor:{value:new THREE.Color(65493)}},vertexShader:"\n        attribute float phase;\n        uniform float uTime;\n        varying float vGlow;\n        void main() {\n          vec3 p = position;\n          // Animate upward\n          float yOffset = mod(uTime * 2.0 + phase, 18.0) - 9.0;\n          p.y += yOffset;\n          vec4 mv = modelViewMatrix * vec4(p, 1.0);\n          gl_PointSize = 4.0 / -mv.z * 30.0;\n          gl_Position = projectionMatrix * mv;\n          vGlow = sin(yOffset * 0.5) * 0.5 + 0.5;\n        }\n      ",fragmentShader:"\n        uniform vec3 uColor;\n        varying float vGlow;\n        void main() {\n          vec2 c = gl_PointCoord - 0.5;\n          float d = length(c);\n          if (d > 0.5) discard;\n          float a = (1.0 - d * 2.0) * vGlow * 0.6;\n          gl_FragColor = vec4(uColor, a);\n        }\n      "}),d=new THREE.Points(n,l);d.userData={mat:l},e.add(d)}return e}scene.add(plankton);const dataStreams=buildDataStreams();scene.add(dataStreams);const cameraSplinePoints=[[0,7,33],[7,4,27],[-8,1,23],[6,-1,19],[-9,-3,24],[8,-5,21],[-6,-7,19],[4,-9,22],[0,-11,17],[-7,-10,23],[8,-6,26],[0,5,31]],lookSplinePoints=[[0,3,0],[-2,2,-3],[3,0,-6],[-3,-2,-8],[2,-4,-10],[-4,-6,-6],[5,-8,-5],[-3,-10,-7],[3,-12,-4],[0,-11,3],[-4,-4,-2],[0,2,0]],camPath=new THREE.CatmullRomCurve3(cameraSplinePoints.map(([e,a,o])=>new THREE.Vector3(e,a,o)),!1,"centripetal",.5),lookPath=new THREE.CatmullRomCurve3(lookSplinePoints.map(([e,a,o])=>new THREE.Vector3(e,a,o)),!1,"centripetal",.5),_camPos=new THREE.Vector3,_camTarget=new THREE.Vector3,_lookPos=new THREE.Vector3,_nextPos=new THREE.Vector3,_sideVec=new THREE.Vector3,_upVec=new THREE.Vector3,_fwdVec=new THREE.Vector3;let cameraRoll=0,currentFov=camera.fov,prevScrollP=0,scrollVel=0;function updateCamera(e,a,o){scrollVel+=.06*((e-prevScrollP)/Math.max(a,.001)-scrollVel),prevScrollP=e;const t=9*e%1,r=4*Math.exp(-Math.pow(14*(t-.02),2)),n=55+8*Math.abs(scrollVel)+r;currentFov+=.05*(n-currentFov),Math.abs(currentFov-camera.fov)>.05&&(camera.fov=currentFov,camera.updateProjectionMatrix());const s=camPath.getPoint(e);_camTarget.copy(s),prefersReducedMotion||(_camTarget.x+=.18*Math.sin(.4*o),_camTarget.y+=.11*Math.sin(.55*o),_camTarget.z+=.14*Math.cos(.45*o)),camera.position.copy(_camTarget);const i=lookPath.getPoint(e);if(_lookPos.copy(i),!prefersReducedMotion){const a=.3+.5*(1-e);camera.position.x+=.7*Scene.mouse.x*a,camera.position.y+=.4*Scene.mouse.y*a}camera.lookAt(_lookPos);const l=camPath.getPoint(Math.min(e+.015,1));_nextPos.copy(l),_sideVec.subVectors(_nextPos,_camTarget).normalize(),_upVec.set(0,1,0),_sideVec.cross(_upVec).normalize();const d=_sideVec.dot(_fwdVec.subVectors(_nextPos,_camTarget).normalize());cameraRoll+=.08*(1.4*-d+.02*scrollVel-cameraRoll),camera.rotation.z+=cameraRoll}const clock=new THREE.Clock;let elapsed=0;const dummy=new THREE.Object3D,frustum=new THREE.Frustum,projView=new THREE.Matrix4;function isVisible(e){projView.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse),frustum.setFromProjectionMatrix(projView);const a=new THREE.Sphere((new THREE.Vector3).setFromMatrixPosition(e.matrixWorld),2);return frustum.intersectsSphere(a)}function animate(){if(requestAnimationFrame(animate),document.hidden)return;monitorFps();const e=Math.min(clock.getDelta(),.1);elapsed+=e,fishAnimTime+=e,Scene.mouse.x+=.06*(Scene.mouse.tx-Scene.mouse.x),Scene.mouse.y+=.06*(Scene.mouse.ty-Scene.mouse.y),updateCamera(Scene.scrollProgress,e,elapsed);const a=Math.abs(scrollVel);if(renderer.toneMappingExposure+=.08*(.95+.3*a-renderer.toneMappingExposure),scrollVel*=.92,camera.getWorldPosition(_camPos),waterMat.uniforms.uCameraPos.value.copy(_camPos),waterMat.uniforms.uTime.value=elapsed,godRays.forEach((e,a)=>{e.userData.mat.uniforms.uTime.value=elapsed,e.position.x=e.userData.baseX+.3*Math.sin(.1*elapsed+a)}),jellyfishGroup.userData.loaded){const e=Scene.mouse.x,a=Scene.mouse.y;jellyfishGroup.userData.jellyData.forEach((o,t)=>{const r=o.mesh,n=o.isHero?.25:.15+.03*t,s=o.isHero?2:1.2,i=o.isHero?.8:.4;r.position.x=o.center.x+Math.sin(elapsed*n+o.phase)*s,r.position.y=o.center.y+Math.sin(elapsed*n*.7+.5*o.phase)*i,r.position.z=o.center.z+.6*Math.cos(elapsed*n*.5+o.phase);const l=r.position.x-15*e,d=r.position.y-8*a,c=Math.sqrt(l*l+d*d);if(c<8){const e=(8-c)/8*1.5;r.position.x+=l/c*e,r.position.y+=d/c*e}const u=Math.atan2(Math.cos(elapsed*n+o.phase)*s,.6*-Math.sin(elapsed*n*.5+o.phase));r.rotation.y+=.02*(u-r.rotation.y),r.rotation.z=.08*Math.sin(elapsed*n+o.phase),r.rotation.x=.05*Math.sin(elapsed*n*.6+o.phase+1);const m=1+.08*Math.sin(1.8*elapsed+o.phase),p=1+.05*Math.sin(1.8*elapsed+o.phase+.5);r.scale.set(o.scale*m,o.scale*p,o.scale*m)})}if(fishGroup.userData.loaded&&fishGroup.userData.fishData.forEach((e,a)=>{const o=elapsed*e.speed+e.offset,t=e.center.x+Math.cos(o)*e.radius,r=e.center.z+Math.sin(o)*e.radius,n=e.center.y+Math.sin(1.3*o)*e.bobAmp;if(e.mesh.position.set(t,n,r),e.mesh.visible=isVisible(e.mesh),!e.mesh.visible)return;const s=-Math.sin(o)*e.radius*e.speed,i=Math.cos(o)*e.radius*e.speed;e.mesh.rotation.y=Math.atan2(s,i);const l=.15*Math.sin(elapsed*e.wagSpeed+e.wagPhase);e.mesh.rotation.y+=.3*l,e.mesh.rotation.z=e.tilt+.08*Math.sin(elapsed*e.wagSpeed*.5+e.wagPhase)}),turtleGroup.userData.loaded&&turtleGroup.userData.data.length&&turtleGroup.userData.data.forEach(e=>{const a=elapsed*e.speed+e.offset;e.mesh.position.x=e.center.x+Math.sin(a)*e.radius,e.mesh.position.z=e.center.z+Math.cos(a)*e.radius,e.mesh.position.y=e.center.y+Math.sin(1.4*a)*e.bobAmp,e.mesh.rotation.y=-a+Math.PI/2,e.mesh.rotation.z=.08*Math.sin(2.2*elapsed+e.flapPhase),e.mesh.rotation.x=.04*Math.sin(1.1*elapsed+e.flapPhase)}),mantaGroup.userData.loaded&&mantaGroup.userData.data){const e=mantaGroup.userData.data,a=elapsed*e.speed+e.offset;e.mesh.position.x=e.center.x+Math.cos(a)*e.radiusX,e.mesh.position.z=e.center.z+Math.sin(a)*e.radiusZ,e.mesh.position.y=e.center.y+.5*Math.sin(2*a),e.mesh.rotation.y=-a,e.mesh.rotation.z=Math.sin(2*a)*e.rollAmp}if(subGroup.userData.loaded&&subGroup.userData.data){const a=subGroup.userData.data;a.t+=e*a.speed*100;const o=a.endX-a.startX,t=a.startX+a.t%(o+30)-15;t>a.endX+15&&(a.t=0),a.mesh.position.set(t,a.y,a.z),a.mesh.rotation.y=Math.PI/2}bubbles.data.forEach((a,o)=>{a.y+=a.speed*e,a.y>14&&(a.y=-12,a.x=40*(Math.random()-.5),a.z=30*(Math.random()-.5)-8);const t=a.x+.4*Math.sin(.8*elapsed+a.wobble),r=a.y,n=a.z+.3*Math.cos(.6*elapsed+a.wobble);dummy.position.set(t,r,n),dummy.scale.setScalar(a.r),dummy.updateMatrix(),bubbles.mesh.setMatrixAt(o,dummy.matrix)}),bubbles.mesh.instanceMatrix.needsUpdate=!0,kelpGroup.userData.loaded&&kelpGroup.userData.items.forEach(e=>{e.userData.isProcedural&&e.userData.mat?e.userData.mat.uniforms.uTime.value=elapsed:(e.rotation.z=.08*Math.sin(.4*elapsed+(e.userData.phase||0)),e.rotation.x=.04*Math.sin(.3*elapsed+.7*(e.userData.phase||0)))}),frameCount%2==0&&(marineSnow.material.uniforms.uTime.value=elapsed,plankton.material.uniforms.uTime.value=elapsed,dataStreams.children.forEach(e=>{e.userData.mat.uniforms.uTime.value=elapsed})),causticTex.offset.x=.02*elapsed%1,causticTex.offset.y=.015*elapsed%1,renderer.render(scene,camera)}function onResize(){const e=window.innerWidth,a=window.innerHeight;camera.aspect=e/a,camera.updateProjectionMatrix(),renderer.setSize(e,a,!1),renderer.setPixelRatio(adaptivePixelRatio)}animate(),Scene.isReady=!0,window.addEventListener("resize",onResize),window.addEventListener("mousemove",e=>{const a=e.clientX/window.innerWidth*2-1,o=e.clientY/window.innerHeight*2-1;Scene.setMouse(a,-o)});
+/* ============================================================================
+   UNDERWATER AI — IMMERSIVE 3D SCENE (Performance-First)
+   Optimised for 60fps: low triangle count, instanced rendering,
+   adaptive quality, no heavy PBR materials.
+   ============================================================================ */
+import * as THREE from 'three';
+
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---- Public surface ---- */
+const Scene = {
+  camera: null, renderer: null, isReady: false,
+  scrollProgress: 0,
+  mouse: { x: 0, y: 0, tx: 0, ty: 0 },
+  setScroll(p) { this.scrollProgress = p; },
+  setMouse(x, y) { this.mouse.tx = x; this.mouse.ty = y; },
+};
+window.UnderwaterScene = Scene;
+
+/* ---- Config ---- */
+const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+const isLowPower = (navigator.hardwareConcurrency || 8) <= 4;
+const DPR = isLowPower ? 1.0 : Math.min(window.devicePixelRatio, 1.5);
+
+const C = {
+  bubbleCount:   isLowPower ? 12 : (isMobile ? 16 : 24),
+  fishCount:     isLowPower ? 3  : (isMobile ? 4  : 8),
+  jellyfishCount:3,
+  kelpCount:     isLowPower ? 4  : (isMobile ? 5  : 8),
+  coralCount:    isLowPower ? 3  : (isMobile ? 3  : 5),
+  particleCount: isLowPower ? 40 : (isMobile ? 50 : 80),
+  godRayCount:   isLowPower ? 2  : (isMobile ? 3  : 5),
+  heroJellySize: 3,
+  waterSeg:      isLowPower ? 24 : (isMobile ? 30 : 40),  // was 200×200
+  fogColor: 0x000818,
+  camStart: [0, 3, 26],
+  camLook:  [0, 0, 0],
+};
+
+/* ---- Canvas & Renderer ---- */
+const canvas = document.getElementById('scene-canvas');
+if (!canvas) throw new Error('No canvas');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(C.fogColor);
+scene.fog = new THREE.Fog(C.fogColor, 12, 65);
+
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(...C.camStart);
+camera.lookAt(...C.camLook);
+Scene.camera = camera;
+
+const renderer = new THREE.WebGLRenderer({
+  canvas, antialias: false, alpha: false,
+  powerPreference: 'high-performance',
+  stencil: false, premultipliedAlpha: false, preserveDrawingBuffer: false,
+});
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.setPixelRatio(DPR);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+Scene.renderer = renderer;
+
+/* ---- Lighting ---- */
+scene.add(new THREE.AmbientLight(0x4488aa, 0.3));
+scene.add(new THREE.HemisphereLight(0x88ddff, 0x001020, 0.5));
+const sun = new THREE.DirectionalLight(0xc8e8ff, 0.9);
+sun.position.set(5, 25, 8);
+scene.add(sun);
+
+/* ---- Sky sphere (low-poly) ---- */
+{
+  const geo = new THREE.SphereGeometry(180, 16, 10);
+  const mat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false,
+    uniforms: {
+      uTop:    { value: new THREE.Color(0x2266aa) },
+      uMid:    { value: new THREE.Color(0x000818) },
+      uBottom: { value: new THREE.Color(0x000208) },
+    },
+    vertexShader: `
+      varying float vY;
+      void main() {
+        vY = normalize(position).y;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uTop, uMid, uBottom;
+      varying float vY;
+      void main() {
+        vec3 c = vY > 0.0 ? mix(uMid, uTop, vY) : mix(uMid, uBottom, -vY);
+        gl_FragColor = vec4(c, 1.0);
+      }
+    `,
+  });
+  scene.add(new THREE.Mesh(geo, mat));
+}
+
+/* ---- Water surface (low-segment plane) ---- */
+const waterMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  uniforms: {
+    uTime: { value: 0 },
+    uColor: { value: new THREE.Color(0x001a2c) },
+    uLight: { value: new THREE.Color(0x00b4d8) },
+    uFogColor: { value: new THREE.Color(C.fogColor) },
+    uCameraPos: { value: new THREE.Vector3() },
+  },
+  vertexShader: `
+    uniform float uTime;
+    varying float vWave;
+    varying vec3 vWPos;
+    void main() {
+      vec3 p = position;
+      float w = sin(p.x * 0.06 + uTime * 0.5) * 0.25
+              + sin(p.z * 0.05 + uTime * 0.3) * 0.18
+              + sin(p.x * 0.03 + p.z * 0.04 + uTime * 0.2) * 0.15;
+      p.y += w;
+      vWave = w;
+      vWPos = (modelMatrix * vec4(p, 1.0)).xyz;
+      gl_Position = projectionMatrix * viewMatrix * vec4(vWPos, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform float uTime;
+    uniform vec3 uColor, uLight, uFogColor, uCameraPos;
+    varying float vWave;
+    varying vec3 vWPos;
+    void main() {
+      vec3 vd = uCameraPos - vWPos;
+      float dist = length(vd);
+      vec3 view = vd / dist;
+
+      // Simple Fresnel approximation
+      float fresnel = pow(1.0 - max(dot(vec3(0.0, 1.0, 0.0), view), 0.0), 3.0);
+      vec3 skyCol = mix(vec3(0.0, 0.12, 0.22), vec3(0.2, 0.45, 0.6), fresnel);
+
+      // Sun glint
+      vec3 reflectDir = reflect(-view, vec3(0.0, 1.0, 0.0));
+      vec3 sunDir = normalize(vec3(5.0, 25.0, 8.0));
+      float sunDot = max(dot(reflectDir, sunDir), 0.0);
+      vec3 sunGlint = vec3(1.0, 0.9, 0.6) * pow(sunDot, 128.0) * 0.8;
+
+      // Water color
+      float depth = smoothstep(20.0, 65.0, dist);
+      vec3 col = mix(uColor, uLight, fresnel * 0.5);
+      col = mix(col, skyCol, fresnel * 0.6);
+      col += sunGlint;
+      col = mix(col, uFogColor, depth);
+      float alpha = 0.85 + fresnel * 0.1;
+      gl_FragColor = vec4(col, alpha);
+    }
+  `,
+});
+const water = new THREE.Mesh(
+  new THREE.PlaneGeometry(140, 140, C.waterSeg, C.waterSeg).rotateX(-Math.PI / 2),
+  waterMat
+);
+water.position.y = 12;
+scene.add(water);
+
+/* ---- God rays (additive cones) ---- */
+const godRays = [];
+for (let i = 0; i < C.godRayCount; i++) {
+  const h = 26 + Math.random() * 10;
+  const geo = new THREE.ConeGeometry(3 + Math.random() * 3, h, 8, 1, true);
+  geo.translate(0, -h / 2, 0);
+  const mat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    uniforms: { uTime: { value: 0 }, uAlpha: { value: 0.06 + Math.random() * 0.08 } },
+    vertexShader: `
+      varying float vY;
+      void main() {
+        vY = (position.y + ${h.toFixed(1)}) / ${h.toFixed(1)};
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime, uAlpha;
+      varying float vY;
+      void main() {
+        float a = smoothstep(0.0, 0.3, 1.0 - vY);
+        a *= 0.6 + 0.4 * sin(vY * 8.0 + uTime * 0.3);
+        gl_FragColor = vec4(0.53, 0.87, 1.0, a * uAlpha);
+      }
+    `,
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set((Math.random() - 0.5) * 40, 12, (Math.random() - 0.5) * 25 - 5);
+  m.userData = { mat, baseX: m.position.x };
+  scene.add(m);
+  godRays.push(m);
+}
+
+/* ---- Jellyfish (high-poly bell, no PBR) ---- */
+const jellyfish = [];
+function buildJellyfish() {
+  const g = new THREE.Group();
+  const hue = 180 + Math.random() * 50;
+  const col = new THREE.Color().setHSL(hue / 360, 0.8, 0.65);
+  const emissive = new THREE.Color().setHSL(hue / 360, 0.9, 0.45);
+
+  // Bell
+  const bellGeo = new THREE.SphereGeometry(1, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+  const bellMat = new THREE.MeshBasicMaterial({
+    color: col, transparent: true, opacity: 0.55, side: THREE.DoubleSide,
+  });
+  const bell = new THREE.Mesh(bellGeo, bellMat);
+  g.add(bell);
+
+  // Glow core
+  const glowGeo = new THREE.SphereGeometry(0.35, 8, 8);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: emissive, transparent: true, opacity: 0.5,
+  });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.position.y = -0.2;
+  g.add(glow);
+
+  // Tentacles (simple lines, not tubes)
+  const tentacles = [];
+  for (let i = 0; i < 8; i++) {
+    const points = [];
+    const angle = (i / 8) * Math.PI * 2;
+    for (let s = 0; s <= 10; s++) {
+      const t = s / 10;
+      points.push(new THREE.Vector3(
+        Math.cos(angle) * (0.7 - t * 0.4),
+        -t * 2.5,
+        Math.sin(angle) * (0.7 - t * 0.4)
+      ));
+    }
+    const geo = new THREE.BufferGeometry().setFromPoints(points);
+    const mat = new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.5 });
+    const line = new THREE.Line(geo, mat);
+    line.userData = { phase: Math.random() * Math.PI * 2, baseAngle: angle };
+    g.add(line);
+    tentacles.push(line);
+  }
+  g.userData = { bell, glow, tentacles, phase: Math.random() * Math.PI * 2, basePos: new THREE.Vector3() };
+  return g;
+}
+
+for (let i = 0; i < C.jellyfishCount; i++) {
+  const j = buildJellyfish();
+  const isHero = i === 0;
+  const scale = isHero ? C.heroJellySize : 0.9 + Math.random() * 0.8;
+  j.scale.setScalar(scale);
+  j.position.set(isHero ? 2 : (Math.random() - 0.5) * 30, isHero ? 1 : (2 - i * 3), isHero ? 10 : (Math.random() - 0.5) * 20 - 5);
+  j.userData.basePos.copy(j.position);
+  scene.add(j);
+  jellyfish.push(j);
+}
+
+/* ---- Fish (procedural, instanced — no GLB) ---- */
+const fishGroup = new THREE.Group();
+const fishData = [];
+{
+  const bodyGeo = new THREE.ConeGeometry(0.15, 0.6, 4);
+  bodyGeo.rotateZ(-Math.PI / 2);
+  const bodyMat = new THREE.MeshBasicMaterial({ color: 0x4488cc, transparent: true, opacity: 0.8 });
+  const bodyMesh = new THREE.InstancedMesh(bodyGeo, bodyMat, C.fishCount);
+  const tailGeo = new THREE.ConeGeometry(0.12, 0.22, 3);
+  tailGeo.rotateZ(Math.PI / 2);
+  const tailMat = new THREE.MeshBasicMaterial({ color: 0x5599dd, transparent: true, opacity: 0.7 });
+  const tailMesh = new THREE.InstancedMesh(tailGeo, tailMat, C.fishCount);
+  const dummy = new THREE.Object3D();
+  for (let i = 0; i < C.fishCount; i++) {
+    const f = {
+      center: new THREE.Vector3((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 12 - 1, (Math.random() - 0.5) * 20 - 8),
+      radius: 3 + Math.random() * 6, speed: 0.12 + Math.random() * 0.2,
+      offset: Math.random() * Math.PI * 2, bobAmp: 0.3 + Math.random() * 0.5,
+      scale: 0.5 + Math.random() * 0.6, wagSpeed: 2.5 + Math.random() * 2,
+      wagPhase: Math.random() * Math.PI * 2,
+    };
+    fishData.push(f);
+    dummy.position.copy(f.center);
+    dummy.scale.setScalar(f.scale);
+    dummy.updateMatrix();
+    bodyMesh.setMatrixAt(i, dummy.matrix);
+    tailMesh.setMatrixAt(i, dummy.matrix);
+  }
+  bodyMesh.instanceMatrix.needsUpdate = true;
+  tailMesh.instanceMatrix.needsUpdate = true;
+  fishGroup.add(bodyMesh, tailMesh);
+}
+scene.add(fishGroup);
+
+/* ---- Bubbles (instanced, MeshBasicMaterial) ---- */
+const bubbleData = [];
+const bubbleMesh = (() => {
+  const geo = new THREE.SphereGeometry(1, 6, 6);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xaaddff, transparent: true, opacity: 0.45 });
+  const mesh = new THREE.InstancedMesh(geo, mat, C.bubbleCount);
+  const dummy = new THREE.Object3D();
+  for (let i = 0; i < C.bubbleCount; i++) {
+    const b = {
+      x: (Math.random() - 0.5) * 30,
+      y: (Math.random() - 0.5) * 22 + 2,
+      z: (Math.random() - 0.5) * 25 - 8,
+      r: 0.04 + Math.random() * 0.2,
+      speed: 0.4 + Math.random() * 0.8,
+      wobble: Math.random() * Math.PI * 2,
+    };
+    bubbleData.push(b);
+    dummy.position.set(b.x, b.y, b.z);
+    dummy.scale.setScalar(b.r);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+  return { mesh, dummy };
+})();
+scene.add(bubbleMesh.mesh);
+
+/* ---- Kelp (simple animated planes) ---- */
+const kelpMats = [];
+for (let i = 0; i < C.kelpCount; i++) {
+  const h = 4 + Math.random() * 5;
+  const w = 0.4 + Math.random() * 0.3;
+  const geo = new THREE.PlaneGeometry(w, h, 1, 16);
+  geo.translate(0, h / 2, 0);
+  const hue = 130 + Math.random() * 30;
+  const mat = new THREE.MeshBasicMaterial({
+    color: new THREE.Color().setHSL(hue / 360, 0.5, 0.25 + Math.random() * 0.1),
+    transparent: true, opacity: 0.85, side: THREE.DoubleSide,
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set((Math.random() - 0.5) * 50, -10, (Math.random() - 0.5) * 25 - 8);
+  m.rotation.y = Math.random() * Math.PI;
+  m.userData = { phase: Math.random() * Math.PI * 2, h, w };
+  scene.add(m);
+  kelpMats.push(m);
+}
+
+/* ---- Sand floor ---- */
+{
+  const geo = new THREE.PlaneGeometry(120, 80, 20, 16);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i);
+    pos.setY(i, Math.sin(x * 0.12) * 0.3 + Math.cos(z * 0.1) * 0.25);
+  }
+  geo.computeVertexNormals();
+  const mat = new THREE.MeshBasicMaterial({ color: 0x9a7856 });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.y = -11;
+  scene.add(m);
+}
+
+/* ---- Caustics (scrolling texture on floor) ---- */
+const causticTex = (() => {
+  const sz = 256;
+  const c = document.createElement('canvas');
+  c.width = c.height = sz;
+  const ctx = c.getContext('2d');
+  const img = ctx.createImageData(sz, sz);
+  for (let y = 0; y < sz; y++) {
+    for (let x = 0; x < sz; x++) {
+      const u = x / sz, v = y / sz;
+      const a = Math.sin((u * 6 + v * 4) * Math.PI) * 0.5 + 0.5;
+      const b = Math.sin((u * 9 - v * 7) * Math.PI) * 0.5 + 0.5;
+      const k = Math.sqrt(a * b);
+      const val = Math.floor(k * 255);
+      const i = (y * sz + x) * 4;
+      img.data[i] = val; img.data[i + 1] = val; img.data[i + 2] = val; img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+})();
+const causticMat = new THREE.MeshBasicMaterial({
+  map: causticTex, transparent: true, opacity: 0.22,
+  blending: THREE.AdditiveBlending, depthWrite: false,
+});
+const causticMesh = new THREE.Mesh(new THREE.PlaneGeometry(100, 80).rotateX(-Math.PI / 2), causticMat);
+causticMesh.position.y = -10.8;
+scene.add(causticMesh);
+
+/* ---- Coral (simple cones) ---- */
+{
+  const colors = [0xff5577, 0x8844cc, 0xff9944, 0xff66aa];
+  for (let i = 0; i < C.coralCount; i++) {
+    const h = 0.6 + Math.random() * 1.2;
+    const geo = new THREE.ConeGeometry(0.4 + Math.random() * 0.3, h, 4, 1);
+    const mat = new THREE.MeshBasicMaterial({ color: colors[i % colors.length] });
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set((Math.random() - 0.5) * 40, -10.5 + h / 2, (Math.random() - 0.5) * 20 - 8);
+    m.scale.setScalar(0.7 + Math.random() * 0.5);
+    scene.add(m);
+  }
+}
+
+/* ---- Marine snow (Points) ---- */
+const marineSnow = (() => {
+  const count = C.particleCount;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * 50;
+    pos[i * 3 + 1] = (Math.random() - 0.5) * 25;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 30 - 5;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({
+    color: 0x88bbcc, size: 0.15, transparent: true, opacity: 0.5,
+    blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+  });
+  return new THREE.Points(geo, mat);
+})();
+scene.add(marineSnow);
+
+/* ---- Bioluminescent plankton (Points, bright) ---- */
+const plankton = (() => {
+  const count = isLowPower ? 25 : 50;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  const phases = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * 40;
+    pos[i * 3 + 1] = (Math.random() - 0.5) * 25;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 25 - 5;
+    phases[i] = Math.random() * Math.PI * 2;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('phase', new THREE.BufferAttribute(phases, 1));
+  const mat = new THREE.PointsMaterial({
+    color: 0x00ffdd, size: 0.35, transparent: true, opacity: 0.7,
+    blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+  });
+  return { points: new THREE.Points(geo, mat), geo };
+})();
+scene.add(plankton.points);
+
+/* ---- Data streams (3 vertical columns of Points) ---- */
+const dataStreams = [];
+for (let i = 0; i < (isLowPower ? 0 : 3); i++) {
+  const x = (i - 1) * 15 + (Math.random() - 0.5) * 4;
+  const z = (Math.random() - 0.5) * 20 - 5;
+  const count = 20;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  for (let j = 0; j < count; j++) {
+    pos[j * 3] = x + (Math.random() - 0.5) * 0.3;
+    pos[j * 3 + 1] = j * 0.6;
+    pos[j * 3 + 2] = z + (Math.random() - 0.5) * 0.3;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({
+    color: 0x00ffd5, size: 0.2, transparent: true, opacity: 0.55,
+    blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+  });
+  const pts = new THREE.Points(geo, mat);
+  dataStreams.push(pts);
+  scene.add(pts);
+}
+
+/* ---- Camera path ---- */
+const WP = [
+  { p: 0.00, cam: [0, 3, 26], look: [0, 0, 0] },
+  { p: 0.15, cam: [4, 0, 22], look: [0, 0, 0] },
+  { p: 0.30, cam: [-4, -2, 20], look: [0, -2, -4] },
+  { p: 0.45, cam: [6, -4, 22], look: [0, -3, 0] },
+  { p: 0.60, cam: [0, -5, 24], look: [0, -5, 0] },
+  { p: 0.75, cam: [-3, -8, 20], look: [0, -9, -3] },
+  { p: 0.90, cam: [4, -1, 26], look: [0, -1, 0] },
+  { p: 1.00, cam: [0, 3, 28], look: [0, 0, 0] },
+];
+function lerpWP(p) {
+  p = Math.max(0, Math.min(1, p));
+  let i = 0;
+  while (i < WP.length - 1 && WP[i + 1].p < p) i++;
+  const a = WP[i], b = WP[Math.min(i + 1, WP.length - 1)];
+  const t = (b.p - a.p) > 0 ? (p - a.p) / (b.p - a.p) : 0;
+  const e = t * t * (3 - 2 * t); // smoothstep
+  camera.position.set(
+    a.cam[0] + (b.cam[0] - a.cam[0]) * e,
+    a.cam[1] + (b.cam[1] - a.cam[1]) * e,
+    a.cam[2] + (b.cam[2] - a.cam[2]) * e,
+  );
+  const la = a.look, lb = b.look;
+  camera.lookAt(
+    la[0] + (lb[0] - la[0]) * e,
+    la[1] + (lb[1] - la[1]) * e,
+    la[2] + (lb[2] - la[2]) * e,
+  );
+}
+
+/* ---- Animation loop ---- */
+const clock = new THREE.Clock();
+let elapsed = 0;
+const dummy = new THREE.Object3D();
+const _camPos = new THREE.Vector3();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  elapsed += dt;
+
+  Scene.mouse.x += (Scene.mouse.tx - Scene.mouse.x) * 0.04;
+  Scene.mouse.y += (Scene.mouse.ty - Scene.mouse.y) * 0.04;
+
+  // Camera
+  lerpWP(Scene.scrollProgress);
+  if (!prefersReducedMotion) {
+    camera.position.x += Scene.mouse.x * 0.5;
+    camera.position.y += Scene.mouse.y * 0.25;
+  }
+  camera.getWorldPosition(_camPos);
+  waterMat.uniforms.uTime.value = elapsed;
+  waterMat.uniforms.uCameraPos.value.copy(_camPos);
+
+  // Water surface wave update (only if significant change)
+  if (!prefersReducedMotion && elapsed % 0.05 < dt) {
+    const pos = water.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const z = pos.getZ(i);
+      const w = Math.sin(x * 0.06 + elapsed * 0.5) * 0.25
+              + Math.sin(z * 0.05 + elapsed * 0.3) * 0.18
+              + Math.sin(x * 0.03 + z * 0.04 + elapsed * 0.2) * 0.15;
+      pos.setY(i, w);
+    }
+    pos.needsUpdate = true;
+    water.geometry.computeVertexNormals();
+  }
+
+  // God rays
+  godRays.forEach((r) => {
+    r.userData.mat.uniforms.uTime.value = elapsed;
+    r.position.x = r.userData.baseX + Math.sin(elapsed * 0.1) * 0.3;
+  });
+
+  // Jellyfish pulse
+  jellyfish.forEach((j) => {
+    const ud = j.userData;
+    const pulse = 1 + Math.sin(elapsed * 1.2 + ud.phase) * 0.08;
+    ud.bell.scale.set(pulse, 1 / pulse, pulse);
+    ud.glow.material.opacity = 0.35 + Math.sin(elapsed * 1.5 + ud.phase) * 0.15;
+    ud.tentacles.forEach((t) => {
+      t.rotation.x = Math.sin(elapsed * 0.7 + t.userData.phase) * 0.15;
+      t.rotation.z = Math.sin(elapsed * 0.5 + t.userData.phase + 1) * 0.15;
+    });
+    j.position.x = ud.basePos.x + Math.sin(elapsed * 0.3) * 1.0;
+    j.position.y = ud.basePos.y + Math.sin(elapsed * 0.4) * 0.5;
+    j.rotation.y = elapsed * 0.05;
+  });
+
+  // Fish school
+  fishData.forEach((f, i) => {
+    const t = elapsed * f.speed + f.offset;
+    const x = f.center.x + Math.cos(t) * f.radius;
+    const z = f.center.z + Math.sin(t) * f.radius;
+    const y = f.center.y + Math.sin(t * 1.3) * f.bobAmp;
+    dummy.position.set(x, y, z);
+    const tx = -Math.sin(t) * f.radius * f.speed;
+    const tz = Math.cos(t) * f.radius * f.speed;
+    dummy.rotation.y = Math.atan2(tx, tz) + Math.sin(elapsed * f.wagSpeed + f.wagPhase) * 0.12;
+    dummy.rotation.z = Math.sin(elapsed * f.wagSpeed * 0.5 + f.wagPhase) * 0.08;
+    dummy.scale.setScalar(f.scale);
+    dummy.updateMatrix();
+    fishGroup.children[0].setMatrixAt(i, dummy.matrix);
+    fishGroup.children[1].setMatrixAt(i, dummy.matrix);
+  });
+  fishGroup.children[0].instanceMatrix.needsUpdate = true;
+  fishGroup.children[1].instanceMatrix.needsUpdate = true;
+
+  // Bubbles
+  bubbleData.forEach((b, i) => {
+    b.y += b.speed * dt;
+    if (b.y > 12) { b.y = -11; b.x = (Math.random() - 0.5) * 30; b.z = (Math.random() - 0.5) * 25 - 8; }
+    dummy.position.set(b.x + Math.sin(elapsed * 0.8 + b.wobble) * 0.3, b.y, b.z + Math.cos(elapsed * 0.6 + b.wobble) * 0.2);
+    dummy.scale.setScalar(b.r);
+    dummy.updateMatrix();
+    bubbleMesh.mesh.setMatrixAt(i, dummy.matrix);
+  });
+  bubbleMesh.mesh.instanceMatrix.needsUpdate = true;
+
+  // Kelp sway
+  kelpMats.forEach((m) => {
+    const ud = m.userData;
+    m.rotation.x = Math.sin(elapsed * 0.5 + ud.phase) * 0.12;
+    m.rotation.z = Math.cos(elapsed * 0.4 + ud.phase * 0.7) * 0.1;
+  });
+
+  // Marine snow drift
+  const sp = marineSnow.geometry.attributes.position;
+  for (let i = 0; i < sp.count; i++) {
+    sp.setY(i, sp.getY(i) - dt * 0.3);
+    if (sp.getY(i) < -13) sp.setY(i, 12);
+    sp.setX(i, sp.getX(i) + Math.sin(elapsed * 0.2 + i) * dt * 0.1);
+  }
+  sp.needsUpdate = true;
+
+  // Plankton drift
+  const pp = plankton.geo.attributes.position;
+  for (let i = 0; i < pp.count; i++) {
+    pp.setY(i, pp.getY(i) - dt * 0.15);
+    if (pp.getY(i) < -13) pp.setY(i, 12);
+    pp.setX(i, pp.getX(i) + Math.sin(elapsed * 0.3 + i * 0.7) * dt * 0.15);
+    pp.setZ(i, pp.getZ(i) + Math.cos(elapsed * 0.25 + i * 0.5) * dt * 0.1);
+  }
+  pp.needsUpdate = true;
+
+  // Data streams drift
+  dataStreams.forEach((pts) => {
+    const p = pts.geometry.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const y = p.getY(i) + dt * 1.5;
+      p.setY(i, y > 14 ? -14 : y);
+    }
+    p.needsUpdate = true;
+  });
+
+  // Caustics scroll
+  causticTex.offset.x = (elapsed * 0.015) % 1;
+  causticTex.offset.y = (elapsed * 0.012) % 1;
+
+  renderer.render(scene, camera);
+}
+if (!prefersReducedMotion) animate();
+
+/* ---- Resize ---- */
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight, false);
+  renderer.setPixelRatio(DPR);
+});
+
+/* ---- Mouse ---- */
+window.addEventListener('mousemove', (e) => {
+  Scene.setMouse((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+});
+
+Scene.isReady = true;

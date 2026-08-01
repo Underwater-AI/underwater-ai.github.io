@@ -2794,7 +2794,151 @@ html.light-mode .footer__bottom {
 html.light-mode .skip-link { background: var(--t-primary); color: white; }
 
 /* ----------------------------------------------------------------------------
-   21. REDUCED MOTION
+   21. FROSTED GLASS — improved readability for all panels
+   Darker base, stronger blur, and inner border so text always reads clearly
+   against the 3D background.
+---------------------------------------------------------------------------- */
+.model-card,
+.tech-card,
+.solution,
+.trust-card,
+.member,
+.about__pillar,
+.about__band-item,
+.about__meta,
+.metric,
+.detection__stat,
+.model-card__spec,
+.funding-strip,
+.compare__stage {
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  background: rgba(2, 8, 30, 0.72);
+  border-color: rgba(0, 240, 224, 0.12);
+}
+
+/* Hero stats and floaters need strong contrast too */
+.hero__stats {
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  background: rgba(2, 4, 16, 0.82);
+}
+
+.hero__floater {
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  background: rgba(2, 8, 30, 0.85);
+}
+
+/* Improve text readability with subtle text shadow */
+.hero__title,
+.section-title__main,
+.about__title,
+.hero__subtitle,
+.hero__stat-label,
+.hero__stat-num,
+.model-card__title,
+.tech-card__title,
+.solution__title,
+.trust-card__title,
+.member__name,
+.about__pillar-title,
+.about__pillar-desc,
+.about__pillar-list li,
+.model-card__desc,
+.tech-card__desc,
+.solution__desc,
+.trust-card__desc,
+.compare__title,
+.compare__sub,
+.model-info,
+.detection__feature-title,
+.detection__feature-desc,
+.detection__stat-num,
+.detection__stat-label,
+.metric__num,
+.metric__label,
+.tag,
+.about__floater-value,
+.about__floater-desc {
+  text-shadow: 0 0 40px rgba(2, 4, 16, 0.6);
+}
+
+/* Nav needs stronger glass for readability when scrolling */
+.nav.is-scrolled {
+  background: rgba(2, 4, 16, 0.92) !important;
+  backdrop-filter: blur(24px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.5) !important;
+  border-bottom-color: rgba(0, 240, 224, 0.15) !important;
+}
+
+/* Mobile menu overlay — dark glass */
+.menu-overlay {
+  backdrop-filter: blur(24px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.5) !important;
+  background: rgba(2, 4, 16, 0.96) !important;
+}
+
+/* Footer */
+.footer {
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+}
+
+/* Light mode: reduce glass opacity so it's not too dark */
+html.light-mode .model-card,
+html.light-mode .tech-card,
+html.light-mode .solution,
+html.light-mode .trust-card,
+html.light-mode .member,
+html.light-mode .about__pillar,
+html.light-mode .metric,
+html.light-mode .detection__stat,
+html.light-mode .model-card__spec,
+html.light-mode .about__band-item,
+html.light-mode .about__meta {
+  background: rgba(240, 250, 255, 0.82);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+html.light-mode .hero__floater {
+  background: rgba(240, 250, 255, 0.90);
+}
+
+html.light-mode .hero__stats {
+  background: rgba(224, 247, 255, 0.90);
+}
+
+html.light-mode .nav.is-scrolled {
+  background: rgba(224, 247, 255, 0.95) !important;
+  border-bottom-color: var(--b-hairline) !important;
+}
+
+html.light-mode .menu-overlay {
+  background: rgba(224, 247, 255, 0.98) !important;
+}
+
+html.light-mode .footer {
+  background: rgba(179, 236, 255, 0.6);
+}
+
+/* Text shadows in light mode — remove (text is dark on light bg) */
+html.light-mode .hero__title,
+html.light-mode .section-title__main,
+html.light-mode .hero__subtitle,
+html.light-mode .model-card__title,
+html.light-mode .tech-card__title,
+html.light-mode .solution__title,
+html.light-mode .trust-card__title,
+html.light-mode .member__name,
+html.light-mode .metric__num,
+html.light-mode .detection__stat-num {
+  text-shadow: none;
+}
+
+/* ----------------------------------------------------------------------------
+   22. REDUCED MOTION
 ---------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

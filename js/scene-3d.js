@@ -30,16 +30,17 @@ window.UnderwaterScene = Scene;
 // ---------------------------------------------------------------------------
 const CONFIG = {
   isMobile: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent),
+  isLowPower: navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4,
   pixelRatioCap: 2,
-  bubbleCount: 90,
-  fishCount: 18,
-  jellyfishCount: 5,        // Up from 3 — more visible creatures
-  kelpCount: 18,
-  coralCount: 9,
-  particleCount: 380,       // Up from 220 — more visible plankton
-  godRayCount: 9,
-  dataStreamCount: 6,       // NEW — vertical data streams
-  heroJellyfishSize: 4.5,   // NEW — giant hero jellyfish
+  bubbleCount: 60,
+  fishCount: 16,
+  jellyfishCount: 5,
+  kelpCount: 14,
+  coralCount: 8,
+  particleCount: 260,
+  godRayCount: 7,
+  dataStreamCount: 5,
+  heroJellyfishSize: 4.5,
   fogColor: 0x010820,
   fogNear: 18,
   fogFar: 70,
@@ -47,15 +48,17 @@ const CONFIG = {
   cameraLookStart: { x: 0, y: 0, z: 0 },
 };
 
-// Mobile 3D population reduction
-if (CONFIG.isMobile) {
-  CONFIG.bubbleCount = 48;
+// Mobile / low-power reduction — keeps the scene lively but cheap
+if (CONFIG.isMobile || CONFIG.isLowPower) {
+  CONFIG.bubbleCount = 28;
   CONFIG.fishCount = 8;
-  CONFIG.kelpCount = 10;
+  CONFIG.jellyfishCount = 3;
+  CONFIG.kelpCount = 8;
   CONFIG.coralCount = 5;
-  CONFIG.particleCount = 180;
-  CONFIG.godRayCount = 5;
-  CONFIG.dataStreamCount = 4;
+  CONFIG.particleCount = 60;
+  CONFIG.godRaysCount = 3;
+  CONFIG.dataStreamCount = 3;
+  CONFIG.pixelRatioCap = 1.5;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,17 +83,45 @@ Scene.camera = camera;
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
-  antialias: !CONFIG.isMobile,
+  antialias: false,
   alpha: false,
   powerPreference: 'high-performance',
   stencil: false,
 });
 renderer.setSize(window.innerWidth, window.innerHeight, false);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, CONFIG.pixelRatioCap));
+
+// Adaptive pixel ratio — dynamic resolution scaling for smooth frames
+let adaptivePixelRatio = Math.min(window.devicePixelRatio, CONFIG.pixelRatioCap);
+renderer.setPixelRatio(adaptivePixelRatio);
+
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.95;
 Scene.renderer = renderer;
+
+// FPS monitor — drop resolution when struggling, recover when comfortable
+let frameCount = 0;
+let lastFpsCheck = performance.now();
+let currentFps = 60;
+function monitorFps() {
+  frameCount++;
+  const now = performance.now();
+  if (now - lastFpsCheck >= 2000) {
+    currentFps = frameCount * 1000 / (now - lastFpsCheck);
+    frameCount = 0;
+    lastFpsCheck = now;
+    if (currentFps < 30 && adaptivePixelRatio > 1) {
+      adaptivePixelRatio = Math.max(1, adaptivePixelRatio - 0.25);
+      renderer.setPixelRatio(adaptivePixelRatio);
+      console.log(`[perf] pixel ratio ↓ ${adaptivePixelRatio.toFixed(2)} (fps: ${currentFps.toFixed(0)})`);
+    } else if (currentFps > 55 && adaptivePixelRatio < CONFIG.pixelRatioCap) {
+      adaptivePixelRatio = Math.min(CONFIG.pixelRatioCap, adaptivePixelRatio + 0.25);
+      renderer.setPixelRatio(adaptivePixelRatio);
+      console.log(`[perf] pixel ratio ↑ ${adaptivePixelRatio.toFixed(2)} (fps: ${currentFps.toFixed(0)})`);
+    }
+  }
+}
+window.__underwaterPerformance = { get fps() { return currentFps; }, get pixelRatio() { return adaptivePixelRatio; } };
 
 // ---------------------------------------------------------------------------
 // 2. IBL ENVIRONMENT — RoomEnvironment for PBR reflections
@@ -206,7 +237,7 @@ causticTex.repeat.set(8, 6);
 //    - Animated normal map sampling for surface ripple
 //    - Transparent (depthWrite: false) so the scene behind is visible
 // ---------------------------------------------------------------------------
-const waterGeo = new THREE.PlaneGeometry(160, 160, 200, 200);
+const waterGeo = new THREE.PlaneGeometry(160, 160, 100, 100);
 waterGeo.rotateX(-Math.PI / 2);
 
 const waterMat = new THREE.ShaderMaterial({
@@ -414,8 +445,8 @@ function buildJellyfish() {
   const group = new THREE.Group();
   const hue = 180 + Math.random() * 50;
 
-  // Bell — high-poly half sphere
-  const bellGeo = new THREE.SphereGeometry(1, 48, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+  // Bell — mid-poly half sphere (24×16 is visually identical at scene scale, half the verts)
+  const bellGeo = new THREE.SphereGeometry(1, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
   // Soften the silhouette by displacing vertices outward a bit
   const pos = bellGeo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
@@ -443,7 +474,7 @@ function buildJellyfish() {
   group.add(bell);
 
   // Inner bioluminescent core
-  const glowGeo = new THREE.SphereGeometry(0.45, 16, 16);
+  const glowGeo = new THREE.SphereGeometry(0.45, 12, 10);
   const glowMat = new THREE.MeshBasicMaterial({
     color: new THREE.Color(`hsl(${hue}, 100%, 80%)`),
     transparent: true,
@@ -453,14 +484,14 @@ function buildJellyfish() {
   glow.position.y = -0.2;
   group.add(glow);
 
-  // Tentacles — long flowing curves with high segment count
-  const tentacleCount = 12;
+  // Tentacles — 8 instead of 12, lower tube segments (visually identical, 40% cheaper)
+  const tentacleCount = 8;
   const tentacles = [];
   for (let i = 0; i < tentacleCount; i++) {
     const baseAngle = (i / tentacleCount) * Math.PI * 2;
     const baseR = 0.7;
     const points = [];
-    const segs = 32;
+    const segs = 20;
     for (let s = 0; s <= segs; s++) {
       const t = s / segs;
       const r = baseR - t * 0.45;
@@ -472,7 +503,7 @@ function buildJellyfish() {
       ));
     }
     const curve = new THREE.CatmullRomCurve3(points);
-    const tubeGeo = new THREE.TubeGeometry(curve, 48, 0.022, 8, false);
+    const tubeGeo = new THREE.TubeGeometry(curve, 24, 0.022, 6, false);
     const tubeMat = new THREE.MeshStandardMaterial({
       color: new THREE.Color(`hsl(${hue}, 80%, 70%)`),
       emissive: new THREE.Color(`hsl(${hue}, 90%, 55%)`),
@@ -505,23 +536,23 @@ for (let i = 0; i < CONFIG.jellyfishCount; i++) {
   const j = buildJellyfish();
   let scale;
   let position;
-  // First jellyfish: GIANT hero creature, always in the foreground
-  if (i === 0) {
-    scale = CONFIG.heroJellyfishSize;
-    position = new THREE.Vector3(
-      2,                         // slightly to the right
-      1.5,                       // mid-water
-      12                         // close to camera, very visible
-    );
-    j.userData.isHero = true;
-  } else {
-    scale = 1.2 + Math.random() * 1.0;
-    position = new THREE.Vector3(
-      (Math.random() - 0.5) * 30,
-      4 - i * 4,
-      (Math.random() - 0.5) * 20 - 5
-    );
-  }
+  // Fixed positions so the camera can visit each jellyfish deterministically
+  // Jellyfish 0: GIANT hero creature — close, right of center, mid-water
+  // Jellyfish 1: "second" jellyfish — upper left, floating near surface
+  // Jellyfish 2: deep-water jellyfish — right side, lower
+  // Jellyfish 3: background jellyfish — far left
+  // Jellyfish 4: abyss jellyfish — deep center
+  const fixedPositions = [
+    { scale: CONFIG.heroJellyfishSize, pos: new THREE.Vector3(2, 1.5, 12),  hero: true },
+    { scale: 1.8,                      pos: new THREE.Vector3(-5, 2.5, 16), hero: false },
+    { scale: 1.4,                      pos: new THREE.Vector3(7, -3, 14),  hero: false },
+    { scale: 1.2,                      pos: new THREE.Vector3(-8, -5, 18), hero: false },
+    { scale: 1.6,                      pos: new THREE.Vector3(3, -8, 16),  hero: false },
+  ];
+  const fp = fixedPositions[i] || { scale: 1.2 + Math.random(), pos: new THREE.Vector3((Math.random() - 0.5) * 30, 4 - i * 4, (Math.random() - 0.5) * 20 - 5) };
+  scale = fp.scale;
+  position = fp.pos.clone();
+  if (fp.hero) j.userData.isHero = true;
   j.scale.setScalar(scale);
   j.position.copy(position);
   j.userData.basePos.copy(j.position);
@@ -758,11 +789,11 @@ function buildKelp() {
       `,
     });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(
-      (Math.random() - 0.5) * 60,
-      -10,
-      (Math.random() - 0.5) * 30 - 10
-    );
+    // Kelp corridor — two staggered rows the camera weaves between
+    const row = i % 2 === 0 ? -1 : 1;   // alternate sides
+    const x = row * (4 + (i % 4) * 4);
+    const z = -6 - i * 2.4;
+    mesh.position.set(x, -10, z);
     mesh.rotation.y = Math.random() * Math.PI;
     mesh.userData = { mat };
     group.add(mesh);
@@ -778,7 +809,7 @@ scene.add(kelp);
 // 12. SAND FLOOR — displaced plane with PBR material + caustics
 // ---------------------------------------------------------------------------
 function buildSandFloor() {
-  const geo = new THREE.PlaneGeometry(160, 120, 80, 50);
+  const geo = new THREE.PlaneGeometry(160, 120, 60, 40);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
@@ -855,10 +886,16 @@ function buildCoral() {
       flatShading: true,  // makes facets look more organic
     });
     const mesh = new THREE.Mesh(geo, mat);
+    // Fixed coral-garden positions — camera visits this cluster at depth
+    const coralSpots = [
+      { x: -3, z: -6 }, { x: 0, z: -9 }, { x: 4, z: -7 }, { x: -6, z: -10 },
+      { x: 6, z: -12 }, { x: 1, z: -13 }, { x: -2, z: -15 }, { x: 3, z: -17 },
+    ];
+    const spot = coralSpots[i] || { x: (Math.random() - 0.5) * 10, z: -6 - Math.random() * 10 };
     mesh.position.set(
-      (Math.random() - 0.5) * 50,
+      spot.x,
       -11.5 + h / 2,
-      (Math.random() - 0.5) * 25 - 8
+      spot.z
     );
     mesh.scale.setScalar(0.8 + Math.random() * 0.6);
     mesh.rotation.y = Math.random() * Math.PI;
@@ -885,6 +922,208 @@ function buildCoral() {
   return items;
 }
 const coral = buildCoral();
+
+// ---------------------------------------------------------------------------
+// 13b. SEA TURTLE — graceful glider, built from cheap primitives
+//      Lightweight: ~6 meshes, no textures
+// ---------------------------------------------------------------------------
+function buildSeaTurtle() {
+  const g = new THREE.Group();
+  const shellMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, emissive: 0x0a2a1a, emissiveIntensity: 0.3, roughness: 0.6 });
+  const skinMat  = new THREE.MeshStandardMaterial({ color: 0x7fb069, emissive: 0x0a2a1a, emissiveIntensity: 0.15, roughness: 0.7 });
+
+  // Shell — squashed sphere
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 8), shellMat);
+  shell.scale.set(1.25, 0.55, 0.9);
+  shell.position.y = 0.1;
+  g.add(shell);
+
+  // Head — small sphere at front
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), skinMat);
+  head.position.set(0.62, 0.08, 0);
+  g.add(head);
+
+  // Four flippers — flattened boxes with slight rotation
+  const flipperPos = [
+    { x: 0.42, z: 0.62, rot: 0.9 },  { x: 0.42, z: -0.62, rot: -0.9 },
+    { x: -0.42, z: 0.62, rot: 2.2 }, { x: -0.42, z: -0.62, rot: -2.2 },
+  ];
+  const flippers = [];
+  for (const fp of flipperPos) {
+    const flipper = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.16), skinMat);
+    flipper.position.set(fp.x, 0.02, fp.z);
+    flipper.rotation.y = fp.rot;
+    flipper.rotation.x = 0.2;
+    g.add(flipper);
+    flippers.push(flipper);
+  }
+
+  // Tail — small wedge
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.3, 6), skinMat);
+  tail.rotation.x = Math.PI / 2;
+  tail.position.set(-0.7, 0.05, 0);
+  g.add(tail);
+
+  g.userData = { flippers, phase: Math.random() * Math.PI * 2, basePos: new THREE.Vector3() };
+  return g;
+}
+const turtles = [];
+const turtleCount = 2;
+for (let i = 0; i < turtleCount; i++) {
+  const t = buildSeaTurtle();
+  t.position.set(i === 0 ? -4 : 5, -5 - i * 2, -4 - i * 4);
+  t.scale.setScalar(1.6 - i * 0.3);
+  t.userData.basePos.copy(t.position);
+  scene.add(t);
+  turtles.push(t);
+}
+
+// ---------------------------------------------------------------------------
+// 13c. MANTA RAY — majestic glider, flattened cone wings
+// ---------------------------------------------------------------------------
+function buildMantaRay() {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0x1a2f4a, emissive: 0x0a1626, emissiveIntensity: 0.3, roughness: 0.4, side: THREE.DoubleSide });
+
+  // Wings — two flattened cones swept back
+  const wingGeo = new THREE.ConeGeometry(1, 0.12, 8, 1, true);
+  const left = new THREE.Mesh(wingGeo, mat);
+  left.scale.set(0.5, 1, 2.2);
+  left.rotation.y = Math.PI / 2;
+  left.position.x = -1.1;
+  left.rotation.z = 0.15;
+  g.add(left);
+  const right = left.clone();
+  right.position.x = 1.1;
+  right.rotation.z = -0.15;
+  g.add(right);
+
+  // Body — small flattened sphere between wings
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8), mat);
+  body.scale.set(0.6, 0.35, 1.2);
+  g.add(body);
+
+  // Tail — thin spike behind
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.04, 1.2, 5), mat);
+  tail.rotation.x = Math.PI / 2;
+  tail.position.set(0, -0.02, -1);
+  g.add(tail);
+
+  g.userData = { basePos: new THREE.Vector3(), phase: Math.random() * Math.PI * 2 };
+  return g;
+}
+const manta = buildMantaRay();
+manta.position.set(0, -7, -8);
+manta.scale.setScalar(2.4);
+manta.userData.basePos.copy(manta.position);
+scene.add(manta);
+
+// ---------------------------------------------------------------------------
+// 13d. WHALE — enormous gentle giant, sphere + cone + tail primitives
+// ---------------------------------------------------------------------------
+function buildWhale() {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0x1d3a5f, emissive: 0x0a1a30, emissiveIntensity: 0.2, roughness: 0.5 });
+
+  // Body — elongated sphere
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), mat);
+  body.scale.set(2.6, 0.85, 0.95);
+  g.add(body);
+
+  // Head — slightly bulbous front
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 10, 8), mat);
+  head.position.set(2.1, 0.05, 0);
+  head.scale.set(1.1, 0.85, 0.9);
+  g.add(head);
+
+  // Belly — lighter underside
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.72, 8, 6), new THREE.MeshStandardMaterial({ color: 0x9fb8c9, roughness: 0.6 }));
+  belly.scale.set(2.2, 0.45, 0.8);
+  belly.position.set(0.3, -0.28, 0);
+  g.add(belly);
+
+  // Tail flukes — two small flattened cones at rear
+  const flukeGeo = new THREE.ConeGeometry(0.22, 0.06, 6, 1, true);
+  const flukeL = new THREE.Mesh(flukeGeo, mat);
+  flukeL.rotation.z = Math.PI / 2;
+  flukeL.position.set(-2.5, 0.2, 0.5);
+  flukeL.scale.set(1, 1, 2.2);
+  g.add(flukeL);
+  const flukeR = flukeL.clone();
+  flukeR.position.z = -0.5;
+  g.add(flukeR);
+
+  // Fins — small side fins
+  const finGeo = new THREE.ConeGeometry(0.2, 0.8, 6);
+  const finL = new THREE.Mesh(finGeo, mat);
+  finL.rotation.z = 1.4;
+  finL.position.set(0.4, -0.3, 1.1);
+  g.add(finL);
+  const finR = finL.clone();
+  finR.rotation.z = -1.4;
+  finR.position.z = -1.1;
+  g.add(finR);
+
+  g.userData = { flukes: [flukeL, flukeR], fins: [finL, finR], basePos: new THREE.Vector3(), phase: Math.random() * Math.PI * 2 };
+  return g;
+}
+const whale = buildWhale();
+whale.position.set(-10, -4, -18);
+whale.scale.setScalar(3.2);
+whale.rotation.y = 0.4;
+whale.userData.basePos.copy(whale.position);
+scene.add(whale);
+
+// ---------------------------------------------------------------------------
+// 13e. SEAHORSES — tiny whimsical creatures near the kelp corridor
+// ---------------------------------------------------------------------------
+function buildSeahorse() {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0xe8a33d, emissive: 0x5a2a05, emissiveIntensity: 0.25, roughness: 0.5 });
+
+  // Body — curled tube (torus segment approximated with a bent tube)
+  const curve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0.08, 0.18, 0),
+    new THREE.Vector3(0.06, 0.38, 0),
+    new THREE.Vector3(-0.02, 0.55, 0),
+    new THREE.Vector3(-0.12, 0.68, 0),
+    new THREE.Vector3(-0.2, 0.6, 0),
+  ]);
+  const body = new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.07, 6, false), mat);
+  g.add(body);
+
+  // Head — small sphere
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), mat);
+  head.position.set(-0.05, 0.78, 0);
+  g.add(head);
+
+  // Snout — tiny tube
+  const snout = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.14, 5), mat);
+  snout.rotation.z = -0.8;
+  snout.position.set(-0.11, 0.82, 0);
+  g.add(snout);
+
+  // Dorsal fin — tiny flattened cone
+  const fin = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.18, 5), mat);
+  fin.position.set(0.1, 0.45, 0);
+  fin.rotation.z = 0.4;
+  g.add(fin);
+
+  g.userData = { basePos: new THREE.Vector3(), phase: Math.random() * Math.PI * 2 };
+  return g;
+}
+const seahorses = [];
+const seahorseCount = 3;
+for (let i = 0; i < seahorseCount; i++) {
+  const s = buildSeahorse();
+  s.position.set(i === 0 ? -3.5 : i === 1 ? 6.5 : -1, -8 - i * 1.2, -8 - i * 3);
+  s.scale.setScalar(0.9 + i * 0.15);
+  s.rotation.y = (i - 1) * 0.5;
+  s.userData.basePos.copy(s.position);
+  scene.add(s);
+  seahorses.push(s);
+}
 
 // ---------------------------------------------------------------------------
 // 14. MARINE SNOW — drifting particles
@@ -1061,33 +1300,96 @@ scene.add(dataStreams);
 // 15. SCROLL-DRIVEN CAMERA PATH
 // ---------------------------------------------------------------------------
 const cameraWaypoints = [
-  { p: 0.00, cam: { x:  0, y:  4, z: 28 }, look: { x: 0, y:  0, z:  0 } },
-  { p: 0.18, cam: { x:  4, y:  0, z: 24 }, look: { x: 0, y:  0, z:  0 } },
-  { p: 0.32, cam: { x: -6, y: -2, z: 22 }, look: { x: 0, y: -2, z: -5 } },
-  { p: 0.48, cam: { x:  8, y: -4, z: 24 }, look: { x: 0, y: -4, z:  0 } },
-  { p: 0.64, cam: { x:  0, y: -6, z: 26 }, look: { x: 0, y: -6, z:  0 } },
-  { p: 0.78, cam: { x: -4, y: -9, z: 22 }, look: { x: 0, y: -10, z: -4 } },
-  { p: 0.90, cam: { x:  6, y: -2, z: 28 }, look: { x: 0, y: -2, z:  0 } },
-  { p: 1.00, cam: { x:  0, y:  4, z: 30 }, look: { x: 0, y:  0, z:  0 } },
+  // 0 — HERO: wide surface shot, main jellyfish visible ahead
+  { p: 0.00, cam: { x:  1, y:  4, z: 28 }, look: { x: 2,  y:  1.5, z: 12 } },    // look at hero jellyfish
+  // 1 — SECOND JELLYFISH: move left, floating above
+  { p: 0.14, cam: { x: -6, y:  2, z: 20 }, look: { x: -5, y:  2.5, z: 16 } },   // visit jellyfish #2 (-5, 2.5, 16)
+  // 2 — KELP CORRIDOR: weave between the staggered rows
+  { p: 0.30, cam: { x:  2, y: -2, z: 16 }, look: { x:  3, y: -4, z: -4 } },
+  // 3 — FISH SCHOOL: push through the open water where fish swim
+  { p: 0.46, cam: { x: -4, y: -4, z: 18 }, look: { x:  0, y: -4, z: -6 } },
+  // 4 — CORAL GARDEN: dive low to visit the colorful corals
+  { p: 0.62, cam: { x:  3, y: -8, z: 14 }, look: { x:  0, y: -11, z: -7 } },    // corals at z -6..-17
+  // 5 — MAIN JELLYFISH: rise to face the hero again up close
+  { p: 0.78, cam: { x: -4, y: -5, z: 21 }, look: { x:  2, y:  1.5, z: 12 } },   // hero jellyfish at (2,1.5,12)
+  // 6 — WHALE: pan to the giant gliding in the background
+  { p: 0.90, cam: { x:  6, y: -1, z: 24 }, look: { x: -10, y: -4, z: -18 } },   // whale
+  // 7 — RETURN: sweep back to the surface finale
+  { p: 1.00, cam: { x:  0, y:  4, z: 30 }, look: { x:  0, y:  0, z:  0 } },
 ];
-const _tmpA = new THREE.Vector3();
-const _tmpB = new THREE.Vector3();
-function lerpWaypoint(p) {
+
+// Build CatmullRom splines from the waypoints for buttery-smooth cinematic motion
+const camPath = new THREE.CatmullRomCurve3(
+  cameraWaypoints.map(w => new THREE.Vector3(w.cam.x, w.cam.y, w.cam.z)),
+  false, 'centripetal', 0.5
+);
+const lookPath = new THREE.CatmullRomCurve3(
+  cameraWaypoints.map(w => new THREE.Vector3(w.look.x, w.look.y, w.look.z)),
+  false, 'centripetal', 0.5
+);
+
+// Hoisted allocations — zero garbage per frame
+const _camT = new THREE.Vector3();
+const _lookT = new THREE.Vector3();
+const _aheadT = new THREE.Vector3();
+const _sideT = new THREE.Vector3();
+const _upT = new THREE.Vector3();
+const _fwdT = new THREE.Vector3();
+
+// Camera state
+let cameraRoll = 0;
+let currentFov = camera.fov;
+let prevScrollP = 0;
+let scrollVel = 0;
+
+function lerpWaypoint(p, dt, elapsed) {
   p = Math.max(0, Math.min(1, p));
-  let i = 0;
-  while (i < cameraWaypoints.length - 1 && cameraWaypoints[i + 1].p < p) i++;
-  const a = cameraWaypoints[i];
-  const b = cameraWaypoints[Math.min(i + 1, cameraWaypoints.length - 1)];
-  const range = b.p - a.p || 1;
-  const t = (p - a.p) / range;
-  const e = t * t * (3 - 2 * t);
-  _tmpA.set(a.cam.x, a.cam.y, a.cam.z).lerp(
-    _tmpB.set(b.cam.x, b.cam.y, b.cam.z), e
-  );
-  camera.position.copy(_tmpA);
-  const la = new THREE.Vector3(a.look.x, a.look.y, a.look.z);
-  const lb = new THREE.Vector3(b.look.x, b.look.y, b.look.z);
-  camera.lookAt(la.lerp(lb, e));
+
+  // Track scroll velocity (for FOV + exposure drama)
+  scrollVel += ((p - prevScrollP) / Math.max(dt, 0.001) - scrollVel) * 0.06;
+  prevScrollP = p;
+
+  // Snap-zoom at section boundaries — brief FOV push (every 12.5% of scroll)
+  const sectionPhase = (p * 8) % 1;
+  const snapZoom = Math.exp(-Math.pow((sectionPhase - 0.02) * 14, 2)) * 4;
+  const targetFov = 55 + Math.abs(scrollVel) * 8 + snapZoom;
+  currentFov += (targetFov - currentFov) * 0.05;
+  if (Math.abs(currentFov - camera.fov) > 0.05) {
+    camera.fov = currentFov;
+    camera.updateProjectionMatrix();
+  }
+
+  // Spline position + look-at
+  camPath.getPoint(p, _camT);
+  lookPath.getPoint(p, _lookT);
+
+  // Organic underwater micro-drift — always a little alive
+  if (!prefersReducedMotion) {
+    _camT.x += Math.sin(elapsed * 0.4) * 0.12;
+    _camT.y += Math.sin(elapsed * 0.55) * 0.08;
+    _camT.z += Math.cos(elapsed * 0.45) * 0.10;
+  }
+
+  camera.position.copy(_camT);
+
+  // Depth-dependent mouse parallax (fades as we dive deeper)
+  if (!prefersReducedMotion) {
+    const depthScale = 0.3 + (1 - p) * 0.5;
+    camera.position.x += Scene.mouse.x * 0.6 * depthScale;
+    camera.position.y += Scene.mouse.y * 0.35 * depthScale;
+  }
+
+  camera.lookAt(_lookT);
+
+  // Banking: sample slightly ahead, compute lateral velocity, roll into turns
+  camPath.getPoint(Math.min(p + 0.015, 1), _aheadT);
+  _sideT.subVectors(_aheadT, _camT).normalize();
+  _upT.set(0, 1, 0);
+  _sideT.cross(_upT).normalize();
+  const lateralVel = _sideT.dot(_fwdT.subVectors(_aheadT, _camT).normalize());
+  const targetRoll = -lateralVel * 1.4 + scrollVel * 0.02;
+  cameraRoll += (targetRoll - cameraRoll) * 0.08;
+  camera.rotation.z += cameraRoll;
 }
 
 // ---------------------------------------------------------------------------
@@ -1097,9 +1399,24 @@ const clock = new THREE.Clock();
 let elapsed = 0;
 const dummy = new THREE.Object3D();
 const _camPos = new THREE.Vector3();
+const frustum = new THREE.Frustum();
+const projView = new THREE.Matrix4();
+const _sphere = new THREE.Sphere();
+const _vec = new THREE.Vector3();
+
+// Frustum check: is this object's center inside the camera's view?
+function isVisible(obj) {
+  projView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  frustum.setFromProjectionMatrix(projView);
+  _sphere.center.setFromMatrixPosition(obj.matrixWorld);
+  _sphere.radius = 2;
+  return frustum.intersectsSphere(_sphere);
+}
 
 function animate() {
   requestAnimationFrame(animate);
+  if (document.hidden) return; // zero GPU cost when tab hidden
+  monitorFps();
   const dt = Math.min(clock.getDelta(), 0.1);
   elapsed += dt;
   fishAnimTime += dt;
@@ -1108,12 +1425,12 @@ function animate() {
   Scene.mouse.x += (Scene.mouse.tx - Scene.mouse.x) * 0.04;
   Scene.mouse.y += (Scene.mouse.ty - Scene.mouse.y) * 0.04;
 
-  // Camera path
-  lerpWaypoint(Scene.scrollProgress);
-  if (!prefersReducedMotion) {
-    camera.position.x += Scene.mouse.x * 0.6;
-    camera.position.y += Scene.mouse.y * 0.3;
-  }
+  // Camera path — cinematic spline with banking, FOV, parallax, drift
+  lerpWaypoint(Scene.scrollProgress, dt, elapsed);
+
+  // Scroll-velocity atmosphere: faster scroll = slightly brighter (subliminal speed feel)
+  renderer.toneMappingExposure += (0.95 + Math.abs(scrollVel) * 0.2 - renderer.toneMappingExposure) * 0.06;
+  scrollVel *= 0.92;
   // Update water uniform with current camera position (for fresnel)
   camera.getWorldPosition(_camPos);
   waterMat.uniforms.uCameraPos.value.copy(_camPos);
@@ -1148,6 +1465,11 @@ function animate() {
       const z = f.center.z + Math.sin(t) * f.radius;
       const y = f.center.y + Math.sin(t * 1.3) * f.bobAmp;
       f.mesh.position.set(x, y, z);
+
+      // Frustum cull — skip math for fish outside the camera view
+      f.mesh.visible = isVisible(f.mesh);
+      if (!f.mesh.visible) return;
+
       // Face direction of motion
       const tangX = -Math.sin(t) * f.radius * f.speed;
       const tangZ =  Math.cos(t) * f.radius * f.speed;
@@ -1158,6 +1480,43 @@ function animate() {
       f.mesh.rotation.z = f.tilt + Math.sin(elapsed * f.wagSpeed * 0.5 + f.wagPhase) * 0.08;
     });
   }
+
+  // Sea turtles — graceful circular glides with flipper flaps
+  turtles.forEach((t, idx) => {
+    const ud = t.userData;
+    const a = elapsed * 0.12 + ud.phase;
+    t.position.x = ud.basePos.x + Math.sin(a) * 4;
+    t.position.z = ud.basePos.z + Math.cos(a) * 4;
+    t.position.y = ud.basePos.y + Math.sin(a * 1.4) * 0.5;
+    t.rotation.y = -a + Math.PI / 2;
+    ud.flippers.forEach((f, fi) => {
+      f.rotation.z = (fi % 2 === 0 ? 1 : -1) * (0.5 + Math.sin(elapsed * 2.2 + ud.phase + fi) * 0.35);
+    });
+  });
+
+  // Manta ray — majestic elliptical glide, banking into turns
+  const ma = elapsed * 0.09 + manta.userData.phase;
+  manta.position.x = Math.cos(ma) * 9;
+  manta.position.z = manta.userData.basePos.z + Math.sin(ma) * 6;
+  manta.position.y = manta.userData.basePos.y + Math.sin(ma * 1.8) * 0.6;
+  manta.rotation.y = -ma;
+  manta.rotation.z = 0.15 * Math.sin(ma * 2);  // banking
+
+  // Whale — slow deliberate crossing with tail sway and spout-less dive
+  const wd = whale.userData;
+  whale.position.x = whale.userData.basePos.x + Math.sin(elapsed * 0.05 + wd.phase) * 6;
+  whale.position.y = whale.userData.basePos.y + Math.sin(elapsed * 0.07 + wd.phase) * 0.8;
+  whale.rotation.z = Math.sin(elapsed * 0.05 + wd.phase) * 0.04;
+  wd.flukes.forEach((fl, fi) => {
+    fl.rotation.z = Math.PI / 2 + (fi % 2 === 0 ? 0.4 : -0.4) + Math.sin(elapsed * 2.4 + wd.phase) * 0.15;
+  });
+
+  // Seahorses — gentle bobbing anchored to their spots
+  seahorses.forEach((s, si) => {
+    const sd = s.userData;
+    s.position.y = sd.basePos.y + Math.sin(elapsed * 1.3 + sd.phase) * 0.15;
+    s.rotation.z = Math.sin(elapsed * 0.8 + sd.phase) * 0.06;
+  });
 
   // Bubbles — rise, wobble, glass material reflects env
   bubbles.data.forEach((b, i) => {
@@ -1182,13 +1541,14 @@ function animate() {
     m.userData.mat.uniforms.uTime.value = elapsed;
   });
 
-  // Marine snow
-  // Marine snow + plankton + data streams
-  marineSnow.material.uniforms.uTime.value = elapsed;
-  plankton.material.uniforms.uTime.value = elapsed;
-  dataStreams.children.forEach((p) => {
-    p.userData.mat.uniforms.uTime.value = elapsed;
-  });
+  // Marine snow + plankton + data streams (throttled every other frame — same look, half the CPU)
+  if (frameCount % 2 === 0) {
+    marineSnow.material.uniforms.uTime.value = elapsed;
+    plankton.material.uniforms.uTime.value = elapsed;
+    dataStreams.children.forEach((p) => {
+      p.userData.mat.uniforms.uTime.value = elapsed;
+    });
+  }
 
   // Caustics scroll
   causticTex.offset.x = (elapsed * 0.02) % 1;
@@ -1208,7 +1568,7 @@ function onResize() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   renderer.setSize(w, h, false);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, CONFIG.pixelRatioCap));
+  renderer.setPixelRatio(adaptivePixelRatio);
 }
 window.addEventListener('resize', onResize);
 

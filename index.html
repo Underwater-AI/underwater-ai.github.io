@@ -42,7 +42,7 @@
   </noscript>
 
   <!-- Local stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=3.1">
+  <link rel="stylesheet" href="css/style.css?v=4.0">
 
   <!-- Inline anti-flash for saved theme -->
   <script>
@@ -65,7 +65,7 @@
   <noscript>
     <style>
       .curtain { display: none !important; }
-      .hero__title-line > span { transform: none !important; animation: none !important; opacity: 1 !important; }
+      .hero__title-line > span, .hero__title-line .char { transform: none !important; animation: none !important; opacity: 1 !important; }
       .hero__subtitle, .hero__cta, .scroll-cue { opacity: 1 !important; transform: none !important; animation: none !important; }
       .reveal, .reveal-stagger > * { opacity: 1 !important; transform: none !important; }
       #scene-canvas { display: none !important; }
@@ -433,17 +433,25 @@
 
         <div class="reveal" style="display:flex;justify-content:center">
           <div class="compare__stage" data-compare="hero" role="region" aria-label="Before-after image comparison">
-            <img class="compare__img compare__img--before"
-                 src="test_images/underwater_test.jpg"
-                 alt="Original unprocessed underwater photograph — murky and colour-shifted"
-                 width="1600" height="900"
-                 fetchpriority="high" decoding="async">
-            <img class="compare__img compare__img--after"
-                 src="output_images/realesr_general_4x_output.png"
-                 alt="AI-enhanced underwater image — Enhancement Model A output"
-                 data-after
-                 width="1600" height="900"
-                 loading="lazy" decoding="async">
+            <picture>
+              <source srcset="test_images/underwater_test.avif" type="image/avif">
+              <source srcset="test_images/underwater_test.webp" type="image/webp">
+              <img class="compare__img compare__img--before"
+                   src="test_images/underwater_test.jpg"
+                   alt="Original unprocessed underwater photograph — murky and colour-shifted"
+                   width="1600" height="900"
+                   fetchpriority="high" decoding="async">
+            </picture>
+            <picture>
+              <source srcset="output_images/realesr_general_4x_output.avif" type="image/avif">
+              <source srcset="output_images/realesr_general_4x_output.webp" type="image/webp">
+              <img class="compare__img compare__img--after"
+                   src="output_images/realesr_general_4x_output.png"
+                   alt="AI-enhanced underwater image — Enhancement Model A output"
+                   data-after
+                   width="1600" height="900"
+                   loading="lazy" decoding="async">
+            </picture>
             <span class="compare__label compare__label--left" data-label-enhanced>MODEL A ENHANCED</span>
             <span class="compare__label compare__label--right">ORIGINAL</span>
             <div class="compare__divider" data-divider></div>
@@ -500,9 +508,13 @@
           <article class="model-card" data-tilt>
             <span class="model-card__tag">Model A</span>
             <div class="model-card__media">
-              <img src="output_images/realesr_general_4x_output.png"
-                   alt="Enhancement Model A: AI-enhanced underwater image showing improved detail and clarity"
-                   width="1280" height="853" loading="lazy" decoding="async">
+              <picture>
+                <source srcset="output_images/realesr_general_4x_output.avif" type="image/avif">
+                <source srcset="output_images/realesr_general_4x_output.webp" type="image/webp">
+                <img src="output_images/realesr_general_4x_output.png"
+                     alt="Enhancement Model A: AI-enhanced underwater image showing improved detail and clarity"
+                     width="1280" height="853" loading="lazy" decoding="async">
+              </picture>
             </div>
             <h3 class="model-card__title">Enhancement Model A</h3>
             <p class="model-card__desc">
@@ -539,9 +551,13 @@
           <article class="model-card" data-tilt>
             <span class="model-card__tag" style="color:var(--c-teal-300);border-color:rgba(45,212,191,0.25)">Model B</span>
             <div class="model-card__media">
-              <img src="output_images/purephoto_span_4x_output.png"
-                   alt="Enhancement Model B: AI-enhanced underwater image with photorealistic colour fidelity"
-                   width="1280" height="853" loading="lazy" decoding="async">
+              <picture>
+                <source srcset="output_images/purephoto_span_4x_output.avif" type="image/avif">
+                <source srcset="output_images/purephoto_span_4x_output.webp" type="image/webp">
+                <img src="output_images/purephoto_span_4x_output.png"
+                     alt="Enhancement Model B: AI-enhanced underwater image with photorealistic colour fidelity"
+                     width="1280" height="853" loading="lazy" decoding="async">
+              </picture>
             </div>
             <h3 class="model-card__title">Enhancement Model B</h3>
             <p class="model-card__desc">
@@ -580,7 +596,11 @@
           <h3 class="compare-strip__title">Side-by-side <em>comparison</em></h3>
           <div class="compare-strip__grid">
             <figure class="strip-card">
-              <img src="test_images/underwater_test.jpg" alt="Original unprocessed underwater input image" width="320" height="213" loading="lazy" decoding="async">
+              <picture>
+                <source srcset="test_images/underwater_test.avif" type="image/avif">
+                <source srcset="test_images/underwater_test.webp" type="image/webp">
+                <img src="test_images/underwater_test.jpg" alt="Original unprocessed underwater input image" width="320" height="213" loading="lazy" decoding="async">
+              </picture>
               <figcaption class="strip-card__cap">
                 <div>
                   <div class="strip-card__name">Original</div>
@@ -589,7 +609,11 @@
               </figcaption>
             </figure>
             <figure class="strip-card" style="border-color:rgba(0,180,216,0.4)">
-              <img src="output_images/realesr_general_4x_output.png" alt="Enhancement Model A output" width="1280" height="853" loading="lazy" decoding="async">
+              <picture>
+                <source srcset="output_images/realesr_general_4x_output.avif" type="image/avif">
+                <source srcset="output_images/realesr_general_4x_output.webp" type="image/webp">
+                <img src="output_images/realesr_general_4x_output.png" alt="Enhancement Model A output" width="1280" height="853" loading="lazy" decoding="async">
+              </picture>
               <figcaption class="strip-card__cap">
                 <div>
                   <div class="strip-card__name"><em>Model A</em> Output</div>
@@ -598,7 +622,11 @@
               </figcaption>
             </figure>
             <figure class="strip-card" style="border-color:rgba(45,212,191,0.4)">
-              <img src="output_images/purephoto_span_4x_output.png" alt="Enhancement Model B output" width="1280" height="853" loading="lazy" decoding="async">
+              <picture>
+                <source srcset="output_images/purephoto_span_4x_output.avif" type="image/avif">
+                <source srcset="output_images/purephoto_span_4x_output.webp" type="image/webp">
+                <img src="output_images/purephoto_span_4x_output.png" alt="Enhancement Model B output" width="1280" height="853" loading="lazy" decoding="async">
+              </picture>
               <figcaption class="strip-card__cap">
                 <div>
                   <div class="strip-card__name" style="color:var(--c-teal-300)"><em style="color:var(--c-teal-300)">Model B</em> Output</div>
@@ -772,10 +800,13 @@
 
         <div class="detection__grid">
           <div class="detection__visual reveal" data-tilt>
-            <img src="https://images.unsplash.com/photo-1582967788606-a171c1080cb0?auto=format&fit=crop&w=1400&q=80"
-                 alt="Underwater reef scene used to demonstrate AI detection"
-                 width="1400" height="1050" loading="lazy" decoding="async"
-                 onerror="this.onerror=null;this.src='output_images/realesr_general_4x_output.png';">
+            <picture>
+              <source srcset="output_images/realesr_general_4x_output.avif" type="image/avif">
+              <source srcset="output_images/realesr_general_4x_output.webp" type="image/webp">
+              <img src="output_images/realesr_general_4x_output.png"
+                   alt="Underwater reef scene used to demonstrate AI detection"
+                   width="1400" height="1050" loading="lazy" decoding="async">
+            </picture>
             <div class="detection__scan" aria-hidden="true"></div>
             <div class="detection__overlay">
               <div class="detection__overlay-title">● Live Detection</div>
@@ -1198,12 +1229,12 @@
   <!-- ====================================================================== -->
   <!-- APP SCRIPTS (deferred, after libs) — ?v=3.1 busts caches                -->
   <!-- ====================================================================== -->
-  <script type="module" src="js/scene-3d.js?v=3.1"></script>
-  <script defer src="js/scroll.js?v=3.1"></script>
-  <script defer src="js/cursor.js?v=3.1"></script>
-  <script defer src="js/ui.js?v=3.1"></script>
-  <script defer src="js/anime.js?v=3.1"></script>
-  <script defer src="js/main.js?v=3.1"></script>
+  <script type="module" src="js/scene-3d.js?v=4.0"></script>
+  <script defer src="js/scroll.js?v=4.0"></script>
+  <script defer src="js/cursor.js?v=4.0"></script>
+  <script defer src="js/ui.js?v=4.0"></script>
+  <script defer src="js/anime.js?v=4.0"></script>
+  <script defer src="js/main.js?v=4.0"></script>
 
 </body>
 </html>

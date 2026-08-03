@@ -4,3 +4,8 @@
 # Logs
 underwater_ai_log.txt
 *.log
+
+# Environment variables — never commit API keys
+.env
+.env.*
+!.env.example

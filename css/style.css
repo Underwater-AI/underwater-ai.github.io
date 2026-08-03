@@ -627,17 +627,11 @@ p { text-wrap: pretty; }
 
 .hero__title-line > span {
   display: inline-block;
-  transform: translateY(110%);
-  animation: hero-rise 1.2s var(--ease-out-expo) forwards;
 }
 
 .hero__title-line:nth-child(1) > span { animation-delay: 0.05s; }
 .hero__title-line:nth-child(2) > span { animation-delay: 0.20s; }
 .hero__title-line:nth-child(3) > span { animation-delay: 0.35s; }
-
-@keyframes hero-rise {
-  to { transform: translateY(0); }
-}
 
 .hero__title em {
   font-style: normal;
@@ -2357,6 +2351,21 @@ p { text-wrap: pretty; }
   transform: translateY(0) rotateX(0);
 }
 
+/* Hero title chars — animate in on load (hero has no .reveal ancestor) */
+.hero__title-line > span .char {
+  opacity: 0;
+  transform: translateY(0.6em) rotateX(-40deg);
+  animation: hero-char-in 0.7s var(--ease-out-expo) forwards;
+  animation-delay: calc(0.1s + var(--i, 0) * 25ms);
+}
+
+@keyframes hero-char-in {
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(0);
+  }
+}
+
 .section-title__sub {
   color: var(--t-secondary);
   font-size: var(--fs-body-lg);
@@ -2688,7 +2697,7 @@ html.light-mode .skip-link { background: var(--t-primary); color: white; }
 
   .reveal, .reveal-stagger > * { opacity: 1; transform: none; }
 
-  .hero__title-line > span { transform: none; animation: none; }
+  .hero__title-line > span, .hero__title-line .char { transform: none; animation: none; opacity: 1; }
   .hero__subtitle, .hero__cta, .scroll-cue { opacity: 1; transform: none; animation: none; }
 
   #scene-canvas, .scene-grain { display: none; }

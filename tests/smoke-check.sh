@@ -51,10 +51,12 @@ check('WebGL context', await page.evaluate(() => {
   return gl && !gl.isContextLost();
 }));
 check('Scene ready', await page.evaluate(() => window.UnderwaterScene?.isReady === true));
-check('Model loader', await page.evaluate(() => window.UnderwaterModelLoader?.total === 8));
-await page.waitForTimeout(8000);
-const loaded = await page.evaluate(() => window.UnderwaterModelLoader?.loaded || 0);
-check('8/8 models loaded', loaded === 8, `${loaded}/8`);
+check('Camera exists', await page.evaluate(() => window.UnderwaterScene?.camera instanceof Object));
+await page.waitForTimeout(3000);
+const drawCalls = await page.evaluate(() => window.UnderwaterScene?.renderer?.info?.render?.calls || 0);
+check('Scene renders (<300 draw calls)', drawCalls > 0 && drawCalls < 300, `${drawCalls} calls`);
+const triCount = await page.evaluate(() => window.UnderwaterScene?.renderer?.info?.render?.triangles || 0);
+check('Triangle budget (<1M)', triCount > 0 && triCount < 1000000, `${triCount} tris`);
 
 console.log('\n═══ SECTIONS ═══');
 for (const id of ['hero','about','compare','models','technology','detection','tourism','customers','team']) {

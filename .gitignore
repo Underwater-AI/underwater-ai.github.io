@@ -1,5 +1,6 @@
 # Editor
 .vscode/
+.commandcode/
 
 # Logs
 underwater_ai_log.txt
@@ -9,3 +10,6 @@ underwater_ai_log.txt
 .env
 .env.*
 !.env.example
+
+# Large 3D assets — site is fully procedural now (kept local, not pushed)
+assets/3d/*.glb

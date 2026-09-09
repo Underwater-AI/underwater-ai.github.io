@@ -1058,6 +1058,9 @@ p { text-wrap: pretty; }
 .hotspot__label {
   position: absolute; left: 22px; top: -10px;
   display: grid; gap: 0.18rem;
+  /* The containing block here is the 11px marker, so shrink-to-fit would
+     collapse the label to its longest word. Size to content, then cap. */
+  width: max-content;
   white-space: nowrap;
   font-family: var(--font-mono); font-size: var(--fs-mono);
   letter-spacing: 0.13em; text-transform: uppercase;
@@ -1532,7 +1535,20 @@ p { text-wrap: pretty; }
   .cockpit-run { min-height: 165svh; }
   .cockpit-run--short { min-height: 128svh; }
   .cockpit-run--reveal { min-height: 195svh; }
+  .cockpit-run--orbit { min-height: 230svh; }
   .recon-scroll { min-height: 135svh; }
+  /* A callout is a much larger share of a phone frame, so it wraps and is
+     capped rather than running off the edge. */
+  .hotspot__label {
+    width: max-content;
+    max-width: min(56vw, 13rem);
+    white-space: normal;
+    padding: 0.4rem 0.55rem;
+    left: 16px;
+  }
+  .hotspot--flip .hotspot__label { right: 16px; }
+  .hotspot__label::before { width: 14px; left: -16px; }
+  .hotspot--flip .hotspot__label::before { right: -16px; left: auto; }
   .hero { padding-block: calc(var(--nav-h) + 2.5rem) 7rem; }
   .footer { margin-top: var(--gap-lg); }
 }

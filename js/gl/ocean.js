@@ -398,6 +398,7 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
   let dive = 0, targetDive = 0;        // 0..1 = back in through the dome port
   const roverProps = [];
   const roverParts = new Map();
+  const labelSize = new WeakMap();   // hotspot label -> measured box
 
   /* The orbit begins exactly where the pull-back ended, so the two moves read
      as one continuous camera rather than a cut. */
@@ -475,6 +476,31 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
       const h = innerHeight;
       const placed = [];
 
+      /* The instrument panel owns its corner of the screen. A callout laid
+         over the copy is the same text/UI collision the detector avoids, so
+         markers inside the panel are simply not drawn. */
+      const blocks = [];
+      for (const d of document.querySelectorAll('.dock')) {
+        const r = d.getBoundingClientRect();
+        if (r.width > 8 && r.bottom > 0 && r.top < h) blocks.push(r);
+      }
+      /* Test the label's own box, not just the marker: the label extends well
+         to one side, and it is the part that would actually sit on the copy. */
+      const overlapsPanel = (el, x, y, flip) => {
+        const lbl = el.querySelector('.hotspot__label');
+        if (!labelSize.has(lbl)) {
+          const w2 = lbl.offsetWidth || 180;
+          const h2 = lbl.offsetHeight || 44;
+          if (w2) labelSize.set(lbl, { w: w2, h: h2 });
+        }
+        const size = labelSize.get(lbl) ?? { w: 180, h: 44 };
+        const left = flip ? x - 22 - size.w : x + 22;
+        const top = y - 10;
+        return blocks.some((r) =>
+          left < r.right + 8 && left + size.w > r.left - 8 &&
+          top < r.bottom + 8 && top + size.h > r.top - 8);
+      };
+
       /* Each part is called out at the point in the turn where it faces the
          camera, one at a time. Showing all seven at once collapses into a
          stacked list that annotates nothing; showing one gives it a moment. */
@@ -499,10 +525,13 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
           && x > w * 0.06 && x < w * 0.94
           && y > h * 0.12 && y < h * 0.86;
 
-        el.classList.toggle('is-on', onScreen);
-        if (!onScreen) continue;
-
-        el.classList.toggle('hotspot--flip', x > w * 0.58);
+        // Flip earlier on narrow screens, where a label is a bigger share of
+        // the frame and would otherwise run off the edge.
+        const flip = x > w * (w < 700 ? 0.46 : 0.58);
+        const visible = onScreen && !overlapsPanel(el, x, y, flip);
+        el.classList.toggle('is-on', visible);
+        if (!visible) continue;
+        el.classList.toggle('hotspot--flip', flip);
         // Plateau rather than a peak: a label is fully legible for most of its
         // window and only fades at the very edges, so it never reads as dim.
         const cue = Math.min(1, (1 - d / WINDOW) / 0.35);
@@ -590,6 +619,10 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
 
       // Aim shifts from "where the pilot was looking" to the vehicle itself.
       _look.lerpVectors(_l, _rov, Math.max(reveal, orbit, dive));
+      /* On a phone the instrument panel owns the lower half of the screen, so
+         aim lower and let the subject sit in the upper half rather than behind
+         the copy. */
+      if (innerWidth < 700) _look.y -= 1.7 * Math.max(reveal, orbit) * (1 - dive);
       camera.lookAt(_look);
       // Narrow the lens on the way in, the way a camera pushing in behaves.
       const fov = 58 - dive * 16;

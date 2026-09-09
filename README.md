@@ -66,9 +66,14 @@ no longer matches what the generator produces.
 npm install
 npm run serve      # http://localhost:4173
 npm test           # full end-to-end suite (starts its own server)
-npm run test:live  # the same suite, against production
+npm run test:live  # smoke the production deployment
 npm run build:rov  # regenerate the ABYSS-1 model and its exports
 ```
+
+`SMOKE=1` trims the run to "is the deployed thing actually working" — the story
+beats, every asset, and layout at two widths. The full matrix, both themes and
+the contrast audit already ran against that same code before it shipped, so
+repeating them against production only proves the network works.
 
 Two capture tools are included for looking at changes rather than asserting on
 them — both write PNGs to `/tmp/uw-shots`:

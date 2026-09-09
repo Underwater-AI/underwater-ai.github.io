@@ -10,6 +10,10 @@
 import * as THREE from 'three';
 
 const rand = (a, b) => a + Math.random() * (b - a);
+
+/* Reduced motion: the animals keep swimming, because a still reef reads as a
+   broken page rather than a calm one — but they do it slowly. */
+const MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0.25 : 1;
 const TAU = Math.PI * 2;
 
 /** Build a BufferGeometry from a parametric surface fn(u, v, out). */
@@ -610,7 +614,9 @@ export function createCreatures(scene, { low = false } = {}) {
   return {
     members,
     targets: members,
-    update(t, dt) {
+    update(rawT, rawDt) {
+      const t = rawT * MOTION;
+      const dt = rawDt * MOTION;
       for (const g of members) {
         const u = g.userData;
 

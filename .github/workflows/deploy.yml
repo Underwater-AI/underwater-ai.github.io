@@ -101,7 +101,7 @@ jobs:
     name: Verify live site
     needs: deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -118,7 +118,11 @@ jobs:
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
 
-      - name: Run the suite against production
+      # Smoke mode: the layout matrix, both themes and the contrast audit
+      # already ran against this exact code before it shipped. What matters
+      # here is that the deployed origin serves it all and the story plays.
+      - name: Smoke the production deployment
         env:
           BASE_URL: https://underwaterai.org/
+          SMOKE: '1'
         run: node tests/site.spec.mjs

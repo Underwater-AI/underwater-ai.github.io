@@ -7,10 +7,11 @@
   "scripts": {
     "serve": "node tools/serve.mjs",
     "test": "node tools/run-tests.mjs",
-    "test:live": "BASE_URL=https://underwaterai.org/ node tests/site.spec.mjs",
+    "test:live": "SMOKE=1 BASE_URL=https://underwaterai.org/ node tests/site.spec.mjs",
     "build:rov": "node tools/build-rov.mjs",
     "tour": "node tools/tour.mjs",
-    "shot": "node tools/shot.mjs"
+    "shot": "node tools/shot.mjs",
+    "test:live:full": "BASE_URL=https://underwaterai.org/ node tests/site.spec.mjs"
   },
   "devDependencies": {
     "@chenglou/pretext": "^0.0.9",

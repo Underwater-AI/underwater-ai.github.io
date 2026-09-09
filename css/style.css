@@ -944,10 +944,18 @@ p { text-wrap: pretty; }
     linear-gradient(180deg, rgb(var(--bg-rgb) / 0.7) 0%, transparent 26%);
 }
 @media (max-width: 48rem) {
+  /* Lighter than the desktop scrim, and weighted to the copy rather than flat:
+     at 90% opacity the reef behind the hero may as well not be rendered. */
   .hero::before {
-    background: linear-gradient(180deg,
-      rgb(var(--bg-rgb) / 0.86) 0%, rgb(var(--bg-rgb) / 0.9) 55%, rgb(var(--bg-rgb) / 0.7) 100%);
+    background:
+      linear-gradient(180deg,
+        rgb(var(--bg-rgb) / 0.55) 0%, rgb(var(--bg-rgb) / 0.86) 34%,
+        rgb(var(--bg-rgb) / 0.88) 72%, rgb(var(--bg-rgb) / 0.5) 100%),
+      radial-gradient(ellipse 120% 45% at 50% 46%, rgb(var(--bg-rgb) / 0.5), transparent 70%);
   }
+  /* The full badge does not fit a phone; the qualifier goes rather than being
+     ellipsed mid-word. */
+  .hero__badge-more { display: none; }
 }
 .hero__badge {
   display: inline-flex; align-items: center; gap: 0.55rem;

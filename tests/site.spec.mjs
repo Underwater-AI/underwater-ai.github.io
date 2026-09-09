@@ -13,13 +13,26 @@ import { chromium } from 'playwright';
 const BASE = process.env.BASE_URL || 'http://localhost:4173/';
 const HEADFUL = process.env.HEADFUL === '1';
 
-const VIEWPORTS = [
+/**
+ * SMOKE=1 trims the run to "is the deployed thing actually working".
+ *
+ * The full layout matrix, both themes and the contrast audit all run against
+ * the exact same code before it ships, so re-running them against production
+ * only proves the network works. What is worth re-checking after a deploy is
+ * that every asset resolves from the real origin and the story still plays.
+ */
+const SMOKE = process.env.SMOKE === '1';
+
+const ALL_VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'laptop', width: 1180, height: 820 },
   { name: 'tablet', width: 834, height: 1112 },
   { name: 'phone', width: 390, height: 844 },
   { name: 'phone-sm', width: 320, height: 690 },
 ];
+const VIEWPORTS = SMOKE
+  ? [ALL_VIEWPORTS[0], ALL_VIEWPORTS[3]]
+  : ALL_VIEWPORTS;
 
 const SECTIONS = [
   'descent', 'murk', 'enhance', 'identify', 'reveal',
@@ -113,13 +126,24 @@ async function useNativeScroll(page) {
  * land, then move on.
  */
 async function scrollToY(page, y) {
-  await page.evaluate((v) => window.scrollTo(0, v), y);
+  /* Clamp to the document inside the page, not out here. Its height changes as
+     sticky runways and late images settle, so a target computed a moment ago
+     can already sit past the end — and then the wait below could never be
+     satisfied and burned its whole timeout on every single sample. */
+  const landed = await page.evaluate((v) => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    const target = Math.max(0, Math.min(v, max));
+    window.scrollTo(0, target);
+    return target;
+  }, y);
+
   await page
     // Poll on a timer, not on rAF: frames are scarce in software rendering, so
-    // rAF polling adds half a second of latency to every single scroll.
-    .waitForFunction((v) => Math.abs(window.scrollY - v) < 2, y,
-      { timeout: 15000, polling: 120 })
-    .catch(() => { /* clamped at the document edge; carry on */ });
+    // rAF polling adds half a second of latency to every scroll.
+    .waitForFunction((v) => Math.abs(window.scrollY - v) < 3, landed,
+      { timeout: 6000, polling: 100 })
+    .catch(() => { /* close enough; carry on */ });
+
   await page.evaluate(() => window.ScrollTrigger?.update());
 }
 
@@ -369,7 +393,7 @@ try {
        where sticky panels and pinned runways tend to misbehave. */
     let worstOverflow = 0;
     const textProblems = [];
-    const SAMPLES = 14;
+    const SAMPLES = SMOKE ? 8 : 14;
 
     const maxY = await p.evaluate(() =>
       document.documentElement.scrollHeight - innerHeight);
@@ -390,6 +414,7 @@ try {
   }
 
   /* 9 — Themes and contrast --------------------------------------------- */
+  if (!SMOKE) {
   g('Theme and contrast');
   const th = await newPage(browser, { width: 1280, height: 900 });
   await boot(th);
@@ -421,6 +446,7 @@ try {
       txt.slice(0, 2).map((t) => `${t.tag}:"${t.text}"`).join(' | '));
   }
   await th.context().close();
+  }
 
   /* 10 — Reduced motion --------------------------------------------------- */
   g('Reduced motion');

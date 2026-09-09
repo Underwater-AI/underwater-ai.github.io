@@ -8,6 +8,12 @@
  */
 import * as THREE from 'three';
 import { createCreatures, buildReefFishGeometry } from './creatures.js';
+import { prefersReducedMotion } from './core.js';
+
+/* Readers who ask for reduced motion still get the story — the scroll still
+   drives the camera down the reef — but the ambient motion that happens
+   whether or not they are scrolling is damped hard. */
+const AMBIENT = prefersReducedMotion ? 0.12 : 1;
 
 /* Deterministic-enough value noise — good for terrain, cheap to evaluate. */
 function noise2(x, y) {
@@ -725,11 +731,11 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
       lastProgress = progress;
       surge += (speed - surge) * Math.min(1, dt * 1.5);
 
-      const breathe = Math.sin(t * 0.63) * 0.28 + Math.sin(t * 1.9) * 0.05;
-      const shake = surge * 0.09;
-      camera.position.x += (mouse.x * 1.5 + Math.sin(t * 0.42) * 0.35
+      const breathe = (Math.sin(t * 0.63) * 0.28 + Math.sin(t * 1.9) * 0.05) * AMBIENT;
+      const shake = surge * 0.09 * AMBIENT;
+      camera.position.x += (mouse.x * 1.5 * AMBIENT + Math.sin(t * 0.42) * 0.35 * AMBIENT
         + Math.sin(t * 5.1) * shake) * sway;
-      camera.position.y += (-mouse.y * 0.9 + breathe
+      camera.position.y += (-mouse.y * 0.9 * AMBIENT + breathe
         + Math.sin(t * 4.3) * shake) * sway;
 
       // Aim shifts from "where the pilot was looking" to the vehicle itself.
@@ -740,8 +746,8 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
       if (innerWidth < 700) _look.y -= 1.7 * Math.max(reveal, orbit) * (1 - dive);
       camera.lookAt(_look);
       // Roll into the direction of travel, plus a slow idle list.
-      camera.rotation.z += (Math.sin(t * 0.31) * 0.012 + mouse.x * 0.022
-        - _fwd.x * 0.035 * sway) * sway;
+      camera.rotation.z += (Math.sin(t * 0.31) * 0.012 * AMBIENT
+        + mouse.x * 0.022 * AMBIENT - _fwd.x * 0.035 * sway) * sway;
       // Narrow the lens on the way in, the way a camera pushing in behaves.
       const fov = 58 - dive * 16;
       if (Math.abs(camera.fov - fov) > 0.01) {

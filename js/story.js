@@ -198,192 +198,155 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
   }
 
   const st = (config) => ScrollTrigger.create(config);
-
-  /* ── Act 1: descent — still outside the vehicle ────────────────────────── */
-  st({
-    trigger: '#descent',
-    start: 'top top',
-    end: 'bottom top',
-    scrub: true,
-    onUpdate: (self) => {
-      dive = self.progress * 0.28;
-      ocean.setProgress(self.progress * 0.16);
-      stage.setMurk(lerp(0.58, 0.78, self.progress));
-      paintHUD();
-    },
-  });
-
-  /* You climb into the rover as the hero leaves the screen. */
-  st({
-    trigger: '#murk',
-    start: 'top 92%',
-    onEnter: () => cockpit?.classList.add('is-live'),
-    onLeaveBack: () => cockpit?.classList.remove('is-live'),
-  });
-
-  /* ── Act 2: the murk deepens ───────────────────────────────────────────── */
-  st({
-    trigger: '#murk',
-    start: 'top bottom',
-    end: 'bottom bottom',
-    scrub: true,
-    onUpdate: (self) => {
-      dive = 0.28 + self.progress * 0.5;
-      ocean.setProgress(0.16 + self.progress * 0.30);
-      stage.setMurk(lerp(0.78, 1.0, self.progress));
-      paintHUD();
-    },
-  });
-
-  /* ── Act 3: restoration — the wipe scrubs with the scroll ──────────────── */
-  st({
-    trigger: '#enhance',
-    start: 'top top',
-    end: 'bottom bottom',
-    scrub: true,   // Lenis already eases the scroll; double-smoothing only adds lag
-    onUpdate: (self) => {
-      const p = self.progress;
-      dive = 0.78 + p * 0.22;
-
-      // 0.00-0.16 hold · 0.16-0.74 sweep the wipe · then settle clear
-      const sweep = clamp01((p - 0.16) / 0.58);
-      restored = sweep;
-
-      if (sweep <= 0.001) {
-        stage.setWipe(-1);
-        stage.setMurk(1);
-        setAI('standby');
-      } else if (sweep < 0.999) {
-        stage.setWipe(1 - sweep);   // the edge travels right to left
-        stage.setMurk(1);
-        setAI('armed');
-      } else {
-        stage.setWipe(-1);
-        stage.setMurk(0);
-        setAI('active');
-      }
-
-      ocean.setProgress(0.46 + p * 0.40);
-      paintHUD();
-    },
-    onLeaveBack: () => { stage.setWipe(-1); stage.setMurk(1); restored = 0; setAI('standby'); },
-  });
-
-  /* ── Act 4: the detector locks on, one creature at a time ──────────────── */
-  st({
-    trigger: '#identify',
-    start: 'top bottom',
-    end: 'bottom bottom',
-    scrub: true,
-    onUpdate: (self) => {
-      stage.setWipe(-1);
-      stage.setMurk(0);
-      restored = 1;
-      setAI('active');
-
-      // Ramp in over the first two thirds, then hold every lock.
-      const engage = clamp01(self.progress / 0.66);
-      liveDetect?.setEngaged(engage);
-      showHits(Math.round(engage * hitRows.length));
-
-      // The camera almost holds here: identification needs a steady frame.
-      ocean.setProgress(0.86 + self.progress * 0.10);
-      ocean.setReveal(0);
-      paintHUD();
-    },
-    onLeaveBack: () => { liveDetect?.setEngaged(0); showHits(0); },
-  });
-
-  /* ── Act 5: the pull-back ──────────────────────────────────────────────
-     A cut is hidden inside a blink. The sensor readout coarsens, the lids
-     close, the camera leaves the pilot's eye while the frame is black, then
-     the lids open on a coarse third-person image that resolves. The viewer
-     never sees the seam — they just realise they were inside a machine. */
   const step = (v, a, b) => clamp01((v - a) / (b - a));
 
-  st({
-    trigger: '#reveal',
-    start: 'top bottom',
-    end: 'bottom bottom',
-    scrub: true,   // Lenis already eases the scroll; double-smoothing only adds lag
-    onUpdate: (self) => {
-      const p = self.progress;
-      stage.setMurk(0);
-      stage.setWipe(-1);
-      restored = 1;
+  /* ── One writer for the stage ───────────────────────────────────────────
+     Every chapter wants to set murk, pixelation, the iris and the camera. If
+     each one writes those directly, the result depends on the order
+     ScrollTrigger happens to fire its triggers in — which changes whenever the
+     document's height changes, and fails silently when it does.
+     So chapters only record their own progress here, and a single function
+     derives the whole stage from them. The current chapter is simply the last
+     one that has been entered, which is unambiguous however the triggers fire. */
+  const CHAPTERS = ['descent', 'murk', 'enhance', 'identify', 'reveal', 'vehicle', 'perception'];
+  const at = Object.fromEntries(CHAPTERS.map((c) => [c, 0]));
 
-      /* Timings are in trigger progress, where 0 is the section entering the
-         viewport bottom. The blink is held back until the chapter's panel is
-         actually on screen, so the reader is watching when it happens. */
+  function applyStage() {
+    let current = 'descent';
+    for (const c of CHAPTERS) if (at[c] > 0) current = c;
+    const p = at[current];
 
-      // 1. Readout coarsens, then resolves again on the far side of the blink.
-      const coarsen = step(p, 0.30, 0.46);
-      const resolve = step(p, 0.66, 0.88);
-      stage.setPixel(Math.max(0, coarsen - resolve));
+    let murkV = 1, wipeV = -1, pixelV = 0, irisV = 0;
+    let revealV = 0, orbitV = 0, diveV = 0;
+    let engage = 0, oceanP = 0, canopy = 1, ai = 'standby';
 
-      // 2. The lids close, and open again on the far side.
-      const shut = step(p, 0.44, 0.55);
-      const open = step(p, 0.60, 0.73);
-      stage.setIris(Math.max(0, shut - open));
+    switch (current) {
+      case 'descent':
+        murkV = lerp(0.58, 0.78, p);
+        oceanP = p * 0.16;
+        dive = p * 0.28;
+        break;
 
-      // 3. The camera leaves the rover's eye while the frame is dark.
-      ocean.setReveal(step(p, 0.50, 0.66));
+      case 'murk':
+        murkV = lerp(0.78, 1.0, p);
+        oceanP = 0.16 + p * 0.30;
+        dive = 0.28 + p * 0.50;
+        break;
 
-      // 4. The canopy and its detections belong to the pilot's view only.
-      if (cockpit) cockpit.style.opacity = String(1 - step(p, 0.38, 0.52));
-      liveDetect?.setEngaged(1 - step(p, 0.32, 0.46));
+      case 'enhance': {
+        // 0.00-0.16 hold · 0.16-0.74 sweep the wipe · then settle clear
+        const sweep = clamp01((p - 0.16) / 0.58);
+        restored = sweep;
+        if (sweep <= 0.001) { murkV = 1; wipeV = -1; ai = 'standby'; }
+        else if (sweep < 0.999) { murkV = 1; wipeV = 1 - sweep; ai = 'armed'; }
+        else { murkV = 0; wipeV = -1; ai = 'active'; }
+        oceanP = 0.46 + p * 0.40;
+        dive = 0.78 + p * 0.22;
+        break;
+      }
 
-      ocean.setProgress(0.97 + p * 0.03);
-      paintHUD();
-    },
-    onLeaveBack: () => {
-      ocean.setReveal(0);
-      stage.setPixel(0);
-      stage.setIris(0);
-      if (cockpit) cockpit.style.opacity = '';
-      liveDetect?.setEngaged(1);
-    },
-    onLeave: () => { stage.setPixel(0); stage.setIris(0); },
-  });
+      case 'identify':
+        murkV = 0;
+        ai = 'active';
+        restored = 1;
+        engage = clamp01(p / 0.66);
+        oceanP = 0.86 + p * 0.10;
+        dive = 1;
+        break;
 
-  /* ── The cockpit retires once we leave the water ───────────────────────── */
-  st({
-    trigger: '#vehicle',
-    start: 'top 88%',
-    onEnter: () => {
-      cockpit?.classList.remove('is-live');
-      if (cockpit) cockpit.style.opacity = '';
-      stage.setWipe(-1);
-      stage.setMurk(0);
-      stage.setPixel(0);
-      stage.setIris(0);
-      restored = 1;
-    },
-    onLeaveBack: () => cockpit?.classList.add('is-live'),
-  });
+      case 'reveal': {
+        /* A cut hidden inside a blink: the readout coarsens, the lids close,
+           the camera leaves the pilot's eye while the frame is dark, then the
+           lids open on a coarse third-person image that resolves. */
+        murkV = 0;
+        ai = 'active';
+        restored = 1;
+        dive = 1;
+        pixelV = Math.max(0, step(p, 0.30, 0.46) - step(p, 0.66, 0.88));
+        irisV = Math.max(0, step(p, 0.44, 0.55) - step(p, 0.60, 0.73));
+        revealV = step(p, 0.50, 0.66);
+        canopy = 1 - step(p, 0.38, 0.52);
+        engage = 1 - step(p, 0.32, 0.46);
+        oceanP = 0.97 + p * 0.03;
+        break;
+      }
 
-  /* ── Act 5: the vehicle ────────────────────────────────────────────────── */
-  const hotspots = [...document.querySelectorAll('.hotspot')];
-  st({
-    trigger: '#vehicle',
-    start: 'top 80%',
-    end: 'bottom 20%',
-    scrub: true,
-    onEnter: () => stage.setAct('vehicle'),
-    onEnterBack: () => stage.setAct('vehicle'),
-    onLeave: () => stage.setAct('ocean'),
-    onLeaveBack: () => stage.setAct('ocean'),
-    onUpdate: (self) => vehicle.setProgress(self.progress),
-  });
+      case 'vehicle':
+        murkV = 0;
+        ai = 'active';
+        restored = 1;
+        dive = 1;
+        canopy = 0;
+        revealV = 1;
+        orbitV = clamp01(p / 0.72);
+        diveV = step(p, 0.76, 1.0);
+        pixelV = diveV * 0.9;
+        oceanP = 1;
+        break;
 
+      case 'perception':
+        // Already inside the lens; the readout resolves as the studio takes over.
+        murkV = 0;
+        ai = 'active';
+        restored = 1;
+        dive = 1;
+        canopy = 0;
+        revealV = 1;
+        orbitV = 1;
+        diveV = 1;
+        pixelV = 0.9 * (1 - p);
+        oceanP = 1;
+        break;
+    }
+
+    stage.setMurk(murkV);
+    stage.setWipe(wipeV);
+    stage.setPixel(pixelV);
+    stage.setIris(irisV);
+    ocean.setProgress(oceanP);
+    ocean.setReveal(revealV);
+    ocean.setOrbit(orbitV);
+    ocean.setDive(diveV);
+    liveDetect?.setEngaged(engage);
+    showHits(Math.round(engage * hitRows.length));
+
+    cockpit?.classList.toggle('is-live', canopy > 0.02 && current !== 'descent');
+    if (cockpit) cockpit.style.opacity = canopy > 0.98 ? '' : String(canopy);
+    setAI(ai);
+    paintHUD();
+  }
+
+  /** Wire a chapter's scroll range to its slot in the stage. */
+  function chapter(name, config) {
+    st({
+      trigger: `#${name}`,
+      scrub: true,
+      ...config,
+      onUpdate: (self) => { at[name] = self.progress; applyStage(); },
+      onEnter: () => { at[name] = Math.max(at[name], 0.0001); applyStage(); },
+      onLeaveBack: () => { at[name] = 0; applyStage(); },
+    });
+  }
+
+  chapter('descent', { start: 'top top', end: 'bottom top' });
+  chapter('murk', { start: 'top bottom', end: 'bottom bottom' });
+  chapter('enhance', { start: 'top top', end: 'bottom bottom' });
+  chapter('identify', { start: 'top bottom', end: 'bottom bottom' });
+  chapter('reveal', { start: 'top bottom', end: 'bottom bottom' });
+  chapter('vehicle', { start: 'top bottom', end: 'bottom bottom' });
+  chapter('perception', { start: 'top 85%', end: 'top 30%' });
+
+  applyStage();
+
+  /* Hotspots track the hull every frame while the orbit is running. */
+  const hotspots = [...document.querySelectorAll('#rov-hotspots .hotspot')];
   const trackHotspots = () => {
-    if (stage.getAct() === 'vehicle') vehicle.projectHotspots(hotspots);
-    else for (const h of hotspots) h.classList.remove('is-on');
+    ocean.projectHotspots(hotspots);
     requestAnimationFrame(trackHotspots);
   };
   requestAnimationFrame(trackHotspots);
 
-  /* ── Act 6: Abyssal Studio runs its first pass on arrival ──────────────── */
+  /* ── Act 7: Abyssal Studio runs its first pass on arrival ──────────────── */
   if (workstation) {
     st({
       trigger: '#ws',
@@ -393,7 +356,7 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
     });
   }
 
-  /* ── Act 7: reconstruction ─────────────────────────────────────────────── */
+  /* ── Act 8: reconstruction ─────────────────────────────────────────────── */
   const steps = [...document.querySelectorAll('.step')];
   st({
     trigger: '#reconstruct',

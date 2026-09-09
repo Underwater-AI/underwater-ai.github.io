@@ -616,6 +616,8 @@ p { text-wrap: pretty; }
 /* The exit from the rover is a whole beat — coarsen, blink, cut, resolve — so
    it needs more scroll distance than an ordinary chapter. */
 .cockpit-run--reveal { min-height: 260svh; }
+/* A full turn around the vehicle plus the flight back into its lens. */
+.cockpit-run--orbit { min-height: 300svh; }
 
 .dock {
   position: sticky;
@@ -1030,10 +1032,17 @@ p { text-wrap: pretty; }
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, #000 30%, transparent 78%);
 }
+/* Hotspots belong to the orbit, which happens after the canopy has retired —
+   so they live on their own fixed layer rather than inside the cockpit. */
+.rov-hotspots {
+  position: fixed; inset: 0; pointer-events: none; z-index: 4;
+  contain: strict;
+}
 .hotspot {
   position: absolute; z-index: 2;
   transform: translate(-50%, -50%);
   opacity: 0; transition: opacity 0.4s var(--ease-out);
+  will-change: transform;
 }
 .hotspot.is-on { opacity: 1; }
 .hotspot__dot {
@@ -1047,17 +1056,38 @@ p { text-wrap: pretty; }
 }
 @keyframes ping { to { transform: scale(2.6); opacity: 0; } }
 .hotspot__label {
-  position: absolute; left: 18px; top: -6px;
+  position: absolute; left: 22px; top: -10px;
+  display: grid; gap: 0.18rem;
   white-space: nowrap;
   font-family: var(--font-mono); font-size: var(--fs-mono);
-  letter-spacing: 0.12em; text-transform: uppercase;
+  letter-spacing: 0.13em; text-transform: uppercase;
   color: var(--t-hi);
-  background: rgb(var(--panel-rgb) / 0.9);
+  background: rgb(var(--panel-rgb) / 0.92);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--line);
+  border-left: 2px solid var(--cyan);
   border-radius: var(--r-sm);
-  padding: 0.28rem 0.55rem;
+  padding: 0.45rem 0.7rem;
+  box-shadow: 0 12px 30px -14px rgb(var(--shadow-rgb) / 0.9);
+  /* Slides in from the marker as its cue comes round. */
+  transform: translateX(calc((1 - var(--cue, 1)) * -10px));
+  opacity: var(--cue, 1);
 }
-.hotspot--flip .hotspot__label { left: auto; right: 18px; }
+.hotspot__label i {
+  font-style: normal; letter-spacing: 0.08em;
+  color: var(--t-mid); text-transform: none;
+}
+.hotspot--flip .hotspot__label {
+  left: auto; right: 22px;
+  border-left: 1px solid var(--line); border-right: 2px solid var(--cyan);
+  transform: translateX(calc((1 - var(--cue, 1)) * 10px));
+}
+/* A short leader from the marker to its label. */
+.hotspot__label::before {
+  content: ''; position: absolute; top: 12px; left: -22px;
+  width: 20px; height: 1px; background: var(--cyan); opacity: 0.6;
+}
+.hotspot--flip .hotspot__label::before { left: auto; right: -22px; }
 .downloads { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.5rem; }
 .dl {
   display: inline-flex; align-items: center; gap: 0.55rem;

@@ -63,14 +63,10 @@ let recon = null;
 try {
   stage = createStage(canvas);
   ocean = createOcean({ quality: lowPower ? 'low' : 'high' });
-  vehicle = createVehicle({
-    viewportEl: document.getElementById('vehicle-viewport'),
-    renderer: stage.renderer,
-  });
+  vehicle = createVehicle({ renderer: stage.renderer });
   recon = createReconstruct({ src: FRAME });
 
   stage.register('ocean', ocean);
-  stage.register('vehicle', vehicle);
   stage.register('recon', recon);
   stage.setAct('ocean');
   stage.setMurk(1);

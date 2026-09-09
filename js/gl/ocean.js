@@ -382,6 +382,11 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
   const _up = new THREE.Vector3();
   const _rov = new THREE.Vector3();
   const _look = new THREE.Vector3();
+  const _orbitPos = new THREE.Vector3();
+  const _divePos = new THREE.Vector3();
+  const _proj = new THREE.Vector3();
+  const _centre = new THREE.Vector3();
+  const _hbox = new THREE.Box3();
   const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
   /* The rover: for most of the film you are inside it, so it is invisible.
@@ -389,7 +394,15 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
      vehicle materialises exactly where that eye was. */
   let rover = null;
   let reveal = 0, targetReveal = 0;
+  let orbit = 0, targetOrbit = 0;      // 0..1 = a full turn around the vehicle
+  let dive = 0, targetDive = 0;        // 0..1 = back in through the dome port
   const roverProps = [];
+  const roverParts = new Map();
+
+  /* The orbit begins exactly where the pull-back ended, so the two moves read
+     as one continuous camera rather than a cut. */
+  const ORBIT_R0 = 12.24;
+  const ORBIT_A0 = 0.35;
 
   return {
     scene,
@@ -399,7 +412,12 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
     get progress() { return progress; },
     /** Jump the eased values to their targets — used by the visual test suite
      *  so a screenshot never depends on how fast the machine renders. */
-    snap() { progress = targetProgress; reveal = targetReveal; },
+    snap() {
+      progress = targetProgress;
+      reveal = targetReveal;
+      orbit = targetOrbit;
+      dive = targetDive;
+    },
     /** Creature nodes the live detector locks onto. */
     get targets() { return creatures.targets; },
     /**
@@ -427,10 +445,74 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
       rover = obj;
       rover.visible = false;
       roverProps.length = 0;
-      rover.traverse((o) => { if (o.name?.endsWith('_prop')) roverProps.push(o); });
+      roverParts.clear();
+      rover.traverse((o) => {
+        if (o.name?.endsWith('_prop')) roverProps.push(o);
+        if (o.name && !roverParts.has(o.name)) roverParts.set(o.name, o);
+      });
       scene.add(rover);
     },
     get hasVehicle() { return !!rover; },
+
+    /** Story hook: 0..1 drives a full turn around the vehicle. */
+    setOrbit(v) { targetOrbit = THREE.MathUtils.clamp(v, 0, 1); },
+    get orbit() { return orbit; },
+    /** Story hook: 0..1 flies the camera back in through the dome port. */
+    setDive(v) { targetDive = THREE.MathUtils.clamp(v, 0, 1); },
+    get dive() { return dive; },
+
+    /**
+     * Place hotspot markers over the vehicle's real named parts, in viewport
+     * coordinates. Markers are hidden when their part is behind the hull or
+     * off-frame, so a label never points at something you cannot see.
+     */
+    projectHotspots(nodes) {
+      if (!rover || !rover.visible || orbit < 0.02) {
+        for (const el of nodes) el.classList.remove('is-on');
+        return 0;
+      }
+      const w = innerWidth;
+      const h = innerHeight;
+      const placed = [];
+
+      /* Each part is called out at the point in the turn where it faces the
+         camera, one at a time. Showing all seven at once collapses into a
+         stacked list that annotates nothing; showing one gives it a moment. */
+      const WINDOW = 0.085;
+
+      for (const el of nodes) {
+        const part = roverParts.get(el.dataset.hotspot);
+        const at = parseFloat(el.dataset.at);
+        if (!part) { el.classList.remove('is-on'); continue; }
+
+        // Distance around the loop, so the first and last cues wrap correctly.
+        let d = Math.abs(orbit - at);
+        if (d > 0.5) d = 1 - d;
+        if (d > WINDOW) { el.classList.remove('is-on'); continue; }
+
+        _hbox.setFromObject(part).getCenter(_centre);
+        _proj.copy(_centre).project(camera);
+
+        const x = (_proj.x * 0.5 + 0.5) * w;
+        const y = (-_proj.y * 0.5 + 0.5) * h;
+        const onScreen = _proj.z < 1
+          && x > w * 0.06 && x < w * 0.94
+          && y > h * 0.12 && y < h * 0.86;
+
+        el.classList.toggle('is-on', onScreen);
+        if (!onScreen) continue;
+
+        el.classList.toggle('hotspot--flip', x > w * 0.58);
+        // Plateau rather than a peak: a label is fully legible for most of its
+        // window and only fades at the very edges, so it never reads as dim.
+        const cue = Math.min(1, (1 - d / WINDOW) / 0.35);
+        el.style.setProperty('--cue', cue.toFixed(3));
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+        placed.push(el);
+      }
+      return placed.length;
+    },
     resize(w, h) {
       camera.aspect = w / Math.max(1, h);
       camera.updateProjectionMatrix();
@@ -443,7 +525,10 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
       mouse.x += (mouse.tx - mouse.x) * Math.min(1, dt * 2.2);
       mouse.y += (mouse.ty - mouse.y) * Math.min(1, dt * 2.2);
 
-      reveal += (targetReveal - reveal) * Math.min(1, dt * 2.2);
+      const ease = Math.min(1, dt * 2.2);
+      reveal += (targetReveal - reveal) * ease;
+      orbit += (targetOrbit - orbit) * ease;
+      dive += (targetDive - dive) * ease;
 
       camPath.getPointAt(progress, _p);
       lookPath.getPointAt(progress, _l);
@@ -464,18 +549,50 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
         for (const pr of roverProps) pr.rotation.z += dt * 5.5;
       }
 
-      // Back out, up and off to port so the vehicle is seen three-quarter on.
+      /* One continuous camera. Three poses, blended in order:
+           eye    — inside the vehicle, looking where the pilot looks
+           pull   — backed out and to port, seeing the vehicle three-quarter on
+           orbit  — a full turn around it
+           dive   — back in through the dome port, ending at the lens
+         Each stage starts from where the last one left off, so the whole
+         journey from first person to inspection and back is unbroken. */
       camera.position.copy(_p)
         .addScaledVector(_fwd, -11.5 * reveal)
         .addScaledVector(_up, 3.4 * reveal)
         .addScaledVector(_right, -4.2 * reveal);
+
+      if (orbit > 0.0005) {
+        const a = ORBIT_A0 + orbit * Math.PI * 2;
+        const r = ORBIT_R0 - orbit * 1.4;                 // tightens a little
+        const h = 3.4 + Math.sin(orbit * Math.PI) * 2.6;  // rises over the top
+        _orbitPos.copy(_rov)
+          .addScaledVector(_fwd, -Math.cos(a) * r)
+          .addScaledVector(_right, -Math.sin(a) * r)
+          .addScaledVector(_up, h);
+        camera.position.lerp(_orbitPos, orbit);
+      }
+
+      if (dive > 0.0005) {
+        // The dome port sits at the front of the hull.
+        _divePos.copy(_rov).addScaledVector(_fwd, 1.05 + (1 - dive) * 3.2)
+          .addScaledVector(_up, 0.12);
+        camera.position.lerp(_divePos, dive);
+      }
+
       // A little drift so the shot never feels locked to a rail.
-      camera.position.x += mouse.x * 1.5 + Math.sin(t * 0.42) * 0.35;
-      camera.position.y += -mouse.y * 0.9 + Math.sin(t * 0.63) * 0.28;
+      const sway = 1 - Math.max(orbit, dive) * 0.8;
+      camera.position.x += (mouse.x * 1.5 + Math.sin(t * 0.42) * 0.35) * sway;
+      camera.position.y += (-mouse.y * 0.9 + Math.sin(t * 0.63) * 0.28) * sway;
 
       // Aim shifts from "where the pilot was looking" to the vehicle itself.
-      _look.lerpVectors(_l, _rov, reveal);
+      _look.lerpVectors(_l, _rov, Math.max(reveal, orbit, dive));
       camera.lookAt(_look);
+      // Narrow the lens on the way in, the way a camera pushing in behaves.
+      const fov = 58 - dive * 16;
+      if (Math.abs(camera.fov - fov) > 0.01) {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
       camera.rotation.z = Math.sin(t * 0.31) * 0.012 + mouse.x * 0.02;
 
       // Lamps stay bolted to the vehicle, so during the reveal you see the

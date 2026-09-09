@@ -261,12 +261,26 @@ try {
   const boxes = await page.locator('#live-overlay .det--live.is-on').count();
   ok('detection boxes rendered', boxes >= 1, `boxes=${boxes}`);
 
-  await goTo(page, 'reveal', 0.6);
+  /* Deep enough into the chapter that the blink has finished and the camera
+     is out. Sampling mid-transition makes the threshold a coin flip. */
+  await goTo(page, 'reveal', 1.3);
   const reveal = await page.evaluate(() => window.UnderwaterAI.ocean.reveal);
-  ok('camera pulls back to third person', reveal > 0.4, `reveal=${reveal}`);
+  ok('camera pulls back to third person', reveal > 0.75, `reveal=${reveal}`);
+  eq('canopy has retired', await page.evaluate(() =>
+    Number(getComputedStyle(document.getElementById('cockpit')).opacity) < 0.2), true);
 
-  await goTo(page, 'vehicle', 0.5);
-  eq('vehicle act takes the stage', await page.evaluate(() => window.UnderwaterAI.act), 'vehicle');
+  /* The vehicle is no longer a separate stage — the camera simply orbits it
+     in the same reef, which is what makes the journey continuous. */
+  await goTo(page, 'vehicle', 1.2);
+  const orbit = await page.evaluate(() => window.UnderwaterAI.ocean.orbit);
+  ok('camera orbits the vehicle', orbit > 0.15, `orbit=${orbit}`);
+  eq('still the same reef act', await page.evaluate(() => window.UnderwaterAI.act), 'ocean');
+  const cues = await page.locator('#rov-hotspots .hotspot.is-on').count();
+  ok('a part is called out during the orbit', cues >= 1, `visible cues=${cues}`);
+
+  await goTo(page, 'vehicle', 2.7);
+  const dive = await page.evaluate(() => window.UnderwaterAI.ocean.dive);
+  ok('camera flies back in toward the lens', dive > 0.4, `dive=${dive}`);
 
   await goTo(page, 'reconstruct', 0.7);
   eq('reconstruction act takes the stage',

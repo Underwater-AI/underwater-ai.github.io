@@ -25,6 +25,7 @@ uniform float uIris;    // 0 = lids open, 1 = lids shut
 uniform float uTime;
 uniform float uAspect;
 uniform vec3  uVeil;    // backscatter colour, theme dependent
+uniform float uTunnel;  // 0 = open frame, 1 = looking down a lens barrel
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -102,6 +103,17 @@ void main() {
   // The leading edge of the restoration wipe reads as a bright scanning bar.
   col += edge * vec3(0.35, 0.92, 1.0) * 1.25;
 
+  /* Lens barrel. As the camera flies back into the vehicle's dome port the
+     frame narrows to a circular aperture, so the approach reads as entering
+     an optic rather than merely getting close to the hull. */
+  if (uTunnel > 0.001) {
+    float rad = length((vUv - 0.5) * vec2(uAspect, 1.0));
+    float bore = mix(1.0, smoothstep(0.62, 0.20, rad), uTunnel);
+    col *= bore;
+    // A faint ring of light on the glass at the mouth of the barrel.
+    col += smoothstep(0.030, 0.0, abs(rad - 0.40)) * vec3(0.10, 0.34, 0.44) * uTunnel;
+  }
+
   /* Eyelid shutter. Two lids close toward the centre line with a wet, lit
      edge — the blink that hides the cut from first to third person. */
   if (uIris > 0.001) {
@@ -174,6 +186,7 @@ export function createStage(canvas) {
       uTime: { value: 0 },
       uAspect: { value: 1 },
       uVeil: { value: new THREE.Color(0.007, 0.042, 0.058) },
+      uTunnel: { value: 0 },
     },
   });
 
@@ -231,7 +244,8 @@ export function createStage(canvas) {
     // fill-rate-bound device that is the difference between smooth and not.
     const u = post.uniforms;
     const needsPost = u.uMurk.value > 0.002 || u.uWipe.value >= 0
-      || u.uFade.value < 0.999 || u.uPixel.value > 0.002 || u.uIris.value > 0.001;
+      || u.uFade.value < 0.999 || u.uPixel.value > 0.002
+      || u.uIris.value > 0.001 || u.uTunnel.value > 0.001;
 
     renderer.setRenderTarget(needsPost ? rt : null);
     renderer.setScissorTest(false);
@@ -305,6 +319,8 @@ export function createStage(canvas) {
     getPixel: () => post.uniforms.uPixel.value,
     setIris(v) { post.uniforms.uIris.value = v; },
     getIris: () => post.uniforms.uIris.value,
+    setTunnel(v) { post.uniforms.uTunnel.value = v; },
+    getTunnel: () => post.uniforms.uTunnel.value,
     /** Light water scatters far more light back at you than dark water does. */
     setTheme(mode) {
       const light = mode === 'light';

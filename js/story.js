@@ -217,7 +217,7 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
     const p = at[current];
 
     let murkV = 1, wipeV = -1, pixelV = 0, irisV = 0;
-    let revealV = 0, orbitV = 0, diveV = 0;
+    let revealV = 0, orbitV = 0, diveV = 0, tunnelV = 0;
     let engage = 0, oceanP = 0, canopy = 1, ai = 'standby';
 
     switch (current) {
@@ -280,6 +280,7 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
         revealV = 1;
         orbitV = clamp01(p / 0.72);
         diveV = step(p, 0.76, 1.0);
+        tunnelV = step(p, 0.82, 1.0);
         pixelV = diveV * 0.9;
         oceanP = 1;
         break;
@@ -294,6 +295,7 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
         revealV = 1;
         orbitV = 1;
         diveV = 1;
+        tunnelV = 1 - p;
         pixelV = 0.9 * (1 - p);
         oceanP = 1;
         break;
@@ -303,6 +305,7 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
     stage.setWipe(wipeV);
     stage.setPixel(pixelV);
     stage.setIris(irisV);
+    stage.setTunnel(tunnelV);
     ocean.setProgress(oceanP);
     ocean.setReveal(revealV);
     ocean.setOrbit(orbitV);
@@ -316,15 +319,26 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
     paintHUD();
   }
 
-  /** Wire a chapter's scroll range to its slot in the stage. */
+  /**
+   * Wire a chapter's scroll range to its slot in the stage.
+   *
+   * All four edge callbacks matter. A fast scroll — a scrollbar drag, a jump
+   * to an anchor, a flung phone — can carry the page across a chapter's whole
+   * range inside a single update. ScrollTrigger then reports entering and
+   * leaving without ever running onUpdate in between, so a chapter that has
+   * been passed must be recorded as finished, not as barely begun.
+   */
   function chapter(name, config) {
+    const set = (v) => { at[name] = v; applyStage(); };
     st({
       trigger: `#${name}`,
       scrub: true,
       ...config,
-      onUpdate: (self) => { at[name] = self.progress; applyStage(); },
-      onEnter: () => { at[name] = Math.max(at[name], 0.0001); applyStage(); },
-      onLeaveBack: () => { at[name] = 0; applyStage(); },
+      onUpdate: (self) => set(self.progress),
+      onEnter: () => set(Math.max(at[name], 0.0001)),
+      onEnterBack: () => set(Math.min(at[name] || 1, 1)),
+      onLeave: () => set(1),
+      onLeaveBack: () => set(0),
     });
   }
 
@@ -397,6 +411,9 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
   return {
     paintHUD,
     setAI,
+    /** Per-chapter scroll progress — the single source the stage derives from. */
+    beats: at,
+    applyStage,
     get dive() { return dive; },
     get restored() { return restored; },
     refresh: () => ScrollTrigger.refresh(),

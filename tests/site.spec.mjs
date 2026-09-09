@@ -84,6 +84,11 @@ async function useNativeScroll(page) {
       window.UWLenis = null;
     }
     document.documentElement.classList.remove('lenis', 'lenis-smooth', 'lenis-stopped');
+    /* The stylesheet sets scroll-behavior: smooth for no-JS anchor links.
+       Lenis normally overrides it; with Lenis gone it would animate every
+       programmatic scroll, so window.scrollTo would return before the page had
+       arrived and every subsequent measurement would be of a moving target. */
+    document.documentElement.style.scrollBehavior = 'auto';
     window.ScrollTrigger?.refresh();
   });
   await page.waitForTimeout(400);
@@ -98,38 +103,52 @@ async function useNativeScroll(page) {
  * ScrollTrigger explicitly and snapping the eased camera values makes the
  * assertions depend on state rather than on frame rate.
  */
+/**
+ * Scroll to an absolute position and wait until the page has actually arrived.
+ *
+ * Under CI's software renderer a scroll is applied by the compositor a frame or
+ * more after the call returns, and frames are scarce. Reading scrollY straight
+ * after window.scrollTo therefore reports the old position, so anything that
+ * decides its next move from that reading thrashes. Wait for the position to
+ * land, then move on.
+ */
+async function scrollToY(page, y) {
+  await page.evaluate((v) => window.scrollTo(0, v), y);
+  await page
+    .waitForFunction((v) => Math.abs(window.scrollY - v) < 2, y, { timeout: 15000 })
+    .catch(() => { /* clamped at the document edge; carry on */ });
+  await page.evaluate(() => window.ScrollTrigger?.update());
+}
+
+/**
+ * Scroll to a section (optionally N viewports into it).
+ *
+ * Walks there in viewport-sized steps rather than teleporting: a single jump
+ * can clear a chapter's whole range inside one update, which no reader does and
+ * which hides ordering bugs instead of catching them.
+ */
 async function goTo(page, id, offset = 0) {
-  // Walk there in viewport-sized steps rather than teleporting. A single jump
-  // can clear a trigger's whole range inside one update, which no reader ever
-  // does and which makes enter/leave ordering unreliable.
-  const target = await page.evaluate(([sel, off]) => {
+  const { from, target } = await page.evaluate(([sel, off]) => {
     const el = document.querySelector(sel);
-    if (!el) return scrollY;
-    return el.getBoundingClientRect().top + scrollY - 40 + innerHeight * off;
+    const to = el
+      ? el.getBoundingClientRect().top + scrollY - 40 + innerHeight * off
+      : scrollY;
+    return { from: window.scrollY, target: to, step: innerHeight * 0.75 };
   }, [`#${id}`, offset]);
 
-  for (let guard = 0; guard < 40; guard++) {
-    const done = await page.evaluate((to) => {
-      const step = innerHeight * 0.75;
-      const delta = to - scrollY;
-      if (Math.abs(delta) <= step) { window.scrollTo(0, to); return true; }
-      window.scrollTo(0, scrollY + Math.sign(delta) * step);
-      return false;
-    }, target);
-
-    await page.waitForTimeout(140);
-    await page.evaluate(() => window.ScrollTrigger?.update());
-    if (done) break;
+  const step = 675;
+  const legs = Math.max(1, Math.ceil(Math.abs(target - from) / step));
+  for (let i = 1; i <= legs; i++) {
+    await scrollToY(page, from + ((target - from) * i) / legs);
   }
 
-  for (let i = 0; i < 2; i++) {
-    await page.waitForTimeout(320);
-    await page.evaluate(() => {
-      window.ScrollTrigger?.update();
-      window.UnderwaterAI?.ocean?.snap?.();
-    });
-  }
-  await page.waitForTimeout(600);
+  // Settle eased camera values so assertions depend on state, not frame rate.
+  await page.waitForTimeout(400);
+  await page.evaluate(() => {
+    window.ScrollTrigger?.update();
+    window.UnderwaterAI?.ocean?.snap?.();
+  });
+  await page.waitForTimeout(500);
 }
 
 /* ── WCAG contrast ───────────────────────────────────────────────────────── */
@@ -250,8 +269,12 @@ try {
     await page.evaluate(() => document.getElementById('cockpit').classList.contains('is-live')));
 
   await goTo(page, 'enhance', 1.4);
-  const clear = await page.evaluate(() => window.UnderwaterAI.murk);
-  ok('water clears after restoration', clear < 0.25, `murk=${clear}`);
+  const after = await page.evaluate(() => ({
+    murk: window.UnderwaterAI.murk,
+    beats: { ...window.UnderwaterAI.story.beats },
+  }));
+  ok('water clears after restoration', after.murk < 0.25,
+    `murk=${after.murk} beats=${JSON.stringify(after.beats)}`);
   ok('AI module reports active', await page.evaluate(() =>
     document.getElementById('ai-badge').classList.contains('is-active')));
 

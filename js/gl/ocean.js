@@ -562,7 +562,10 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
         .addScaledVector(_right, -4.2 * reveal);
 
       if (orbit > 0.0005) {
-        const a = ORBIT_A0 + orbit * Math.PI * 2;
+        /* A full turn, finishing dead in front of the dome port — so the
+           flight back into the lens is a straight approach rather than a pass
+           through the middle of the vehicle. */
+        const a = ORBIT_A0 + orbit * (Math.PI * 2 + Math.PI - ORBIT_A0);
         const r = ORBIT_R0 - orbit * 1.4;                 // tightens a little
         const h = 3.4 + Math.sin(orbit * Math.PI) * 2.6;  // rises over the top
         _orbitPos.copy(_rov)
@@ -573,9 +576,10 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
       }
 
       if (dive > 0.0005) {
-        // The dome port sits at the front of the hull.
-        _divePos.copy(_rov).addScaledVector(_fwd, 1.05 + (1 - dive) * 3.2)
-          .addScaledVector(_up, 0.12);
+        // Straight down the vehicle's own sight line, stopping at the glass.
+        _divePos.copy(_rov)
+          .addScaledVector(_fwd, 1.35 + (1 - dive) * 6.0)
+          .addScaledVector(_up, 0.1);
         camera.position.lerp(_divePos, dive);
       }
 

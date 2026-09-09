@@ -477,7 +477,12 @@ try {
   /* 11 — No-JS fallback -------------------------------------------------- */
   g('No JavaScript');
   const nojs = await newPage(browser, { width: 1280, height: 800 }, { javaScriptEnabled: false });
-  await nojs.goto(BASE, { waitUntil: 'domcontentloaded' });
+  /* 'load', not 'domcontentloaded': the no-JS fallback is expressed entirely in
+     CSS, and DOMContentLoaded can fire before the stylesheet has been applied.
+     Locally the sheet is instant and this passed; over a network it raced. */
+  await nojs.goto(BASE, { waitUntil: 'load' });
+  await nojs.waitForFunction(() => document.styleSheets.length > 0, null, { timeout: 15000 })
+    .catch(() => { /* asserted below either way */ });
   ok('headline still readable', (await nojs.locator('h1').innerText()).length > 5);
   ok('team section still in the document', await nojs.locator('#team').count() === 1);
   ok('boot screen does not trap the reader',

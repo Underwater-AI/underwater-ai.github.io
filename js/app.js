@@ -15,6 +15,7 @@ import { initWorkstation } from './workstation.js';
 import { initSmoothScroll, initStory, playIntro } from './story.js';
 import { createLiveDetect } from './livedetect.js';
 import { initMenu, applyDownloadSizes, applyManifest } from './ui.js';
+import { initDocks } from './dock.js';
 import { initTheme, onThemeChange } from './theme.js';
 
 const HULL = 'assets/models/rov.draco.glb';
@@ -85,6 +86,7 @@ async function boot() {
     ocean?.setTheme?.(mode);
   });
   initMenu();
+  initDocks();
   initTypography();
 
   // 1 — animation libraries (deferred classic scripts, already in flight)

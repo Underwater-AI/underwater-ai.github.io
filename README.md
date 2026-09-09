@@ -109,6 +109,7 @@ css/style.css         Design system. Themed via channel tokens, not overrides
 js/
   app.js              Entry: boot the dive, then hand over to the story
   story.js            The scroll score — every chapter is a ScrollTrigger
+  dock.js             Chapter panels, collapsed to a heading on small screens
   loader.js           Weighted boot loader with real byte progress
   typo.js             Pretext-driven heading fitting and overflow auditing
   theme.js            Light/dark switching, and telling the 3D about it
@@ -137,6 +138,19 @@ Three more uniforms in the same pass carry the rest of the film: `uPixel`
 coarsens the sensor readout, `uIris` closes a pair of eyelids, and `uTunnel`
 narrows the frame to a lens barrel. When all four are idle the entire pass and
 its render-target round trip are skipped, so most of the page costs nothing.
+
+### The panel gets out of the way on a phone
+
+A chapter panel that carries a title, a paragraph, meters and a list takes a
+third of a phone screen, and the screen is the product. On small viewports each
+panel collapses to its heading — chapter, title, chevron, about a tenth of the
+screen — and opens on a tap. Opening one is read as "I want the detail", so
+later chapters arrive open until the reader closes one again.
+
+The markup for this is built in [`js/dock.js`](js/dock.js) rather than written
+into the HTML, so the document stays a plain readable page: without JavaScript
+every panel is simply open. The 3D framing reads the panel's real height each
+frame, so the subject sits clear of whatever it is actually covering.
 
 ### One writer for the stage
 

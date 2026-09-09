@@ -444,6 +444,24 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
   /* ── Creatures ────────────────────────────────────────────────────────── */
   const creatures = createCreatures(scene, { low });
 
+  /** Fraction of the viewport height the visible chapter panel occupies. */
+  let coverCache = 0;
+  let coverAt = 0;
+  function panelCover() {
+    // Cheap enough to read a few times a second, not every frame.
+    const now = performance.now();
+    if (now - coverAt < 250) return coverCache;
+    coverAt = now;
+    let tallest = 0;
+    for (const d of document.querySelectorAll('.dock')) {
+      const r = d.getBoundingClientRect();
+      if (r.height < 8 || r.bottom < 0 || r.top > innerHeight) continue;
+      tallest = Math.max(tallest, Math.min(r.bottom, innerHeight) - Math.max(r.top, 0));
+    }
+    coverCache = Math.min(1, tallest / innerHeight);
+    return coverCache;
+  }
+
   /* ── Camera flight ────────────────────────────────────────────────────── */
   // p: 0 at the surface hero shot, 1 at the restored reef bank.
   let progress = 0;
@@ -647,6 +665,17 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
         el.style.setProperty('--cue', cue.toFixed(3));
         el.style.left = `${x}px`;
         el.style.top = `${y}px`;
+
+        /* Keep the label inside the frame. It hangs 22px to one side of its
+           marker, so a marker near an edge pushes its label off-screen — and a
+           callout you cannot read is worse than none. */
+        const size = labelSize.get(el.querySelector('.hotspot__label'));
+        if (size) {
+          const left = flip ? x - 22 - size.w : x + 22;
+          const overLeft = Math.max(0, 8 - left);
+          const overRight = Math.max(0, left + size.w - (w - 8));
+          el.style.setProperty('--label-shift', `${overLeft - overRight}px`);
+        }
         placed.push(el);
       }
       return placed.length;
@@ -740,10 +769,12 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
 
       // Aim shifts from "where the pilot was looking" to the vehicle itself.
       _look.lerpVectors(_l, _rov, Math.max(reveal, orbit, dive));
-      /* On a phone the instrument panel owns the lower half of the screen, so
-         aim lower and let the subject sit in the upper half rather than behind
-         the copy. */
-      if (innerWidth < 700) _look.y -= 1.7 * Math.max(reveal, orbit) * (1 - dive);
+      /* Frame around whatever the instrument panel is actually covering. It
+         collapses to a heading on a phone and expands on demand, so a fixed
+         offset would either waste the screen or hide the subject. */
+      if (innerWidth < 700) {
+        _look.y -= panelCover() * 4.2 * Math.max(reveal, orbit) * (1 - dive);
+      }
       camera.lookAt(_look);
       // Roll into the direction of travel, plus a slow idle list.
       camera.rotation.z += (Math.sin(t * 0.31) * 0.012 * AMBIENT

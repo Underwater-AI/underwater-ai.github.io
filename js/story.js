@@ -210,6 +210,27 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
      one that has been entered, which is unambiguous however the triggers fire. */
   const CHAPTERS = ['descent', 'murk', 'enhance', 'identify', 'reveal',
                     'vehicle', 'perception', 'suite'];
+  const chapterDocks = [...document.querySelectorAll('.dock[data-chapter]')];
+
+  /**
+   * Which chapter panel to show.
+   *
+   * Deliberately geometric rather than reading `current`. A chapter is
+   * "entered" a full viewport before it is on screen — the camera needs that
+   * lead time to blend — so keying the panel off it hides the chapter you are
+   * reading a whole screen before its replacement arrives, and neither is
+   * visible in between.
+   */
+  function pickVisibleDock() {
+    let best = null;
+    for (const d of chapterDocks) {
+      const sec = d.closest('section');
+      if (!sec) continue;
+      const r = sec.getBoundingClientRect();
+      if (r.top <= innerHeight * 0.55 && r.bottom > innerHeight * 0.15) best = d;
+    }
+    return best;
+  }
   const at = Object.fromEntries(CHAPTERS.map((c) => [c, 0]));
 
   function applyStage() {
@@ -329,6 +350,12 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
     ocean.setDive(diveV);
     liveDetect?.setEngaged(engage);
     showHits(Math.round(engage * hitRows.length));
+
+    /* Only one chapter panel stays on screen. Sticky panels hand over by
+       overlapping, which on a phone reads as a stack of headers rather than as
+       one chapter giving way to the next. */
+    const shown = pickVisibleDock();
+    for (const d of chapterDocks) d.classList.toggle('is-current', d === shown);
 
     cockpit?.classList.toggle('is-live', canopy > 0.02 && current !== 'descent');
     if (cockpit) cockpit.style.opacity = canopy > 0.98 ? '' : String(canopy);

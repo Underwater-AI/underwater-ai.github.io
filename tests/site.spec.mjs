@@ -458,6 +458,73 @@ try {
   await th.context().close();
   }
 
+  /* 9b — Mobile chapter panels ------------------------------------------- */
+  /* The screen is the product on a phone. A panel that keeps a third of it for
+     copy nobody asked for is the thing this disclosure exists to prevent. */
+  g('Mobile chapter panels');
+  const md = await newPage(browser, { width: 390, height: 844 });
+  await boot(md);
+  await goTo(md, 'murk', 0.8);
+
+  const panel = () => md.evaluate(() => {
+    const d = document.querySelector('.dock.is-current') || document.querySelector('.dock');
+    if (!d) return null;
+    const r = d.getBoundingClientRect();
+    const btn = d.querySelector('.dock__toggle');
+    return {
+      cover: (r.height / innerHeight) * 100,
+      expanded: d.dataset.expanded,
+      ariaExpanded: btn?.getAttribute('aria-expanded'),
+      chapter: d.dataset.chapter,
+    };
+  });
+
+  const shut = await panel();
+  ok('panels start collapsed on a phone', shut.expanded === 'false',
+    `expanded=${shut.expanded}`);
+  ok('a collapsed panel leaves the screen to the 3D', shut.cover < 16,
+    `cover=${shut.cover.toFixed(1)}%`);
+  eq('collapsed panel reports its state', shut.ariaExpanded, 'false');
+
+  const visible = await md.locator('.dock.is-current').count();
+  eq('exactly one chapter panel is on screen', visible, 1);
+
+  await md.click('.dock.is-current .dock__toggle');
+  await md.waitForTimeout(700);
+  const open = await panel();
+  ok('tapping the heading opens the detail', open.expanded === 'true');
+  eq('expanded panel reports its state', open.ariaExpanded, 'true');
+  ok('an expanded panel still leaves most of the screen', open.cover < 55,
+    `cover=${open.cover.toFixed(1)}%`);
+  ok('the detail is actually revealed',
+    await md.locator('.dock.is-current .dock__detail-inner').isVisible());
+
+  /* Opening one says "I want the detail" — later chapters should honour that
+     rather than making the reader ask again. */
+  await goTo(md, 'identify', 0.5);
+  const carried = await panel();
+  ok('the choice carries to the next chapter', carried.expanded === 'true',
+    `chapter=${carried.chapter} expanded=${carried.expanded}`);
+
+  await md.click('.dock.is-current .dock__toggle');
+  await md.waitForTimeout(700);
+  ok('and collapsing carries too', (await panel()).expanded === 'false');
+  eq('no horizontal scroll with a panel open', await overflowPx(md), 0);
+  ok('no console errors', md.errors.length === 0, md.errors.slice(0, 2).join(' | '));
+  await md.context().close();
+
+  /* At full width there is room for both, so the panel is simply open and its
+     heading is not a control. */
+  const wd = await newPage(browser, { width: 1440, height: 900 });
+  await boot(wd);
+  const deskPanel = await wd.evaluate(() => {
+    const d = document.querySelector('.dock');
+    return { expanded: d?.dataset.expanded, tab: d?.querySelector('.dock__toggle')?.tabIndex };
+  });
+  eq('panels are open at full width', deskPanel.expanded, 'true');
+  eq('the heading is not a tab stop at full width', deskPanel.tab, -1);
+  await wd.context().close();
+
   /* 10 — Reduced motion --------------------------------------------------- */
   g('Reduced motion');
   const rm = await newPage(browser, { width: 1280, height: 800 }, { reducedMotion: 'reduce' });

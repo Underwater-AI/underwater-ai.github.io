@@ -1,0 +1,18 @@
+{
+  "name": "underwater-ai-site",
+  "version": "5.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Underwater AI — cinematic scroll-driven marine intelligence site",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "build:rov": "node tools/build-rov.mjs",
+    "test": "node tools/run-tests.mjs"
+  },
+  "devDependencies": {
+    "@chenglou/pretext": "^0.0.9",
+    "gltf-pipeline": "^4.1.0",
+    "playwright": "^1.63.0",
+    "three": "^0.160.0"
+  }
+}

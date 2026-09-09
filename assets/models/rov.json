@@ -1,0 +1,110 @@
+{
+  "name": "ABYSS-1",
+  "downloads": {
+    "stl": 527084,
+    "glb": 493196,
+    "draco": 190856
+  },
+  "subtitle": "Work-class inspection ROV",
+  "generated": "2026-09-08",
+  "units": "metres",
+  "dimensions": {
+    "beam": 2.45,
+    "height": 2.45,
+    "length": 2.18
+  },
+  "triangles": 10540,
+  "meshes": 111,
+  "parts": [
+    {
+      "name": "chassis",
+      "triangles": 1696,
+      "size": [
+        2.228,
+        1.328,
+        2.021
+      ]
+    },
+    {
+      "name": "buoyancy_pack",
+      "triangles": 48,
+      "size": [
+        1.936,
+        0.455,
+        1.6
+      ]
+    },
+    {
+      "name": "pressure_housings",
+      "triangles": 480,
+      "size": [
+        1.33,
+        0.41,
+        1.11
+      ]
+    },
+    {
+      "name": "optics",
+      "triangles": 1416,
+      "size": [
+        0.37,
+        0.645,
+        0.317
+      ]
+    },
+    {
+      "name": "propulsion",
+      "triangles": 5376,
+      "size": [
+        2.45,
+        0.615,
+        1.71
+      ]
+    },
+    {
+      "name": "lighting",
+      "triangles": 256,
+      "size": [
+        1.79,
+        0.21,
+        0.228
+      ]
+    },
+    {
+      "name": "manipulator",
+      "triangles": 320,
+      "size": [
+        0.214,
+        0.85,
+        0.686
+      ]
+    },
+    {
+      "name": "skids",
+      "triangles": 288,
+      "size": [
+        1.7,
+        0.26,
+        1.88
+      ]
+    },
+    {
+      "name": "tether",
+      "triangles": 512,
+      "size": [
+        0.26,
+        0.782,
+        0.847
+      ]
+    },
+    {
+      "name": "sensor_rack",
+      "triangles": 148,
+      "size": [
+        0.8,
+        0.945,
+        1.33
+      ]
+    }
+  ]
+}

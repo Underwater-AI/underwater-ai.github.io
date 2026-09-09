@@ -1,1245 +1,785 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark" style="color-scheme: dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#000408">
-  <meta name="description" content="Underwater AI — sensor-agnostic AI enhancement for underwater exploration. Real-time diffusion models recover lost information from murky footage.">
-  <meta name="color-scheme" content="dark light">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#03060b">
+<meta name="color-scheme" content="dark light">
 
-  <title>Underwater AI — Computational Marine Imagery</title>
+<title>Underwater AI — Computational Marine Imagery</title>
+<meta name="description" content="Underwater AI turns murky ROV footage into clear, labelled, three-dimensional intelligence. Real-time restoration, 15,000+ species identification, and image-to-3D reconstruction — on the edge.">
+<link rel="canonical" href="https://underwaterai.org/">
 
-  <!-- Open Graph -->
-  <meta property="og:title" content="Underwater AI — Computational Marine Imagery">
-  <meta property="og:description" content="Sensor-agnostic AI enhancement for underwater exploration. Reveal the hidden depths.">
-  <meta property="og:type" content="website">
-  <meta property="og:image" content="output_images/realesr_general_4x_output.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Underwater AI">
+<meta property="og:url" content="https://underwaterai.org/">
+<meta property="og:title" content="Underwater AI — Computational Marine Imagery">
+<meta property="og:description" content="From murky frame to labelled 3D world. Real-time underwater restoration, species identification, and reconstruction on the edge.">
+<meta property="og:image" content="https://underwaterai.org/output_images/realesr_general_4x_output.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Underwater AI — Computational Marine Imagery">
+<meta name="twitter:description" content="From murky frame to labelled 3D world. Real-time underwater intelligence on the edge.">
+<meta name="twitter:image" content="https://underwaterai.org/output_images/realesr_general_4x_output.png">
 
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Underwater AI — Computational Marine Imagery">
-  <meta name="twitter:description" content="Sensor-agnostic AI enhancement for underwater exploration.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2303060b'/%3E%3Cpath d='M4 19q4-5 8 0t8 0 8 0' stroke='%2338e1ff' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='11' r='3.2' fill='%231fd5b0'/%3E%3C/svg%3E">
 
-  <!-- Preconnects -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="preconnect" href="https://unpkg.com">
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-  <link rel="preconnect" href="https://assets.meshy.ai">
-
-  <!-- Prefetch only hero-critical 3D models. Remaining models load on-demand. -->
-  <!-- Fonts: Inter + Sora + JetBrains Mono (display=swap prevents FOUT) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-        media="print" onload="this.media='all'">
-  <noscript>
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-  </noscript>
-
-  <!-- Local stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=4.1">
-
-  <!-- Inline anti-flash for saved theme -->
-  <script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/style.css?v=5.1">
+<script>
+  /* Resolve the theme before first paint so there is never a flash of the
+     wrong palette. Kept inline and tiny on purpose. */
+  (function () {
     try {
-      if (localStorage.getItem('theme') === 'light') {
-        document.documentElement.classList.add('light-mode');
-        document.documentElement.style.colorScheme = 'light';
-      }
-    } catch (e) {}
-  </script>
-
-  <!-- Inline critical for above-the-fold -->
-  <style>
-    /* Critical pre-hydration styles — prevent FOUC */
-    body { background: #000408; color: #edf6f9; margin: 0; }
-    .curtain { position: fixed; inset: 0; z-index: 200; background: #000408; }
-  </style>
-
-  <!-- Noscript fallback: ensure content is visible without JS -->
-  <noscript>
-    <style>
-      .curtain { display: none !important; }
-      .hero__title-line > span, .hero__title-line .char { transform: none !important; animation: none !important; opacity: 1 !important; }
-      .hero__subtitle, .hero__cta, .scroll-cue { opacity: 1 !important; transform: none !important; animation: none !important; }
-      .reveal, .reveal-stagger > * { opacity: 1 !important; transform: none !important; }
-      #scene-canvas { display: none !important; }
-      .cursor-dot, .cursor-ring { display: none !important; }
-      body, a, button { cursor: auto !important; }
-    </style>
-  </noscript>
-
-  <!-- Schema.org -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "Underwater AI",
-    "url": "https://underwater-ai.github.io/",
-    "logo": "https://underwater-ai.github.io/output_images/realesr_general_4x_output.png",
-    "description": "Computational marine imagery software for defense, research, and industrial underwater exploration.",
-    "founder": [
-      { "@type": "Person", "name": "Gautam Singh", "jobTitle": "CEO" },
-      { "@type": "Person", "name": "Shuvam Banerji Seal", "jobTitle": "CTO" },
-      { "@type": "Person", "name": "Youktik Sajjan", "jobTitle": "COO" },
-      { "@type": "Person", "name": "Aman Kumar", "jobTitle": "CPO" }
-    ]
-  }
-  </script>
-</head>
-<body>
-
-  <!-- Skip link -->
-  <a href="#main" class="skip-link">Skip to main content</a>
-
-  <!-- Custom cursor -->
-  <div class="cursor-dot" aria-hidden="true"></div>
-  <div class="cursor-ring" aria-hidden="true"></div>
-
-  <!-- 3D canvas (fixed background) -->
-  <canvas id="scene-canvas" aria-hidden="true"></canvas>
-
-  <!-- Vignette + film grain overlays for cinematic feel -->
-  <div class="scene-vignette" aria-hidden="true"></div>
-  <div class="scene-grain" aria-hidden="true"></div>
-
-  <!-- Page transition curtain -->
-  <div class="curtain" aria-hidden="true">
-    <div class="curtain-logo">
-      <span>Underwater</span><span style="color:#00b4d8">AI</span>
-    </div>
-    <div class="curtain-progress">
-      <div class="curtain-progress__bar" id="curtain-progress-bar"></div>
-      <div class="curtain-progress__text" id="curtain-progress-text">Loading 3D world...</div>
-    </div>
-  </div>
-
-  <!-- Navigation -->
-  <nav id="nav" class="nav" aria-label="Primary">
-    <div class="nav__inner">
-      <a href="#hero" class="nav__brand">
-        <svg class="logo" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="nav-g1" x1="0" y1="0" x2="44" y2="44">
-              <stop offset="0%" stop-color="#00f0e0"/>
-              <stop offset="100%" stop-color="#0077b6"/>
-            </linearGradient>
-            <linearGradient id="nav-g2" x1="0" y1="20" x2="44" y2="44">
-              <stop offset="0%" stop-color="#6efaff"/>
-              <stop offset="100%" stop-color="#00f0e0"/>
-            </linearGradient>
-          </defs>
-          <circle cx="22" cy="22" r="21" fill="url(#nav-g1)" opacity="0.12" stroke="url(#nav-g1)" stroke-width="1.5"/>
-          <path d="M4 26 Q10 20 16 26 Q22 32 28 26 Q34 20 40 26" stroke="url(#nav-g2)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-          <path d="M4 30 Q10 24 16 30 Q22 36 28 30 Q34 24 40 30" stroke="url(#nav-g2)" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
-          <path d="M8 22 Q14 16 22 18 Q30 20 34 16 L38 14 L32 20 Q36 22 34 24 L38 28 L34 26 Q30 22 22 24 Q14 26 8 22Z" fill="url(#nav-g1)" opacity="0.9"/>
-          <circle cx="22" cy="18" r="2.5" fill="#00b4d8"/>
-          <circle cx="30" cy="14" r="1.8" fill="#90e0ef"/>
-          <circle cx="15" cy="21" r="1.5" fill="#90e0ef" opacity="0.7"/>
-          <circle cx="31" cy="18" r="1.5" fill="#caf0f8"/>
-          <circle cx="31" cy="18" r="0.7" fill="#0077b6"/>
-        </svg>
-        <span>Underwater<span class="accent">AI</span></span>
-      </a>
-
-      <div class="nav__links" role="list">
-        <a href="#hero"       class="nav__link is-active" role="listitem">Home</a>
-        <a href="#about"      class="nav__link" role="listitem">About</a>
-        <a href="#compare"    class="nav__link" role="listitem">Compare</a>
-        <a href="#models"     class="nav__link" role="listitem">Models</a>
-        <a href="#technology" class="nav__link" role="listitem">Technology</a>
-        <a href="#detection"  class="nav__link" role="listitem">Detection</a>
-        <a href="#tourism"    class="nav__link" role="listitem">Tourism</a>
-        <a href="#team"       class="nav__link" role="listitem">Team</a>
-      </div>
-
-      <div class="nav__cta">
-        <button id="theme-toggle" type="button" aria-label="Toggle light/dark mode" aria-pressed="false">
-          <svg id="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="4"/>
-            <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-          </svg>
-          <svg id="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-        </button>
-        <button type="button" class="nav__menu-btn" data-menu-btn aria-label="Open menu" aria-expanded="false" aria-controls="menu-overlay">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <line x1="3" y1="6" x2="21" y2="6" class="line-top"/>
-            <line x1="3" y1="12" x2="21" y2="12" class="line-mid"/>
-            <line x1="3" y1="18" x2="21" y2="18" class="line-bot"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Mobile menu overlay -->
-  <div class="menu-overlay" data-menu-overlay id="menu-overlay" aria-hidden="true">
-    <nav class="menu-overlay__list" aria-label="Mobile menu">
-      <a href="#hero"       class="menu-overlay__link">Home</a>
-      <a href="#about"      class="menu-overlay__link">About</a>
-      <a href="#compare"    class="menu-overlay__link">Compare</a>
-      <a href="#models"     class="menu-overlay__link">Models</a>
-      <a href="#technology" class="menu-overlay__link">Technology</a>
-      <a href="#detection"  class="menu-overlay__link">Detection</a>
-      <a href="#tourism"    class="menu-overlay__link">Tourism</a>
-      <a href="#team"       class="menu-overlay__link">Team</a>
-    </nav>
-  </div>
-
-  <!-- ====================================================================== -->
-  <!-- MAIN CONTENT                                                            -->
-  <!-- ====================================================================== -->
-  <main id="main">
-
-    <!-- ================================================================== -->
-    <!-- HERO — full-bleed, viewport-spanning, cinematic                  -->
-    <!-- ================================================================== -->
-    <section id="hero" class="hero" aria-label="Introduction">
-      <div class="hero__content">
-        <div class="hero__badge">
-          <span class="dot" aria-hidden="true"></span>
-          <span>Computational Marine Imagery · v3.1 · Bioluminescent</span>
-        </div>
-
-        <h1 class="hero__title">
-          <span class="hero__title-line"><span>Reveal the</span></span>
-          <span class="hero__title-line hero__title-line--accent">
-            <span><em>Hidden&nbsp;Depths</em></span>
-          </span>
-          <span class="hero__title-line"><span>of&nbsp;the&nbsp;Ocean</span></span>
-        </h1>
-
-        <p class="hero__subtitle">
-          Sensor-agnostic AI enhancement for underwater exploration. From murky
-          trenches to sunlit reefs — our diffusion models recover lost information
-          in real time, on the edge.
-        </p>
-
-        <div class="hero__cta">
-          <a href="#compare" class="btn btn--primary" data-cursor-label="See the magic">
-            <span class="pulse-dot" aria-hidden="true"></span>
-            <span>See the Magic</span>
-            <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="5" y1="12" x2="19" y2="12"/>
-              <polyline points="12 5 19 12 12 19"/>
-            </svg>
-          </a>
-          <a href="#technology" class="btn btn--ghost">
-            <span>Explore Technology</span>
-          </a>
-        </div>
-
-        <!-- Floating data cards — only visible in hero -->
-        <div class="hero__floater hero__floater--1" aria-hidden="true">
-          <div class="hero__floater-label">DEPTH</div>
-          <div class="hero__floater-value">−2,400<span class="hero__floater-unit">m</span></div>
-          <div class="hero__floater-desc">4K-rated ROV operating depth</div>
-        </div>
-        <div class="hero__floater hero__floater--2" aria-hidden="true">
-          <div class="hero__floater-label">LATENCY</div>
-          <div class="hero__floater-value">30<span class="hero__floater-unit">ms</span></div>
-          <div class="hero__floater-desc">Real-time on-edge inference</div>
-        </div>
-        <div class="hero__floater hero__floater--3" aria-hidden="true">
-          <div class="hero__floater-label">SPECIES</div>
-          <div class="hero__floater-value">15,000<span class="hero__floater-unit">+</span></div>
-          <div class="hero__floater-desc">Marine classes recognised</div>
-        </div>
-      </div>
-
-      <div class="hero__stats" aria-label="Key statistics">
-        <div class="hero__stat">
-          <div class="hero__stat-num" data-count="0.03"><span>0.03</span><span class="unit">s</span></div>
-          <div class="hero__stat-label">Inference</div>
-        </div>
-        <div class="hero__stat">
-          <div class="hero__stat-num" data-count="4"><span>4</span><span class="unit">×</span></div>
-          <div class="hero__stat-label">Super-Resolution</div>
-        </div>
-        <div class="hero__stat">
-          <div class="hero__stat-num" data-count="15"><span>15</span><span class="unit">K+</span></div>
-          <div class="hero__stat-label">Species Recognised</div>
-        </div>
-        <div class="hero__stat">
-          <div class="hero__stat-num" data-count="98.5"><span>98.5</span><span class="unit">%</span></div>
-          <div class="hero__stat-label">mAP Detection</div>
-        </div>
-      </div>
-
-      <div class="scroll-cue" aria-hidden="true">
-        <span>Scroll</span>
-        <div class="scroll-cue__line"></div>
-      </div>
-
-      <!-- Decorative wave SVG at bottom of hero -->
-      <svg class="hero__wave" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0 60 Q 360 0 720 60 T 1440 60 V 120 H 0 Z" fill="currentColor" opacity="0.6"/>
-        <path d="M0 80 Q 360 40 720 80 T 1440 80 V 120 H 0 Z" fill="currentColor" opacity="0.3"/>
-      </svg>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- ABOUT                                                                -->
-    <!-- ================================================================== -->
-    <section id="about" class="section about" aria-labelledby="about-title">
-      <div class="container">
-        <header class="section-title reveal">
-          <div class="section-title__head">
-            <div class="eyebrow"><span class="eyebrow__dot"></span><span class="eyebrow__line"></span><span>About — The Mission</span></div>
-          </div>
-          <h2 id="about-title" class="section-title__main">
-            Making the <em>invisible</em> visible
-          </h2>
-          <p class="section-title__sub">
-            UnderwaterAI is a sensor-agnostic enhancement suite for marine
-            imagery. Drop in a murky photo, a colour-shifted video frame, or
-            a feed from a 4 000 m-rated ROV — we recover detail in real time
-            and tell you what you're looking at.
-          </p>
-        </header>
-
-        <div class="about__pillars reveal-stagger">
-          <article class="about__pillar">
-            <div class="about__pillar-num">01</div>
-            <h3 class="about__pillar-title">Enhance</h3>
-            <p class="about__pillar-desc">
-              Two specialised diffusion models (Enhancement&nbsp;A for
-              edge / mobile, Enhancement&nbsp;B for photorealism) recover
-              contrast, correct colour cast, and super-resolve 4×. Inference
-              in 30&nbsp;ms on a Jetson Nano.
-            </p>
-            <ul class="about__pillar-list">
-              <li>Edge-ready, &lt;15&nbsp;W</li>
-              <li>INT8 quantised</li>
-              <li>4× super-resolution</li>
-              <li>Real-time, 30 fps</li>
-            </ul>
-          </article>
-
-          <article class="about__pillar">
-            <div class="about__pillar-num">02</div>
-            <h3 class="about__pillar-title">Identify</h3>
-            <p class="about__pillar-desc">
-              A YOLO-based detector trained on the Indian Ocean Dataset
-              (IOD), EUVP, and UIEB recognises 15&nbsp;000+ marine species
-              and flags potential threats — submarines, mines, divers.
-              Confidence-scored and exportable to marine-biology surveys.
-            </p>
-            <ul class="about__pillar-list">
-              <li>15 000+ species classes</li>
-              <li>98.5% mAP @ 50 ms</li>
-              <li>Threat catalogue</li>
-              <li>Exportable annotations</li>
-            </ul>
-          </article>
-
-          <article class="about__pillar">
-            <div class="about__pillar-num">03</div>
-            <h3 class="about__pillar-title">Map</h3>
-            <p class="about__pillar-desc">
-              Frame-to-frame stitching produces georeferenced 3-D terrain
-              reconstructions of the seafloor — rock formations, sediment
-              types, hydrothermal vents, and potential petroleum indicators.
-              Native formats for GIS and survey tooling.
-            </p>
-            <ul class="about__pillar-list">
-              <li>3-D point clouds</li>
-              <li>Geo-referenced</li>
-              <li>Sediment classification</li>
-              <li>GIS-export ready</li>
-            </ul>
-          </article>
-        </div>
-
-        <!-- By-the-numbers band -->
-        <div class="about__band reveal">
-          <div class="about__band-item">
-            <div class="about__band-num" data-count="0.03"><span>0.03</span><span class="unit">s</span></div>
-            <div class="about__band-label">Inference time</div>
-          </div>
-          <div class="about__band-item">
-            <div class="about__band-num" data-count="4"><span>4</span><span class="unit">×</span></div>
-            <div class="about__band-label">Super-resolution</div>
-          </div>
-          <div class="about__band-item">
-            <div class="about__band-num" data-count="15"><span>15</span><span class="unit">K+</span></div>
-            <div class="about__band-label">Species catalogued</div>
-          </div>
-          <div class="about__band-item">
-            <div class="about__band-num" data-count="98.5"><span>98.5</span><span class="unit">%</span></div>
-            <div class="about__band-label">Detection mAP</div>
-          </div>
-          <div class="about__band-item">
-            <div class="about__band-num" data-count="15"><span>&lt;15</span><span class="unit">W</span></div>
-            <div class="about__band-label">Jetson power budget</div>
-          </div>
-        </div>
-
-        <!-- Origin / status row -->
-        <div class="about__meta reveal">
-          <div class="about__meta-item">
-            <div class="about__meta-label">Founded</div>
-            <div class="about__meta-value">2024</div>
-          </div>
-          <div class="about__meta-item">
-            <div class="about__meta-label">Headquartered</div>
-            <div class="about__meta-value">India</div>
-          </div>
-          <div class="about__meta-item">
-            <div class="about__meta-label">Stage</div>
-            <div class="about__meta-value">Seed · MeitY-funded</div>
-          </div>
-          <div class="about__meta-item">
-            <div class="about__meta-label">Deployment</div>
-            <div class="about__meta-value">Edge (Jetson) · Server · ROV</div>
-          </div>
-          <div class="about__meta-item">
-            <div class="about__meta-label">Status</div>
-            <div class="about__meta-value"><span class="status-dot" aria-hidden="true"></span>Live · v1.0</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- COMPARISON                                                            -->
-    <!-- ================================================================== -->
-    <section id="compare" class="section compare" aria-labelledby="compare-title">
-      <div class="container">
-        <div class="compare__head reveal">
-          <div class="eyebrow"><span class="eyebrow__dot"></span><span class="eyebrow__line"></span><span>01 — Before &amp; After</span></div>
-          <h2 id="compare-title" class="compare__title">
-            Experience the <span class="text-gradient">transformation</span>
-          </h2>
-          <p class="compare__sub">
-            Drag the slider to reveal how our AI recovers lost detail from murky
-            underwater footage — in real-time, on the edge.
-          </p>
-        </div>
-
-        <div class="reveal" style="display:flex;justify-content:center">
-          <div class="tabs" role="tablist" data-tabs aria-label="Model selector">
-            <button type="button" class="tabs__btn is-active" role="tab" aria-selected="true" data-tab="1">Enhancement A</button>
-            <button type="button" class="tabs__btn" role="tab" aria-selected="false" data-tab="2">Enhancement B</button>
-          </div>
-        </div>
-
-        <p class="model-info reveal" data-model-info>
-          <strong>Enhancement Model A</strong> &mdash; High-detail underwater super-resolution
-        </p>
-
-        <div class="reveal" style="display:flex;justify-content:center">
-          <div class="compare__stage" data-compare="hero" role="region" aria-label="Before-after image comparison">
-            <picture>
-              <source srcset="test_images/underwater_test.avif" type="image/avif">
-              <source srcset="test_images/underwater_test.webp" type="image/webp">
-              <img class="compare__img compare__img--before"
-                   src="test_images/underwater_test.jpg"
-                   alt="Original unprocessed underwater photograph — murky and colour-shifted"
-                   width="1600" height="900"
-                   fetchpriority="high" decoding="async">
-            </picture>
-            <picture>
-              <source srcset="output_images/realesr_general_4x_output.avif" type="image/avif">
-              <source srcset="output_images/realesr_general_4x_output.webp" type="image/webp">
-              <img class="compare__img compare__img--after"
-                   src="output_images/realesr_general_4x_output.png"
-                   alt="AI-enhanced underwater image — Enhancement Model A output"
-                   data-after
-                   width="1600" height="900"
-                   loading="lazy" decoding="async">
-            </picture>
-            <span class="compare__label compare__label--left" data-label-enhanced>MODEL A ENHANCED</span>
-            <span class="compare__label compare__label--right">ORIGINAL</span>
-            <div class="compare__divider" data-divider></div>
-            <div class="compare__handle" data-handle tabindex="0" role="slider" aria-label="Comparison slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="15 18 9 12 15 6"/>
-                <polyline points="9 18 3 12 9 6" transform="translate(6 0)"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div class="compare__stats reveal-stagger">
-          <div class="metric">
-            <div class="metric__num">0.03<small style="font-size:0.5em;color:var(--t-tertiary);margin-left:0.2em">s</small></div>
-            <div class="metric__label">Inference Time</div>
-          </div>
-          <div class="metric">
-            <div class="metric__num">4<small style="font-size:0.5em;color:var(--t-tertiary);margin-left:0.2em">×</small></div>
-            <div class="metric__label">Super-Resolution</div>
-          </div>
-          <div class="metric">
-            <div class="metric__num">INT8</div>
-            <div class="metric__label">Quantised Edge Deploy</div>
-          </div>
-          <div class="metric">
-            <div class="metric__num">&lt;15<small style="font-size:0.5em;color:var(--t-tertiary);margin-left:0.2em">W</small></div>
-            <div class="metric__label">Jetson Power Budget</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- MODELS                                                                -->
-    <!-- ================================================================== -->
-    <section id="models" class="section" aria-labelledby="models-title">
-      <div class="container">
-        <header class="section-title reveal">
-          <div class="section-title__head">
-            <div class="eyebrow"><span class="eyebrow__dot"></span><span class="eyebrow__line"></span><span>02 — Our Models</span></div>
-          </div>
-          <h2 id="models-title" class="section-title__main">
-            Two specialised <em>enhancement</em> models
-          </h2>
-          <p class="section-title__sub">
-            Each model is tuned for a different underwater scenario. Compare
-            outputs side-by-side and choose what fits your mission.
-          </p>
-        </header>
-
-        <div class="models-grid reveal-stagger">
-          <!-- Model A -->
-          <article class="model-card" data-tilt>
-            <span class="model-card__tag">Model A</span>
-            <div class="model-card__media">
-              <picture>
-                <source srcset="output_images/realesr_general_4x_output.avif" type="image/avif">
-                <source srcset="output_images/realesr_general_4x_output.webp" type="image/webp">
-                <img src="output_images/realesr_general_4x_output.png"
-                     alt="Enhancement Model A: AI-enhanced underwater image showing improved detail and clarity"
-                     width="1280" height="853" loading="lazy" decoding="async">
-              </picture>
-            </div>
-            <h3 class="model-card__title">Enhancement Model A</h3>
-            <p class="model-card__desc">
-              Optimised for broad underwater conditions with strong edge
-              preservation and detail recovery across varying turbidity. Designed
-              to perform reliably in complex, low-visibility environments.
-            </p>
-            <div class="model-card__specs">
-              <div class="model-card__spec">
-                <div class="model-card__spec-label">Task</div>
-                <div class="model-card__spec-value">Super-Resolution</div>
-              </div>
-              <div class="model-card__spec">
-                <div class="model-card__spec-label">Scale</div>
-                <div class="model-card__spec-value">4× Upscale</div>
-              </div>
-              <div class="model-card__spec">
-                <div class="model-card__spec-label">Deploy</div>
-                <div class="model-card__spec-value">Edge / Mobile</div>
-              </div>
-              <div class="model-card__spec">
-                <div class="model-card__spec-label">Best For</div>
-                <div class="model-card__spec-value">General Use</div>
-              </div>
-            </div>
-            <div class="model-card__tags">
-              <span class="tag">Edge Recovery</span>
-              <span class="tag">High Contrast</span>
-              <span class="tag">Mobile Ready</span>
-            </div>
-          </article>
-
-          <!-- Model B -->
-          <article class="model-card" data-tilt>
-            <span class="model-card__tag" style="color:var(--c-teal-300);border-color:rgba(45,212,191,0.25)">Model B</span>
-            <div class="model-card__media">
-              <picture>
-                <source srcset="output_images/purephoto_span_4x_output.avif" type="image/avif">
-                <source srcset="output_images/purephoto_span_4x_output.webp" type="image/webp">
-                <img src="output_images/purephoto_span_4x_output.png"
-                     alt="Enhancement Model B: AI-enhanced underwater image with photorealistic colour fidelity"
-                     width="1280" height="853" loading="lazy" decoding="async">
-              </picture>
-            </div>
-            <h3 class="model-card__title">Enhancement Model B</h3>
-            <p class="model-card__desc">
-              Produces natural, photorealistic results with superior colour
-              fidelity and reduced artefacts. Ideal for scientific documentation,
-              marine-biology surveys, and archival research imagery.
-            </p>
-            <div class="model-card__specs">
-              <div class="model-card__spec">
-                <div class="model-card__spec-label">Task</div>
-                <div class="model-card__spec-value">Photo Enhancement</div>
-              </div>
-              <div class="model-card__spec">
-                <div class="model-card__spec-label">Scale</div>
-                <div class="model-card__spec-value">4× Upscale</div>
-              </div>
-              <div class="model-card__spec">
-                <div class="model-card__spec-label">Deploy</div>
-                <div class="model-card__spec-value">Server / ROV</div>
-              </div>
-              <div class="model-card__spec">
-                <div class="model-card__spec-label">Best For</div>
-                <div class="model-card__spec-value">Photorealism</div>
-              </div>
-            </div>
-            <div class="model-card__tags">
-              <span class="tag tag--emerald">Color Fidelity</span>
-              <span class="tag tag--emerald">Natural Output</span>
-              <span class="tag tag--emerald">Low Artefacts</span>
-            </div>
-          </article>
-        </div>
-
-        <!-- Side-by-side strip -->
-        <div class="compare-strip reveal">
-          <h3 class="compare-strip__title">Side-by-side <em>comparison</em></h3>
-          <div class="compare-strip__grid">
-            <figure class="strip-card">
-              <picture>
-                <source srcset="test_images/underwater_test.avif" type="image/avif">
-                <source srcset="test_images/underwater_test.webp" type="image/webp">
-                <img src="test_images/underwater_test.jpg" alt="Original unprocessed underwater input image" width="320" height="213" loading="lazy" decoding="async">
-              </picture>
-              <figcaption class="strip-card__cap">
-                <div>
-                  <div class="strip-card__name">Original</div>
-                  <div class="strip-card__sub">Unprocessed input</div>
-                </div>
-              </figcaption>
-            </figure>
-            <figure class="strip-card" style="border-color:rgba(0,180,216,0.4)">
-              <picture>
-                <source srcset="output_images/realesr_general_4x_output.avif" type="image/avif">
-                <source srcset="output_images/realesr_general_4x_output.webp" type="image/webp">
-                <img src="output_images/realesr_general_4x_output.png" alt="Enhancement Model A output" width="1280" height="853" loading="lazy" decoding="async">
-              </picture>
-              <figcaption class="strip-card__cap">
-                <div>
-                  <div class="strip-card__name"><em>Model A</em> Output</div>
-                  <div class="strip-card__sub">High-detail enhancement</div>
-                </div>
-              </figcaption>
-            </figure>
-            <figure class="strip-card" style="border-color:rgba(45,212,191,0.4)">
-              <picture>
-                <source srcset="output_images/purephoto_span_4x_output.avif" type="image/avif">
-                <source srcset="output_images/purephoto_span_4x_output.webp" type="image/webp">
-                <img src="output_images/purephoto_span_4x_output.png" alt="Enhancement Model B output" width="1280" height="853" loading="lazy" decoding="async">
-              </picture>
-              <figcaption class="strip-card__cap">
-                <div>
-                  <div class="strip-card__name" style="color:var(--c-teal-300)"><em style="color:var(--c-teal-300)">Model B</em> Output</div>
-                  <div class="strip-card__sub">Photorealistic enhancement</div>
-                </div>
-              </figcaption>
-            </figure>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- TECHNOLOGY                                                            -->
-    <!-- ================================================================== -->
-    <section id="technology" class="section" aria-labelledby="tech-title">
-      <div class="container">
-        <header class="section-title reveal">
-          <div class="section-title__head">
-            <div class="eyebrow"><span class="eyebrow__dot"></span><span class="eyebrow__line"></span><span>03 — Architecture</span></div>
-          </div>
-          <h2 id="tech-title" class="section-title__main">
-            Computational <em>architecture</em>
-          </h2>
-          <p class="section-title__sub">
-            A dual-phase system combining server-side training with real-time
-            edge deployment for AUVs, ROVs, and diver-headset rigs.
-          </p>
-        </header>
-
-        <div class="tech-pipeline reveal-stagger">
-          <article class="tech-card">
-            <div class="tech-card__icon tech-card__icon--purple" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19.43 15.43a2 2 0 0 0-1.02-.55l-2.39-.48a6 6 0 0 0-3.86.52l-.32.16a6 6 0 0 1-3.86.52L6.05 15.21a2 2 0 0 0-1.81.55M8 4h8l-1 1v5.17a2 2 0 0 0 .59 1.41l5 5c1.26 1.26.37 3.41-1.41 3.41H4.83c-1.78 0-2.67-2.15-1.41-3.41l5-5A2 2 0 0 0 9 10.17V5L8 4z"/>
-              </svg>
-            </div>
-            <h3 class="tech-card__title">Server Training</h3>
-            <p class="tech-card__desc">
-              UDnet training on unpaired data with synthetic generation for
-              LU2net and MobileIE. CLIP validation ensures quality.
-            </p>
-            <div class="tech-card__tags">
-              <span class="tag tag--purple">PyTorch</span>
-              <span class="tag tag--purple">RTX GPUs</span>
-            </div>
-          </article>
-
-          <article class="tech-card">
-            <div class="tech-card__icon tech-card__icon--cyan" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/>
-              </svg>
-            </div>
-            <h3 class="tech-card__title">Edge Deployment</h3>
-            <p class="tech-card__desc">
-              Real-time frame enhancement using MobileIE and LU2net on Jetson
-              Nano / Xavier NX with a sub-15 W power budget.
-            </p>
-            <div class="tech-card__tags">
-              <span class="tag">TensorRT</span>
-              <span class="tag">ONNX</span>
-            </div>
-          </article>
-
-          <article class="tech-card">
-            <div class="tech-card__icon tech-card__icon--teal" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M2.46 12C3.73 7.94 7.52 5 12 5c4.48 0 8.27 2.94 9.54 7-1.27 4.06-5.06 7-9.54 7-4.47 0-8.27-2.94-9.54-7z"/>
-              </svg>
-            </div>
-            <h3 class="tech-card__title">Threat Detection</h3>
-            <p class="tech-card__desc">
-              YOLO-based detection for submarines, mines, divers, and marine
-              species with confidence scoring.
-            </p>
-            <div class="tech-card__tags">
-              <span class="tag tag--emerald">YOLO</span>
-              <span class="tag tag--emerald">OpenCV</span>
-            </div>
-          </article>
-
-          <article class="tech-card">
-            <div class="tech-card__icon tech-card__icon--orange" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 4v5h.58m15.36 2A8 8 0 0 0 4.58 9m0 0H9m11 11v-5h-.58m0 0a8 8 0 0 1-15.36-2m15.36 2H15"/>
-              </svg>
-            </div>
-            <h3 class="tech-card__title">Auto-Retraining</h3>
-            <p class="tech-card__desc">
-              Nightly retraining with fresh ROV data. Automated weight
-              distribution to deployed devices via a central hub.
-            </p>
-            <div class="tech-card__tags">
-              <span class="tag tag--purple">MLOps</span>
-              <span class="tag tag--purple">CI/CD</span>
-            </div>
-          </article>
-
-          <article class="tech-card">
-            <div class="tech-card__icon tech-card__icon--indigo" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
-              </svg>
-            </div>
-            <h3 class="tech-card__title">CLIP Validation</h3>
-            <p class="tech-card__desc">
-              Vision-language model filters poor training samples and validates
-              data quality before model updates ship to edge.
-            </p>
-            <div class="tech-card__tags">
-              <span class="tag tag--purple">CLIP</span>
-              <span class="tag tag--purple">Quality</span>
-            </div>
-          </article>
-
-          <article class="tech-card">
-            <div class="tech-card__icon tech-card__icon--pink" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/>
-              </svg>
-            </div>
-            <h3 class="tech-card__title">Analytics Dashboard</h3>
-            <p class="tech-card__desc">
-              Real-time metrics: PSNR, SSIM, UIQM quality scores with YOLO
-              confidence visualisation and telemetry.
-            </p>
-            <div class="tech-card__tags">
-              <span class="tag tag--purple">React</span>
-              <span class="tag tag--purple">WebGL</span>
-            </div>
-          </article>
-        </div>
-
-        <!-- Pipeline flow -->
-        <div class="tech-flow reveal">
-          <div class="tech-flow__title">End-to-end pipeline</div>
-          <div class="tech-flow__steps">
-            <span class="tech-flow__step"><span class="pulse"></span>Raw Footage</span>
-            <span class="tech-flow__arrow" aria-hidden="true"></span>
-            <span class="tech-flow__step"><span class="pulse"></span>Pre-process</span>
-            <span class="tech-flow__arrow" aria-hidden="true"></span>
-            <span class="tech-flow__step"><span class="pulse"></span>UDnet / LU2net</span>
-            <span class="tech-flow__arrow" aria-hidden="true"></span>
-            <span class="tech-flow__step"><span class="pulse"></span>YOLO Detect</span>
-            <span class="tech-flow__arrow" aria-hidden="true"></span>
-            <span class="tech-flow__step"><span class="pulse"></span>Output</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- DETECTION                                                             -->
-    <!-- ================================================================== -->
-    <section id="detection" class="section detection" aria-labelledby="detection-title">
-      <div class="container">
-        <header class="section-title reveal">
-          <div class="section-title__head">
-            <div class="eyebrow"><span class="eyebrow__dot"></span><span class="eyebrow__line"></span><span>04 — Beyond Enhancement</span></div>
-          </div>
-          <h2 id="detection-title" class="section-title__main">
-            Intelligent <em>detection</em>
-          </h2>
-          <p class="section-title__sub">
-            Beyond enhancement — our system identifies marine species, geological
-            formations, and potential threats automatically.
-          </p>
-        </header>
-
-        <div class="detection__grid">
-          <div class="detection__visual reveal" data-tilt>
-            <picture>
-              <source srcset="output_images/realesr_general_4x_output.avif" type="image/avif">
-              <source srcset="output_images/realesr_general_4x_output.webp" type="image/webp">
-              <img src="output_images/realesr_general_4x_output.png"
-                   alt="Underwater reef scene used to demonstrate AI detection"
-                   width="1400" height="1050" loading="lazy" decoding="async">
-            </picture>
-            <div class="detection__scan" aria-hidden="true"></div>
-            <div class="detection__overlay">
-              <div class="detection__overlay-title">● Live Detection</div>
-              <div class="detection__overlay-num">3 species identified</div>
-              <div class="detection__overlay-meta">Processing: 12 ms · model: YOLOv8-marine</div>
-            </div>
-            <div class="hotspot" style="top: 28%; left: 24%">
-              <div class="hotspot-label">Parrot Fish · 98%</div>
-            </div>
-            <div class="hotspot" style="top: 60%; left: 70%">
-              <div class="hotspot-label">Brain Coral · 95%</div>
-            </div>
-            <div class="hotspot" style="top: 45%; left: 45%">
-              <div class="hotspot-label">Staghorn Coral · 92%</div>
-            </div>
-          </div>
-
-          <div class="detection__features reveal-stagger">
-            <div class="detection__feature">
-              <div class="detection__feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                </svg>
-              </div>
-              <div>
-                <h3 class="detection__feature-title">Geological Structures</h3>
-                <p class="detection__feature-desc">Rock formations, sediment types, hydrothermal vents, and potential petroleum indicators.</p>
-              </div>
-            </div>
-            <div class="detection__feature">
-              <div class="detection__feature-icon" aria-hidden="true" style="color:var(--c-teal-300);border-color:rgba(45,212,191,0.25);background:rgba(45,212,191,0.10)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2a10 10 0 1 0 10 10"/>
-                  <path d="M22 12A10 10 0 0 0 12 2v10z"/>
-                </svg>
-              </div>
-              <div>
-                <h3 class="detection__feature-title">Biodiversity Cataloguing</h3>
-                <p class="detection__feature-desc">Automatic species identification for marine biologists and ecological surveys.</p>
-              </div>
-            </div>
-            <div class="detection__feature">
-              <div class="detection__feature-icon" aria-hidden="true" style="color:#fca5a5;border-color:rgba(252,165,165,0.25);background:rgba(252,165,165,0.10)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 9v4"/>
-                  <path d="M12 17h.01"/>
-                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                </svg>
-              </div>
-              <div>
-                <h3 class="detection__feature-title">Threat Detection</h3>
-                <p class="detection__feature-desc">Submarine identification, underwater mines, unauthorised-diver detection for maritime security.</p>
-              </div>
-            </div>
-
-            <div class="detection__stats">
-              <div class="detection__stat">
-                <div class="detection__stat-num">15K+</div>
-                <div class="detection__stat-label">Species Classes</div>
-              </div>
-              <div class="detection__stat">
-                <div class="detection__stat-num">98.5%</div>
-                <div class="detection__stat-label">mAP Score</div>
-              </div>
-              <div class="detection__stat">
-                <div class="detection__stat-num">50<small style="color:var(--t-tertiary);font-size:0.6em">ms</small></div>
-                <div class="detection__stat-label">Latency</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- TOURISM / SOLUTIONS                                                   -->
-    <!-- ================================================================== -->
-    <section id="tourism" class="section" aria-labelledby="tourism-title">
-      <div class="container">
-        <header class="section-title reveal">
-          <div class="section-title__head">
-            <div class="eyebrow"><span class="eyebrow__dot"></span><span class="eyebrow__line"></span><span>05 — Marine Solutions</span></div>
-          </div>
-          <h2 id="tourism-title" class="section-title__main">
-            Elevate your <em>ocean adventures</em>
-          </h2>
-          <p class="section-title__sub">
-            Whether you're a recreational scuba diver, an underwater photographer,
-            or a marine-tourism operator — UnderwaterAI transforms every dive into
-            a crystal-clear experience.
-          </p>
-        </header>
-
-        <div class="solutions-grid reveal-stagger">
-          <article class="solution solution--teal" data-tilt>
-            <div class="solution__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 15a4 4 0 0 0 4 4h9a5 5 0 1 0-.1-10 5 5 0 1 0-9.78 2.1A4 4 0 0 0 3 15z"/>
-              </svg>
-            </div>
-            <h3 class="solution__title">Scuba Diving</h3>
-            <p class="solution__desc">Real-time AI enhancement cuts through murk, green water, and turbidity — giving vivid, true-colour footage on every dive.</p>
-            <div class="solution__tags">
-              <span class="tag tag--emerald">Real-time</span>
-              <span class="tag tag--emerald">All Depths</span>
-            </div>
-          </article>
-
-          <article class="solution solution--cyan" data-tilt>
-            <div class="solution__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 9a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.66-.89l.81-1.22A2 2 0 0 1 10.07 4h3.86a2 2 0 0 1 1.66.89l.81 1.22A2 2 0 0 0 18.07 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/>
-                <circle cx="15" cy="13" r="3"/>
-              </svg>
-            </div>
-            <h3 class="solution__title">Underwater Photography</h3>
-            <p class="solution__desc">AI colour restoration brings out the vibrant hues of coral reefs that cameras miss in low-light environments.</p>
-            <div class="solution__tags">
-              <span class="tag">Colour Restore</span>
-              <span class="tag">RAW Support</span>
-            </div>
-          </article>
-
-          <article class="solution solution--emerald" data-tilt>
-            <div class="solution__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17.66 18.66A8 8 0 0 1 6.34 7.34S7 9 9 10c0-2 .5-5 2.99-7C14 5 16.09 5.78 17.66 7.34A7.97 7.97 0 0 1 20 13a7.97 7.97 0 0 1-2.34 5.66z"/>
-                <path d="M9.88 16.12A3 3 0 1 0 12.02 11L11 14H9c0 .77.29 1.54.88 2.12z"/>
-              </svg>
-            </div>
-            <h3 class="solution__title">Coral Reef Exploration</h3>
-            <p class="solution__desc">Species-identification AI recognises 15,000+ marine species in real-time, turning every reef dive into an interactive tour.</p>
-            <div class="solution__tags">
-              <span class="tag tag--emerald">Species ID</span>
-              <span class="tag tag--emerald">Reef Mapping</span>
-            </div>
-          </article>
-
-          <article class="solution solution--blue" data-tilt>
-            <div class="solution__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 20l-5.45-2.72A1 1 0 0 1 3 16.38V5.62a1 1 0 0 1 1.45-.89L9 7m0 13l6-3m-6-10l6-3m0 13 5.45 2.72A1 1 0 0 0 21 18.38V7.62a1 1 0 0 0-1.45-.89L15 10m0 3V7"/>
-              </svg>
-            </div>
-            <h3 class="solution__title">Wreck Exploration</h3>
-            <p class="solution__desc">Enhanced low-light visibility reveals intricate details of shipwrecks, making technical diving safer and more rewarding.</p>
-            <div class="solution__tags">
-              <span class="tag">Low-Light</span>
-              <span class="tag">Depth Safe</span>
-            </div>
-          </article>
-
-          <article class="solution solution--purple" data-tilt>
-            <div class="solution__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 13.26A23.93 23.93 0 0 1 12 15c-3.18 0-6.22-.62-9-1.74M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2m4 6h.01M5 20h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z"/>
-              </svg>
-            </div>
-            <h3 class="solution__title">Tour Operators</h3>
-            <p class="solution__desc">Integrate our API into dive-centre cameras and headsets to provide AI-guided tours, species ID, and stunning HD memories.</p>
-            <div class="solution__tags">
-              <span class="tag tag--purple">API</span>
-              <span class="tag tag--purple">White-label</span>
-            </div>
-          </article>
-
-          <article class="solution solution--pink" data-tilt>
-            <div class="solution__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4.32 6.32a4.5 4.5 0 0 0 0 6.36L12 20.36l7.68-7.68a4.5 4.5 0 0 0-6.36-6.36L12 7.64l-1.32-1.32a4.5 4.5 0 0 0-6.36 0z"/>
-              </svg>
-            </div>
-            <h3 class="solution__title">Diver Safety</h3>
-            <p class="solution__desc">Real-time object detection identifies hazards, sea creatures, and navigation landmarks — keeping divers safe at depth.</p>
-            <div class="solution__tags">
-              <span class="tag tag--purple">Hazard Detect</span>
-              <span class="tag tag--purple">Nav Aid</span>
-            </div>
-          </article>
-        </div>
-
-        <div class="cta-banner reveal">
-          <h3 class="cta-banner__title">Ready to <span class="text-gradient">Dive Deeper</span>?</h3>
-          <p class="cta-banner__sub">Join thousands of divers, photographers, and marine-tourism operators who have transformed their underwater experience with UnderwaterAI.</p>
-          <div class="cta-banner__actions">
-            <a href="#compare" class="btn btn--primary">
-              <span class="pulse-dot" aria-hidden="true"></span>
-              <span>Start Free Trial</span>
-            </a>
-            <a href="#technology" class="btn btn--ghost">View Demo</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- CUSTOMERS / TRUST STRIP                                              -->
-    <!-- ================================================================== -->
-    <section id="customers" class="section trust" aria-labelledby="trust-title">
-      <div class="container">
-        <header class="section-title reveal">
-          <div class="section-title__head">
-            <div class="eyebrow"><span class="eyebrow__dot"></span><span class="eyebrow__line"></span><span>06 — Trusted By</span></div>
-          </div>
-          <h2 id="trust-title" class="section-title__main">
-            Who we <em>serve</em>
-          </h2>
-          <p class="section-title__sub">Dual-use technology serving defence, research, and industrial applications.</p>
-        </header>
-
-        <div class="trust__grid reveal-stagger">
-          <article class="trust-card">
-            <div class="trust-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 12l2 2 4-4m5.62-4.02A11.96 11.96 0 0 1 12 2.94 11.96 11.96 0 0 1 3.38 5.98 12.02 12.02 0 0 0 3 9c0 5.59 3.82 10.29 9 11.62 5.18-1.33 9-6.03 9-11.62 0-1.04-.13-2.05-.38-3.02z"/>
-              </svg>
-            </div>
-            <h3 class="trust-card__title">Defence &amp; Security</h3>
-            <p class="trust-card__desc">Maritime surveillance, submarine detection, coastal monitoring, threat identification.</p>
-          </article>
-          <article class="trust-card">
-            <div class="trust-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 21h18M5 21V8l7-5 7 5v13M9 9h6M9 13h6M9 17h6"/>
-              </svg>
-            </div>
-            <h3 class="trust-card__title">Petrochemical</h3>
-            <p class="trust-card__desc">Underwater pipeline inspection, offshore rig maintenance, exploration site surveys.</p>
-          </article>
-          <article class="trust-card">
-            <div class="trust-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-            </div>
-            <h3 class="trust-card__title">Research Institutes</h3>
-            <p class="trust-card__desc">Oceanographic studies, marine biology, climate monitoring, deep-sea exploration.</p>
-          </article>
-          <article class="trust-card">
-            <div class="trust-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="8" r="4"/>
-                <path d="M4 22a8 8 0 0 1 16 0"/>
-              </svg>
-            </div>
-            <h3 class="trust-card__title">Scuba &amp; Commercial Divers</h3>
-            <p class="trust-card__desc">Real-time visibility enhancement for diver navigation, wreck exploration, photography.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- TEAM                                                                  -->
-    <!-- ================================================================== -->
-    <section id="team" class="section team" aria-labelledby="team-title">
-      <div class="container">
-        <header class="section-title reveal">
-          <div class="section-title__head">
-            <div class="eyebrow"><span class="eyebrow__dot"></span><span class="eyebrow__line"></span><span>07 — Leadership</span></div>
-          </div>
-          <h2 id="team-title" class="section-title__main">
-            The <em>founders</em>
-          </h2>
-          <p class="section-title__sub">Our founding leadership team — shaping the future of underwater intelligence.</p>
-        </header>
-
-        <div class="team__grid reveal-stagger">
-          <article class="member member--cyan" data-tilt>
-            <div class="member__avatar">
-              <div class="member__avatar-bg" aria-hidden="true">GS</div>
-            </div>
-            <h3 class="member__name">Gautam Singh</h3>
-            <span class="member__role">CEO</span>
-            <p class="member__bio">Chief Executive Officer. Sets the vision and drives strategic partnerships across defence and research.</p>
-            <div class="member__links">
-              <a href="#" class="member__link" aria-label="Gautam Singh on LinkedIn">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.27c-.97 0-1.75-.79-1.75-1.76s.78-1.76 1.75-1.76 1.75.79 1.75 1.76-.78 1.76-1.75 1.76zm13.5 12.27h-3v-5.6c0-3.37-4-3.11-4 0v5.6h-3v-11h3v1.77c1.4-2.59 7-2.78 7 2.48v6.75z"/></svg>
-              </a>
-            </div>
-          </article>
-
-          <article class="member member--teal" data-tilt>
-            <div class="member__avatar">
-              <div class="member__avatar-bg" aria-hidden="true">SB</div>
-            </div>
-            <h3 class="member__name">Shuvam Banerji Seal</h3>
-            <span class="member__role">CTO</span>
-            <p class="member__bio">Chief Technology Officer. Leads model architecture, edge deployment, and the engineering team.</p>
-            <div class="member__links">
-              <a href="#" class="member__link" aria-label="Shuvam Banerji Seal on LinkedIn">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.27c-.97 0-1.75-.79-1.75-1.76s.78-1.76 1.75-1.76 1.75.79 1.75 1.76-.78 1.76-1.75 1.76zm13.5 12.27h-3v-5.6c0-3.37-4-3.11-4 0v5.6h-3v-11h3v1.77c1.4-2.59 7-2.78 7 2.48v6.75z"/></svg>
-              </a>
-            </div>
-          </article>
-
-          <article class="member member--purple" data-tilt>
-            <div class="member__avatar">
-              <div class="member__avatar-bg" aria-hidden="true">YS</div>
-            </div>
-            <h3 class="member__name">Youktik Sajjan</h3>
-            <span class="member__role">COO</span>
-            <p class="member__bio">Chief Operating Officer. Orchestrates operations, partnerships, and field deployments.</p>
-            <div class="member__links">
-              <a href="#" class="member__link" aria-label="Youktik Sajjan on LinkedIn">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.27c-.97 0-1.75-.79-1.75-1.76s.78-1.76 1.75-1.76 1.75.79 1.75 1.76-.78 1.76-1.75 1.76zm13.5 12.27h-3v-5.6c0-3.37-4-3.11-4 0v5.6h-3v-11h3v1.77c1.4-2.59 7-2.78 7 2.48v6.75z"/></svg>
-              </a>
-            </div>
-          </article>
-
-          <article class="member member--orange" data-tilt>
-            <div class="member__avatar">
-              <div class="member__avatar-bg" aria-hidden="true">AK</div>
-            </div>
-            <h3 class="member__name">Aman Kumar</h3>
-            <span class="member__role">CPO</span>
-            <p class="member__bio">Chief Product Officer. Shapes the product roadmap, UX, and customer success.</p>
-            <div class="member__links">
-              <a href="#" class="member__link" aria-label="Aman Kumar on LinkedIn">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.27c-.97 0-1.75-.79-1.75-1.76s.78-1.76 1.75-1.76 1.75.79 1.75 1.76-.78 1.76-1.75 1.76zm13.5 12.27h-3v-5.6c0-3.37-4-3.11-4 0v5.6h-3v-11h3v1.77c1.4-2.59 7-2.78 7 2.48v6.75z"/></svg>
-              </a>
-            </div>
-          </article>
-        </div>
-
-        <div class="funding-strip reveal">
-          <span class="funding-strip__label">Proudly funded by</span>
-          <span class="funding-strip__badge" aria-label="MeitY — Ministry of Electronics and Information Technology, Government of India">
-            <span class="funding-strip__meity" aria-hidden="true">M</span>
-            <span>MeitY · Government of India</span>
-          </span>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ====================================================================== -->
-  <!-- FOOTER                                                                 -->
-  <!-- ====================================================================== -->
-  <footer class="footer" role="contentinfo">
-    <div class="footer__inner">
-      <div class="footer__grid">
-        <div class="footer__brand-block">
-          <div class="footer__brand">
-            <svg width="32" height="32" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <defs>
-                <linearGradient id="footer-g1" x1="0" y1="0" x2="44" y2="44">
-                  <stop offset="0%" stop-color="#00b4d8"/>
-                  <stop offset="100%" stop-color="#0077b6"/>
-                </linearGradient>
-              </defs>
-              <circle cx="22" cy="22" r="21" fill="url(#footer-g1)" opacity="0.12" stroke="url(#footer-g1)" stroke-width="1.5"/>
-              <path d="M4 26 Q10 20 16 26 Q22 32 28 26 Q34 20 40 26" stroke="#90e0ef" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-              <path d="M8 22 Q14 16 22 18 Q30 20 34 16 L38 14 L32 20 Q36 22 34 24 L38 28 L34 26 Q30 22 22 24 Q14 26 8 22Z" fill="url(#footer-g1)" opacity="0.9"/>
-            </svg>
-            <span>Underwater<span style="color:var(--c-cyan-400)">AI</span></span>
-          </div>
-          <p class="footer__desc">Computational marine-imagery software for defence, research, and industrial underwater exploration. Making the invisible visible.</p>
-        </div>
-
-        <div>
-          <h4 class="footer__col-title">Product</h4>
-          <ul class="footer__list">
-            <li><a href="#compare">Enhancement Engine</a></li>
-            <li><a href="#detection">Species Detection</a></li>
-            <li><a href="#technology">Edge Deployment</a></li>
-            <li><a href="#technology">API Access</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 class="footer__col-title">Company</h4>
-          <ul class="footer__list">
-            <li><a href="#team">About Us</a></li>
-            <li><a href="#technology">Research</a></li>
-            <li><a href="#team">Careers</a></li>
-            <li><a href="#hero">Contact</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 class="footer__col-title">Resources</h4>
-          <ul class="footer__list">
-            <li><a href="#hero">Documentation</a></li>
-            <li><a href="#hero">Datasets</a></li>
-            <li><a href="#hero">Whitepaper</a></li>
-            <li><a href="#hero">Status</a></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="footer__bottom">
-        <p>&copy; 2025 Underwater AI. All rights reserved.</p>
-        <p>Inter INCI E-Summit 2025 · Digi Nova Theme</p>
-      </div>
-    </div>
-  </footer>
-
-  <!-- ====================================================================== -->
-  <!-- LIBRARIES (deferred)                                                   -->
-  <!-- ====================================================================== -->
-
-  <!-- Three.js import map — lets scene-3d.js (ES module) import addons -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      var mode = localStorage.getItem('uw-theme') === 'light' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = mode;
+      document.documentElement.style.colorScheme = mode;
+    } catch (e) {
+      document.documentElement.dataset.theme = 'dark';
     }
+  })();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Underwater AI",
+  "url": "https://underwaterai.org/",
+  "foundingDate": "2024",
+  "description": "Computational marine imagery software: real-time underwater image restoration, species and threat identification, and image-to-3D seafloor reconstruction for defence, research and industry.",
+  "address": { "@type": "PostalAddress", "addressCountry": "IN" },
+  "founder": [
+    { "@type": "Person", "name": "Gautam Singh", "jobTitle": "Chief Executive Officer" },
+    { "@type": "Person", "name": "Shuvam Banerji Seal", "jobTitle": "Chief Technology Officer" },
+    { "@type": "Person", "name": "Youktik Sajjan", "jobTitle": "Chief Operating Officer" },
+    { "@type": "Person", "name": "Aman Kumar", "jobTitle": "Chief Product Officer" }
+  ]
+}
+</script>
+</head>
+
+<body class="no-js">
+<script>document.body.classList.remove('no-js');</script>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<!-- Persistent WebGL stage: every 3D act renders into this one context. -->
+<canvas id="gl" aria-hidden="true"></canvas>
+<div class="atmos" aria-hidden="true">
+  <div class="atmos__vignette"></div>
+  <div class="atmos__grain"></div>
+</div>
+
+<!-- First-person rover cockpit: past the hero you are inside the vehicle -->
+<div class="cockpit" id="cockpit" aria-hidden="true">
+  <div class="cockpit__frame"></div>
+  <div class="cockpit__glass"></div>
+  <span class="cockpit__strut cockpit__strut--tl"></span>
+  <span class="cockpit__strut cockpit__strut--tr"></span>
+
+  <!-- Detection boxes lock onto the live creatures inside this viewport -->
+  <div class="cockpit__view"><div id="live-overlay"></div></div>
+
+  <div class="cockpit__badge" id="ai-badge">
+    <i></i><span>Underwater AI</span><b id="ai-state">Standby</b>
+  </div>
+  <div class="cockpit__rec">REC</div>
+  <span class="cockpit__reticle"></span>
+
+  <div class="cockpit__readout">
+    <span>DEPTH <b data-hud="depth">0000</b> M</span>
+    <span>HDG <b data-hud="hdg">000</b>&deg;</span>
+    <span>TEMP <b data-hud="temp">18.0</b>&deg;C</span>
+    <span>TETHER <b data-hud="tether">0000</b> M</span>
+    <span>TURBIDITY <b data-hud="ntu">0.0</b> NTU</span>
+    <span>LOCKS <b data-hud="locks">0</b></span>
+  </div>
+</div>
+
+<!-- ================= BOOT / LOADING ================= -->
+<div class="boot" id="boot" role="status" aria-live="polite" aria-label="Loading Underwater AI">
+  <div class="boot__inner">
+    <div class="boot__mark">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="#0a141e"/>
+        <path d="M4 19q4-5 8 0t8 0 8 0" stroke="#38e1ff" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <circle cx="16" cy="11" r="3.2" fill="#1fd5b0"/>
+      </svg>
+      <span>Underwater<b style="color:#38e1ff">AI</b></span>
+    </div>
+
+    <div class="boot__depth"><span id="boot-depth-num">0000</span><span>M · DESCENDING</span></div>
+
+    <div class="boot__sonar"><i class="boot__sonar-fill" id="boot-fill"></i></div>
+    <div class="boot__row">
+      <span class="boot__task" id="boot-task">Initialising dive computer</span>
+      <span class="boot__pct" id="boot-pct">0%</span>
+    </div>
+
+    <ul class="boot__log" id="boot-log" aria-hidden="true"></ul>
+
+    <button type="button" class="boot__enter" id="boot-enter">
+      <span>Begin dive</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<div class="progress" aria-hidden="true"><i id="progress-bar"></i></div>
+
+<!-- ================= NAV ================= -->
+<nav class="nav" id="nav" aria-label="Primary">
+  <div class="nav__inner">
+    <a href="#descent" class="nav__brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="#0a141e" stroke="rgba(120,190,220,.2)"/>
+        <path d="M4 19q4-5 8 0t8 0 8 0" stroke="#38e1ff" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <circle cx="16" cy="11" r="3.2" fill="#1fd5b0"/>
+      </svg>
+      <span>Underwater<b>AI</b></span>
+    </a>
+
+    <div class="nav__links">
+      <a class="nav__link" href="#murk">The Problem</a>
+      <a class="nav__link" href="#enhance">Restore</a>
+      <a class="nav__link" href="#identify">Identify</a>
+      <a class="nav__link" href="#vehicle">Vehicle</a>
+      <a class="nav__link" href="#perception">Studio</a>
+      <a class="nav__link" href="#reconstruct">Reconstruct</a>
+      <a class="nav__link" href="#suite">Platform</a>
+      <a class="nav__link" href="#team">Team</a>
+    </div>
+
+    <div class="nav__end">
+      <button type="button" class="nav__theme" id="theme-toggle"
+              aria-label="Switch to light theme" aria-pressed="false">
+        <svg class="nav__theme-sun" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 2.5v2m0 15v2M4.2 4.2l1.4 1.4m12.8 12.8 1.4 1.4M2.5 12h2m15 0h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>
+        </svg>
+        <svg class="nav__theme-moon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+        </svg>
+      </button>
+      <a href="#contact" class="btn btn--primary btn--sm">Request a demo</a>
+      <button type="button" class="nav__burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="menu" id="menu" aria-hidden="true">
+  <a class="menu__link" href="#murk"><span>01</span>The Problem</a>
+  <a class="menu__link" href="#enhance"><span>02</span>Restore</a>
+  <a class="menu__link" href="#identify"><span>03</span>Identify</a>
+  <a class="menu__link" href="#vehicle"><span>04</span>Vehicle</a>
+  <a class="menu__link" href="#perception"><span>05</span>Studio</a>
+  <a class="menu__link" href="#reconstruct"><span>06</span>Reconstruct</a>
+  <a class="menu__link" href="#suite"><span>07</span>Platform</a>
+  <a class="menu__link" href="#deploy"><span>08</span>Deployment</a>
+  <a class="menu__link" href="#team"><span>09</span>Team</a>
+  <a class="menu__link" href="#contact"><span>10</span>Request a demo</a>
+</div>
+
+<main id="main">
+
+<!-- ================= 01 · DESCENT ================= -->
+<section class="hero" id="descent" aria-labelledby="hero-title">
+  <div class="wrap">
+    <p class="hero__badge">Computational Marine Imagery · ABYSS-1 uplink</p>
+    <h1 class="hero__title" id="hero-title" data-fit>
+      <span class="ln"><span>Reveal the</span></span>
+      <span class="ln"><span class="grad"><em>Hidden Depths</em></span></span>
+      <span class="ln"><span>of the Ocean</span></span>
+    </h1>
+    <p class="hero__sub">
+      You are looking through the eye of an underwater rover, 2,400 metres down.
+      The water has taken almost everything from this frame. Keep scrolling —
+      we're going to give it back.
+    </p>
+    <div class="hero__cta">
+      <a href="#enhance" class="btn btn--primary">
+        <span>See it restored</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </a>
+      <a href="#vehicle" class="btn btn--ghost"><span>Meet ABYSS-1</span></a>
+    </div>
+  </div>
+  <div class="scroll-cue" aria-hidden="true">
+    <span>Descend</span>
+    <span class="scroll-cue__rail"></span>
+  </div>
+</section>
+
+<!-- ================= 02 · THE MURK ================= -->
+<section class="chapter chapter--cockpit" id="murk" aria-labelledby="murk-title">
+  <div class="cockpit-run">
+    <aside class="dock dock--left reveal">
+      <p class="dock__tag">Chapter 01 &middot; The problem</p>
+      <h2 class="dock__title" id="murk-title" data-fit>Water is an <em>adversarial filter</em></h2>
+      <p class="dock__body">
+        Every metre of seawater eats light, scatters it back, and rewrites
+        colour. By the time this frame reaches the sensor most of the scene has
+        already been <strong>deleted</strong>, not merely blurred.
+      </p>
+      <div class="dock__meters">
+        <div class="meter meter--r">
+          <p class="meter__row"><span>Red channel</span><b><span data-count="97">0</span>% lost</b></p>
+          <div class="meter__bar"><i data-loss="97"></i></div>
+        </div>
+        <div class="meter meter--g">
+          <p class="meter__row"><span>Green channel</span><b><span data-count="71">0</span>% lost</b></p>
+          <div class="meter__bar"><i data-loss="71"></i></div>
+        </div>
+        <div class="meter meter--b">
+          <p class="meter__row"><span>Contrast</span><b><span data-count="84">0</span>% lost</b></p>
+          <div class="meter__bar"><i data-loss="84"></i></div>
+        </div>
+        <div class="meter meter--a">
+          <p class="meter__row"><span>Ambient light</span><b><span data-count="100">0</span>% lost</b></p>
+          <div class="meter__bar"><i data-loss="100"></i></div>
+        </div>
+      </div>
+      <p class="dock__body" style="color:var(--t-low)">
+        Below the twilight zone, everything you see you brought with you.
+      </p>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= 03 · ENHANCE (the payoff) ================= -->
+<section class="chapter chapter--cockpit" id="enhance" aria-labelledby="enhance-title">
+  <div class="cockpit-run">
+    <aside class="dock dock--right reveal">
+      <p class="dock__tag">Chapter 02 &middot; Restoration</p>
+      <h2 class="dock__title" id="enhance-title" data-fit>And then the water <em>gets out of the way</em></h2>
+      <p class="dock__body">
+        A cascade of restoration models runs on the vehicle itself &mdash;
+        colour-cast inversion, backscatter removal and 4&times; super-resolution
+        &mdash; rebuilding the frame faster than the camera produces the next one.
+      </p>
+      <div class="dock__meters">
+        <div class="meter meter--b">
+          <p class="meter__row"><span>Inference</span><b><span data-count="0.03" data-dec="2">0.00</span> s</b></p>
+          <div class="meter__bar"><i data-loss="92"></i></div>
+        </div>
+        <div class="meter meter--g">
+          <p class="meter__row"><span>PSNR gain</span><b>+<span data-count="26.4" data-dec="1">0</span> dB</b></p>
+          <div class="meter__bar"><i data-loss="88"></i></div>
+        </div>
+      </div>
+      <ul class="dock__list">
+        <li>UDnet unpaired restoration</li>
+        <li>LU2net + MobileIE on Jetson, INT8</li>
+        <li>30 fps on-vehicle inside 15 W</li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= 04 · LIVE IDENTIFICATION ================= -->
+<section class="chapter chapter--cockpit" id="identify" aria-labelledby="identify-title">
+  <div class="cockpit-run cockpit-run--short">
+    <aside class="dock dock--left reveal">
+      <p class="dock__tag">Chapter 03 &middot; Perception</p>
+      <h2 class="dock__title" id="identify-title" data-fit>Now it knows <em>what it is looking at</em></h2>
+      <p class="dock__body">
+        Clarity is the input, not the product. The detector runs on every
+        restored frame, naming what swims past and scoring how sure it is.
+      </p>
+      <div class="dock__hits" id="dock-hits"></div>
+      <p class="dock__body" style="color:var(--t-low)">
+        15,000+ marine classes &middot; 98.5% mAP &middot; 50 ms per frame
+      </p>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= 05 · THE PULL-BACK REVEAL ================= -->
+<section class="chapter chapter--cockpit" id="reveal" aria-labelledby="reveal-title">
+  <div class="cockpit-run cockpit-run--reveal">
+    <aside class="dock dock--right reveal">
+      <p class="dock__tag">Chapter 04 &middot; The reveal</p>
+      <h2 class="dock__title" id="reveal-title" data-fit>And this is <em>what was looking</em></h2>
+      <p class="dock__body">
+        Everything you just watched &mdash; the descent, the restoration, every
+        box locked onto a living animal &mdash; ran on one vehicle, in the water,
+        in real time. Pull back and meet it.
+      </p>
+      <ul class="dock__list">
+        <li>Restoration and detection on board, not topside</li>
+        <li>4,000 m rated &middot; 6 vectored thrusters</li>
+        <li>Jetson Orin NX inside a 15 W budget</li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= 04 · THE VEHICLE ================= -->
+<section class="chapter chapter--scrim" id="vehicle" aria-labelledby="vehicle-title">
+  <div class="wrap vehicle-stage">
+    <header class="chapter-head chapter-head--wide reveal">
+      <p class="eyebrow">Chapter 05 — The vehicle<span class="eyebrow__rule"></span></p>
+      <h2 class="chapter-title" id="vehicle-title" data-fit>ABYSS&#8209;1 — the eye that <em>goes down there</em></h2>
+      <p class="chapter-sub">
+        A work-class inspection ROV carrying the whole stack on board. Every part
+        below is real geometry, generated parametrically and shipped to your
+        browser Draco-compressed. Take it with you.
+      </p>
+    </header>
+
+    <div class="vehicle-grid">
+      <div class="reveal">
+        <div class="spec-list" id="spec-list">
+          <div class="spec"><span class="spec__k">Class</span><span class="spec__v">Work-class inspection</span></div>
+          <div class="spec"><span class="spec__k">Depth rating</span><span class="spec__v">4,000 m</span></div>
+          <div class="spec"><span class="spec__k">Propulsion</span><span class="spec__v">6× vectored thrusters</span></div>
+          <div class="spec"><span class="spec__k">Compute</span><span class="spec__v">Jetson Orin NX</span></div>
+          <div class="spec"><span class="spec__k">Optics</span><span class="spec__v">4K dome · 2× LED pod</span></div>
+          <div class="spec"><span class="spec__k">Manipulator</span><span class="spec__v">5-function arm</span></div>
+          <div class="spec"><span class="spec__k">Sensing</span><span class="spec__v">Multibeam · DVL · CTD</span></div>
+          <div class="spec"><span class="spec__k">Mesh</span><span class="spec__v" id="spec-tris">—</span></div>
+        </div>
+        <div class="downloads">
+          <a class="dl" href="assets/models/rov.stl" download><span>STL</span><b id="dl-stl-size">·</b></a>
+          <a class="dl" href="assets/models/rov.glb" download><span>GLB</span><b id="dl-glb-size">·</b></a>
+          <a class="dl" href="assets/models/rov.draco.glb" download><span>Draco GLB</span><b id="dl-draco-size">·</b></a>
+        </div>
+      </div>
+
+      <div class="vehicle__viewport reveal" id="vehicle-viewport">
+        <div class="hotspot" data-hotspot="optics" style="left:50%;top:34%">
+          <span class="hotspot__dot"></span><span class="hotspot__label">4K dome port</span>
+        </div>
+        <div class="hotspot hotspot--flip" data-hotspot="propulsion" style="left:20%;top:56%">
+          <span class="hotspot__dot"></span><span class="hotspot__label">Vectored thruster</span>
+        </div>
+        <div class="hotspot" data-hotspot="buoyancy_pack" style="left:62%;top:18%">
+          <span class="hotspot__dot"></span><span class="hotspot__label">Syntactic foam</span>
+        </div>
+        <div class="hotspot" data-hotspot="manipulator" style="left:70%;top:62%">
+          <span class="hotspot__dot"></span><span class="hotspot__label">5-function arm</span>
+        </div>
+        <div class="hotspot hotspot--flip" data-hotspot="pressure_housings" style="left:33%;top:44%">
+          <span class="hotspot__dot"></span><span class="hotspot__label">Ti pressure housing</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05 · PERCEPTION ================= -->
+<section class="chapter" id="perception" aria-labelledby="perception-title">
+  <div class="wrap">
+    <header class="chapter-head chapter-head--wide reveal">
+      <p class="eyebrow">Chapter 06 — Abyssal Studio<span class="eyebrow__rule"></span></p>
+      <h2 class="chapter-title" id="perception-title" data-fit>A restored frame is only <em>half the answer</em></h2>
+      <p class="chapter-sub">
+        Clarity is the input, not the product. Everything the vehicle sees goes
+        into <strong style="color:var(--t-hi);font-weight:600">Abyssal Studio</strong> —
+        our analysis workbench — where a single click turns pixels into a
+        catalogued, confidence-scored, exportable survey.
+      </p>
+    </header>
+
+    <div class="ws reveal" id="ws" role="group" aria-label="Abyssal Studio demonstration">
+      <div class="ws__bar">
+        <span class="ws__lights" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="ws__appname">Abyssal Studio 2.4 — dive_0417_reef.seq</span>
+        <div class="ws__menu">
+          <button type="button">File</button><button type="button">Edit</button>
+          <button type="button">View</button><button type="button">Analyse</button>
+          <button type="button">Detect</button><button type="button">Reconstruct</button>
+          <button type="button">Window</button><button type="button">Help</button>
+        </div>
+      </div>
+
+      <div class="ws__toolbar" role="toolbar" aria-label="Analysis tools">
+        <button type="button" class="tool is-active" data-tool="restore">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M4.9 4.9l2.1 2.1m10 10 2.1 2.1M19.1 4.9 17 7m-10 10-2.1 2.1"/></svg>
+          <span>Restore</span>
+        </button>
+        <span class="ws__sep" aria-hidden="true"></span>
+        <button type="button" class="tool" data-tool="species" id="tool-species">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg>
+          <span>Species ID</span>
+        </button>
+        <button type="button" class="tool" data-tool="geology">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 9 6l5 8 3-4 4 10z"/></svg>
+          <span>Geology</span>
+        </button>
+        <button type="button" class="tool" data-tool="threat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>
+          <span>Threat scan</span>
+        </button>
+        <span class="ws__sep" aria-hidden="true"></span>
+        <button type="button" class="tool" data-tool="clear">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14"/></svg>
+          <span>Clear</span>
+        </button>
+      </div>
+
+      <div class="ws__body">
+        <div class="ws__viewport" id="ws-viewport">
+          <picture>
+            <source srcset="output_images/realesr_general_4x_output.avif" type="image/avif">
+            <source srcset="output_images/realesr_general_4x_output.webp" type="image/webp">
+            <img src="output_images/realesr_general_4x_output.png" width="1280" height="853"
+                 alt="Restored underwater reef frame loaded in the Abyssal Studio viewport"
+                 loading="lazy" decoding="async">
+          </picture>
+          <div class="ws__overlay" id="ws-overlay" aria-hidden="true"></div>
+          <div class="ws__scan" id="ws-scan" aria-hidden="true"></div>
+        </div>
+
+        <aside class="ws__inspector" aria-label="Detection results">
+          <h4>Inspector — <span id="ws-count">0</span> objects</h4>
+          <div id="ws-hits"></div>
+        </aside>
+      </div>
+
+      <ul class="ws__console" id="ws-console" aria-hidden="true"></ul>
+    </div>
+
+    <div class="enhance__metrics stagger" style="margin-inline:auto">
+      <div class="metric"><p class="metric__num" data-count="15">0<small>K+</small></p><p class="metric__label">Species classes</p></div>
+      <div class="metric"><p class="metric__num" data-count="98.5" data-dec="1">0<small>%</small></p><p class="metric__label">Detection mAP</p></div>
+      <div class="metric"><p class="metric__num" data-count="50">0<small>ms</small></p><p class="metric__label">Detect latency</p></div>
+      <div class="metric"><p class="metric__num">IOD</p><p class="metric__label">+ EUVP + UIEB</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 06 · RECONSTRUCT ================= -->
+<section class="chapter chapter--stage" id="reconstruct" aria-labelledby="recon-title">
+  <div class="wrap recon-stage">
+    <header class="chapter-head chapter-head--wide reveal">
+      <p class="eyebrow">Chapter 07 — Reconstruction<span class="eyebrow__rule"></span></p>
+      <h2 class="chapter-title" id="recon-title" data-fit>From one frame to a <em>world you can walk through</em></h2>
+      <p class="chapter-sub">
+        Monocular depth estimation lifts each restored frame off the image plane.
+        Consecutive frames fuse into a georeferenced point cloud, then a textured
+        mesh — a survey site you can open in Blender, QGIS, or your own viewer.
+      </p>
+    </header>
+
+    <div class="recon-scroll">
+    <div class="recon-rail">
+    <div class="recon-steps stagger" id="recon-steps">
+      <article class="step" data-step="0">
+        <p class="step__n">01</p><h3 class="step__t">Restored frame</h3>
+        <p class="step__d">A clean, colour-true image — the only input the pipeline needs.</p>
+      </article>
+      <article class="step" data-step="1">
+        <p class="step__n">02</p><h3 class="step__t">Depth field</h3>
+        <p class="step__d">Per-pixel range inferred with a marine-tuned monocular depth model.</p>
+      </article>
+      <article class="step" data-step="2">
+        <p class="step__n">03</p><h3 class="step__t">Point cloud</h3>
+        <p class="step__d">Pixels lift into 3D and fuse across frames with DVL-aided odometry.</p>
+      </article>
+      <article class="step" data-step="3">
+        <p class="step__n">04</p><h3 class="step__t">Textured mesh</h3>
+        <p class="step__d">Poisson surface reconstruction, then projected colour from the source frames.</p>
+      </article>
+    </div>
+
+    <div class="chips reveal">
+      <span class="chip">.glb</span><span class="chip">.obj</span><span class="chip">.ply</span>
+      <span class="chip">.laz</span><span class="chip">Blender</span><span class="chip">QGIS</span>
+      <span class="chip">Geo-referenced</span><span class="chip">Sediment classes</span>
+    </div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 07 · THE PLATFORM ================= -->
+<section class="chapter" id="suite" aria-labelledby="suite-title">
+  <div class="wrap">
+    <header class="chapter-head chapter-head--wide reveal">
+      <p class="eyebrow">Chapter 08 — The platform<span class="eyebrow__rule"></span></p>
+      <h2 class="chapter-title" id="suite-title" data-fit>One suite, <em>four stages</em>, one vehicle</h2>
+      <p class="chapter-sub">
+        There is no model to pick and no mode to switch. The suite decides what a
+        frame needs, runs it, and hands the next stage a better input than it had.
+      </p>
+    </header>
+
+    <div class="suite stagger">
+      <article class="stage-card">
+        <p class="stage-card__n">Stage 01</p>
+        <h3 class="stage-card__t">Restore</h3>
+        <p class="stage-card__d">Colour-cast inversion, backscatter removal and 4× super-resolution, quantised to INT8 and running in the thruster power budget.</p>
+        <ul class="stage-card__list">
+          <li>UDnet unpaired restoration</li>
+          <li>LU2net + MobileIE edge inference</li>
+          <li>4× super-resolution, 30 ms/frame</li>
+        </ul>
+        <div class="tags"><span class="tag">PyTorch</span><span class="tag">TensorRT</span><span class="tag">INT8</span></div>
+      </article>
+
+      <article class="stage-card">
+        <p class="stage-card__n">Stage 02</p>
+        <h3 class="stage-card__t">Perceive</h3>
+        <p class="stage-card__d">Detection and classification over 15,000+ marine classes, plus geology and threat catalogues, every box confidence-scored and exportable.</p>
+        <ul class="stage-card__list">
+          <li>YOLO detector on IOD / EUVP / UIEB</li>
+          <li>98.5% mAP at 50 ms</li>
+          <li>Species, geology and threat heads</li>
+        </ul>
+        <div class="tags"><span class="tag">YOLO</span><span class="tag">OpenCV</span><span class="tag">ONNX</span></div>
+      </article>
+
+      <article class="stage-card">
+        <p class="stage-card__n">Stage 03</p>
+        <h3 class="stage-card__t">Reconstruct</h3>
+        <p class="stage-card__d">Frame-to-frame fusion into georeferenced point clouds and textured meshes, with sediment and structure classification baked in.</p>
+        <ul class="stage-card__list">
+          <li>Monocular depth + DVL odometry</li>
+          <li>Poisson meshing, projected texture</li>
+          <li>GIS and Blender-native export</li>
+        </ul>
+        <div class="tags"><span class="tag">Open3D</span><span class="tag">COLMAP</span><span class="tag">glTF</span></div>
+      </article>
+
+      <article class="stage-card">
+        <p class="stage-card__n">Stage 04</p>
+        <h3 class="stage-card__t">Decide</h3>
+        <p class="stage-card__d">Telemetry, quality scores and CLIP-validated retraining close the loop: every dive makes the next dive's models better.</p>
+        <ul class="stage-card__list">
+          <li>PSNR / SSIM / UIQM scoring</li>
+          <li>CLIP validation gates training data</li>
+          <li>Nightly retrain, OTA weight rollout</li>
+        </ul>
+        <div class="tags"><span class="tag">CLIP</span><span class="tag">MLOps</span><span class="tag">OTA</span></div>
+      </article>
+    </div>
+
+    <div class="rail reveal" aria-label="End-to-end pipeline">
+      <span class="rail__node">Raw feed</span>
+      <svg class="rail__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+      <span class="rail__node">Restore</span>
+      <svg class="rail__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+      <span class="rail__node">Detect</span>
+      <svg class="rail__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+      <span class="rail__node">Reconstruct</span>
+      <svg class="rail__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+      <span class="rail__node">Survey output</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 08 · DEPLOYMENT ================= -->
+<section class="chapter chapter--scrim" id="deploy" aria-labelledby="deploy-title">
+  <div class="wrap">
+    <header class="chapter-head chapter-head--wide reveal">
+      <p class="eyebrow">Chapter 09 — Deployment<span class="eyebrow__rule"></span></p>
+      <h2 class="chapter-title" id="deploy-title" data-fit>Dual-use, by design</h2>
+      <p class="chapter-sub">
+        The same stack that helps a marine biologist count coral recruits helps a
+        navy classify a contact. It runs on the vehicle, on a ship's server, or on
+        a diver's headset.
+      </p>
+    </header>
+
+    <div class="apps stagger">
+      <article class="app">
+        <span class="app__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></span>
+        <h3 class="app__t">Defence &amp; security</h3>
+        <p class="app__d">Maritime surveillance, submarine and mine classification, coastal monitoring, unauthorised-diver detection.</p>
+      </article>
+      <article class="app">
+        <span class="app__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V8l8-5 8 5v12"/><path d="M9 20v-6h6v6"/></svg></span>
+        <h3 class="app__t">Offshore &amp; energy</h3>
+        <p class="app__d">Pipeline and riser inspection, rig structural surveys, anode and corrosion tracking, site clearance.</p>
+      </article>
+      <article class="app">
+        <span class="app__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v6l-5 9a3 3 0 0 0 2.7 4.4h10.6A3 3 0 0 0 20 18l-5-9V3"/><path d="M8 3h8"/></svg></span>
+        <h3 class="app__t">Research institutes</h3>
+        <p class="app__d">Reef health time-series, biodiversity cataloguing, climate monitoring, deep-sea and hydrothermal exploration.</p>
+      </article>
+      <article class="app">
+        <span class="app__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></svg></span>
+        <h3 class="app__t">Survey &amp; dive operations</h3>
+        <p class="app__d">Live visibility enhancement for pilots and divers, wreck documentation, guided species identification for tour operators.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 09 · MISSION & TEAM ================= -->
+<section class="chapter" id="team" aria-labelledby="team-title">
+  <div class="wrap">
+    <header class="chapter-head chapter-head--wide reveal">
+      <p class="eyebrow">Chapter 10 — Mission &amp; team<span class="eyebrow__rule"></span></p>
+      <h2 class="chapter-title" id="team-title" data-fit>We are building the ocean's <em>missing sense</em></h2>
+      <p class="chapter-sub">
+        Seventy percent of the planet is dark to us. Not because we lack cameras —
+        because water destroys what cameras record. Underwater AI exists to give
+        that sense back, cheaply enough that every vehicle can carry it.
+      </p>
+    </header>
+
+    <div class="goals stagger">
+      <article class="goal">
+        <p class="goal__n">Goal 01</p><h3 class="goal__t">Real-time, on the edge</h3>
+        <p class="goal__d">Everything must run on the vehicle inside a 15 W budget. A model that needs a ship's server is a model that arrives too late.</p>
+      </article>
+      <article class="goal">
+        <p class="goal__n">Goal 02</p><h3 class="goal__t">Sensor-agnostic</h3>
+        <p class="goal__d">GoPro, machine-vision rig, or a 4,000 m-rated ROV camera — the same weights work, with no per-camera calibration pass.</p>
+      </article>
+      <article class="goal">
+        <p class="goal__n">Goal 03</p><h3 class="goal__t">Evidence, not pictures</h3>
+        <p class="goal__d">Every output carries confidence scores, quality metrics and provenance, so it stands up in a survey report or a mission log.</p>
+      </article>
+      <article class="goal">
+        <p class="goal__n">Goal 04</p><h3 class="goal__t">Built for the Indian Ocean first</h3>
+        <p class="goal__d">Trained on the Indian Ocean Dataset alongside EUVP and UIEB, because the waters we know best are the ones least represented in public data.</p>
+      </article>
+    </div>
+
+    <h3 class="chapter-title reveal" style="font-size:var(--fs-2xl);margin-top:var(--pad-section)">The founders</h3>
+    <div class="team stagger">
+      <article class="person">
+        <span class="person__av" aria-hidden="true">GS</span>
+        <h4 class="person__n">Gautam Singh</h4>
+        <p class="person__r">Chief Executive Officer</p>
+        <p class="person__b">Sets the vision and drives strategic partnerships across defence, energy and research.</p>
+      </article>
+      <article class="person">
+        <span class="person__av" aria-hidden="true">SB</span>
+        <h4 class="person__n">Shuvam Banerji Seal</h4>
+        <p class="person__r">Chief Technology Officer</p>
+        <p class="person__b">Leads model architecture, edge deployment and the engineering team behind the suite.</p>
+      </article>
+      <article class="person">
+        <span class="person__av" aria-hidden="true">YS</span>
+        <h4 class="person__n">Youktik Sajjan</h4>
+        <p class="person__r">Chief Operating Officer</p>
+        <p class="person__b">Orchestrates operations, partnerships and field deployments across dive programmes.</p>
+      </article>
+      <article class="person">
+        <span class="person__av" aria-hidden="true">AK</span>
+        <h4 class="person__n">Aman Kumar</h4>
+        <p class="person__r">Chief Product Officer</p>
+        <p class="person__b">Shapes the product roadmap, the Abyssal Studio experience and customer success.</p>
+      </article>
+    </div>
+
+    <div class="backers reveal">
+      <div class="backer">
+        <span class="backer__mark" aria-hidden="true">M</span>
+        <span><span class="backer__t">MeitY · Government of India</span><br><span class="backer__s">Funding partner</span></span>
+      </div>
+      <div class="backer">
+        <span class="backer__mark" aria-hidden="true">◈</span>
+        <span><span class="backer__t">Founded 2024 · India</span><br><span class="backer__s">Seed stage</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 10 · CTA ================= -->
+<section class="chapter" id="contact" aria-labelledby="cta-title">
+  <div class="wrap">
+    <div class="cta reveal">
+      <p class="eyebrow" style="justify-content:center">Take it down there<span class="eyebrow__rule"></span></p>
+      <h2 class="cta__t" id="cta-title" data-fit>Put Underwater AI on your vehicle</h2>
+      <p class="cta__s">
+        Tell us what you fly, where you dive, and what you need to see. We'll send
+        a build tuned to your optics and your water.
+      </p>
+      <div class="cta__row">
+        <a class="btn btn--primary" href="mailto:contact@underwaterai.org?subject=Underwater%20AI%20demo%20request">
+          <span>Request a demo</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a class="btn btn--ghost" href="assets/models/rov.stl" download><span>Download ABYSS-1 (STL)</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a href="#descent" class="nav__brand">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="32" height="32" rx="7" fill="#0a141e" stroke="rgba(120,190,220,.2)"/>
+            <path d="M4 19q4-5 8 0t8 0 8 0" stroke="#38e1ff" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+            <circle cx="16" cy="11" r="3.2" fill="#1fd5b0"/>
+          </svg>
+          <span>Underwater<b>AI</b></span>
+        </a>
+        <p class="footer__blurb">
+          Computational marine imagery for defence, research and industry.
+          Making the invisible visible — in real time, on the edge.
+        </p>
+      </div>
+      <div>
+        <h5>Platform</h5>
+        <ul class="footer__list">
+          <li><a href="#enhance">Restoration</a></li>
+          <li><a href="#perception">Perception</a></li>
+          <li><a href="#reconstruct">Reconstruction</a></li>
+          <li><a href="#suite">Full pipeline</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Hardware</h5>
+        <ul class="footer__list">
+          <li><a href="#vehicle">ABYSS-1 ROV</a></li>
+          <li><a href="assets/models/rov.stl" download>STL download</a></li>
+          <li><a href="assets/models/rov.glb" download>GLB download</a></li>
+          <li><a href="assets/models/rov.json">Part manifest</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <ul class="footer__list">
+          <li><a href="#team">Mission &amp; team</a></li>
+          <li><a href="#deploy">Deployment</a></li>
+          <li><a href="mailto:contact@underwaterai.org">Contact</a></li>
+          <li><a href="https://github.com/Underwater-AI" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__base">
+      <span>© 2026 Underwater AI · All rights reserved</span>
+      <span>Backed by MeitY · Government of India</span>
+    </div>
+  </div>
+</footer>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "pretext": "./vendor/pretext/layout.js"
   }
-  </script>
-
-  <script defer src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
-
-  <!-- ====================================================================== -->
-  <!-- APP SCRIPTS (deferred, after libs) — ?v busts caches (minified)    -->
-  <!-- ====================================================================== -->
-  <script type="module" src="js/scene-3d.js?v=5.1"></script>
-  <script defer src="js/scroll.js?v=4.1"></script>
-  <script defer src="js/cursor.js?v=4.1"></script>
-  <script defer src="js/ui.js?v=4.1"></script>
-  <script defer src="js/anime.js?v=4.1"></script>
-  <script defer src="js/main.js?v=4.1"></script>
-
+}
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script type="module" src="js/app.js?v=5.1"></script>
 </body>
 </html>

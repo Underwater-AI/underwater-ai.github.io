@@ -13,3 +13,8 @@ underwater_ai_log.txt
 
 # Large 3D assets — site is fully procedural now (kept local, not pushed)
 assets/3d/*.glb
+# Node
+node_modules/
+
+# Test + tour output
+/tmp-shots/

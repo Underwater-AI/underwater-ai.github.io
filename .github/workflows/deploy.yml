@@ -1,28 +1,83 @@
-name: Deploy to GitHub Pages
+name: CI & Deploy
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
-# Grant the GITHUB_TOKEN the permissions needed for Pages deployment
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Only one deployment at a time; don't cancel in-progress runs
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  # ── Gate: the site must pass its own suite before it can ship ────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      # The committed model must match what the generator produces, or the
+      # site would ship geometry nobody can reproduce.
+      - name: Verify the ABYSS-1 model is reproducible
+        run: |
+          cp assets/models/rov.json /tmp/rov.committed.json
+          npm run build:rov
+          node -e "
+            const a = require('/tmp/rov.committed.json');
+            const b = require('./assets/models/rov.json');
+            const keys = ['triangles', 'meshes'];
+            for (const k of keys) {
+              if (a[k] !== b[k]) {
+                console.error('model drift on ' + k + ': committed ' + a[k] + ', rebuilt ' + b[k]);
+                process.exit(1);
+              }
+            }
+            console.log('model reproducible: ' + b.triangles + ' triangles, ' + b.meshes + ' meshes');
+          "
+
+      - name: Run the end-to-end suite
+        run: npm test
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-shots
+          path: /tmp/uw-shots
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ── Ship: only from main, only when the suite is green ──────────────────
   deploy:
+    name: Deploy to GitHub Pages
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,9 +88,37 @@ jobs:
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload the repo root (static site — no build step needed)
+          # Static site — the repo root is the site. This job has no
+          # node_modules because it checks out fresh.
           path: .
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # ── Smoke: prove the thing that is actually live works ──────────────────
+  verify-live:
+    name: Verify live site
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the suite against production
+        env:
+          BASE_URL: https://underwaterai.org/
+        run: node tests/site.spec.mjs

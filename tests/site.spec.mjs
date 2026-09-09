@@ -338,18 +338,28 @@ try {
 
   /* 5 — Abyssal Studio --------------------------------------------------- */
   g('Abyssal Studio');
+  /* Each pass is a staged sequence — a sweep, streaming console lines, then
+     boxes. Waiting a fixed number of milliseconds for that is a guess, and it
+     is the wrong guess on a slow runner. Wait for the outcome instead. */
+  const waitFor = (sel, count = 1) => page
+    .waitForFunction(([s2, n]) => document.querySelectorAll(s2).length >= n,
+      [sel, count], { timeout: 25000 })
+    .then(() => true)
+    .catch(() => false);
+
   await goTo(page, 'perception', 0.3);
-  await page.waitForTimeout(2500);
-  ok('species pass auto-runs on arrival',
-    await page.locator('#ws-overlay .det.is-on').count() >= 1);
+  ok('species pass auto-runs on arrival', await waitFor('#ws-overlay .det.is-on'));
 
   await page.click('.tool[data-tool="geology"]');
-  await page.waitForTimeout(3500);
+  await waitFor('#ws-overlay .det--geo');
   const geo = await page.locator('#ws-overlay .det--geo').count();
   ok('geology pass produces its own detections', geo >= 1, `geo boxes=${geo}`);
 
   await page.click('.tool[data-tool="clear"]');
-  await page.waitForTimeout(600);
+  await page
+    .waitForFunction(() => document.querySelectorAll('#ws-overlay .det').length === 0,
+      null, { timeout: 10000 })
+    .catch(() => {});
   eq('clear empties the workspace', await page.locator('#ws-overlay .det').count(), 0);
 
   /* 6 — Downloadable model assets ---------------------------------------- */

@@ -7,7 +7,7 @@
  * point at empty water, and boxes that would overlap are pushed apart.
  */
 import * as THREE from 'three';
-import { packLabels } from './labelpack.js';
+import { packLabels, resetLabelWidths } from './labelpack.js';
 
 const _box = new THREE.Box3();
 const _v = new THREE.Vector3();
@@ -19,6 +19,15 @@ export function createLiveDetect({ overlay, ocean, avoid = '.dock' }) {
   const nodes = new Map();          // creature object -> DOM box
   let engaged = 0;                  // 0 = off, 1 = every target locked
   let revealed = 0;
+
+  /* How many locks can be on screen at once. A phone frame holds the HUD, the
+     chapter panel and the subject already; four labelled boxes on top of that
+     is a cluttered mess rather than a detector at work, and the reader cannot
+     read any single one of them. Three is enough to say "it is tracking
+     everything" while each lock stays legible. */
+  const SMALL = matchMedia('(max-width: 46rem)');
+  const cap = () => (SMALL.matches ? 3 : Infinity);
+  SMALL.addEventListener('change', resetLabelWidths);
 
   function ensureNode(target, index) {
     let el = nodes.get(target);
@@ -111,21 +120,28 @@ export function createLiveDetect({ overlay, ocean, avoid = '.dock' }) {
       const budget = Math.round(engaged * targets.length);
 
       const placed = [];
+      const room = cap();
       let live = 0;
 
       for (let i = 0; i < targets.length; i++) {
         const target = targets[i];
         const el = ensureNode(target, i);
 
-        if (i >= budget) { el.classList.remove('is-on'); continue; }
+        if (i >= budget || live >= room) { el.classList.remove('is-on'); continue; }
 
         const b = projectBox(target, camera, w, h);
-        // Reject anything off-frame or too small to be a credible detection.
+        /* Reject anything too small to be a credible detection, and anything
+           hanging off the frame: a bracket with two of its four corners past
+           the edge does not read as a lock, and its label has nowhere to sit.
+           Most of the box has to be on screen, not merely a sliver of it. */
+        const vis = b
+          ? Math.max(0, Math.min(b.x + b.w, w) - Math.max(b.x, 0))
+            * Math.max(0, Math.min(b.y + b.h, h) - Math.max(b.y, 0))
+          : 0;
         const ok = b
           && b.w > 26 && b.h > 26
           && b.w < w * 0.72 && b.h < h * 0.82
-          && b.x + b.w > 12 && b.x < w - 12
-          && b.y + b.h > 12 && b.y < h - 12;
+          && vis > b.w * b.h * 0.72;
 
         if (!ok || blocked(b)) { el.classList.remove('is-on'); continue; }
 

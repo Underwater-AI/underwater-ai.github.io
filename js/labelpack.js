@@ -8,7 +8,17 @@
  * them top-down, and slide any that would overlap.
  */
 
-const widths = new WeakMap();
+let widths = new WeakMap();
+
+/**
+ * Forget every cached width.
+ *
+ * Tag text never changes, so one measurement per label is normally enough —
+ * but the styling does change at the small-screen breakpoint, where the track
+ * id is dropped. A width measured on the other side of that line would make
+ * the packer solve the wrong problem.
+ */
+export function resetLabelWidths() { widths = new WeakMap(); }
 
 /**
  * @param {Array<{el: Element, x: number, y: number, w: number, h: number}>} boxes
@@ -47,14 +57,34 @@ export function packLabels(boxes, opts = {}) {
       y = hit.y + hit.h + GAP;
     }
 
+    /* Where several subjects cluster, that loop can walk a label a long way
+       down the frame — past its own box and onto someone else's. A label over
+       the wrong animal is a worse failure than a missing one, so it is only
+       kept while it still touches the box it belongs to. The brackets stay
+       either way, which reads as tracked-but-not-yet-named. */
+    const attached = y + H > it.y - GAP - 2 && y < it.y + it.h + GAP + 2;
+    it.el.classList.toggle('det--tag-off', !attached);
+    if (!attached) continue;
+
     // Never push a label off the bottom of its own frame.
     if (bounds && y + H > bounds.h - 2) y = Math.max(2, bounds.h - H - 2);
 
     /* A box can start off the left edge, or run past the right one, and its
        label would then be clipped. Slide the label back inside and record the
-       offset relative to its box. */
+       offset relative to its box.
+
+       Which way it slides matters. Clamping straight to the frame drags every
+       wide label to the same edge, and a label that no longer sits over its
+       own box is worse than one that is slightly cropped — it reads as
+       annotating whatever it landed on. So try the box's right edge first,
+       which keeps the label spanning its subject, and fall back to the frame
+       only when the label is wider than the room available. */
     let lx = x;
-    if (bounds) lx = Math.max(2, Math.min(lx, bounds.w - it.tw - 2));
+    if (bounds) {
+      const maxX = bounds.w - it.tw - 2;
+      if (lx > maxX) lx = Math.min(Math.max(2, it.x + it.w - it.tw), maxX);
+      lx = Math.max(2, Math.min(lx, maxX));
+    }
 
     placed.push({ x: lx, y, w: it.tw, h: H });
     it.el.style.setProperty('--tag-y', `${y - it.y}px`);

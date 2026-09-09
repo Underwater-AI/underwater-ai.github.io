@@ -161,6 +161,49 @@ export function initCardDetails() {
   return n;
 }
 
+/**
+ * Section ledes: first three lines, then the rest on request.
+ *
+ * Each chapter outside the cockpit opens with a heading and a paragraph. On a
+ * desktop that paragraph is two or three lines and costs nothing; set in a
+ * 390px column it runs to six or seven, and the reader scrolls past half a
+ * screen of prose before reaching the thing the chapter is about.
+ *
+ * Only clamped where it actually buys something — a lede that already fits is
+ * left alone rather than given a control that does nothing.
+ */
+export function initLedes() {
+  if (!SMALL.matches) return 0;
+  let n = 0;
+
+  for (const lede of document.querySelectorAll('.chapter-sub')) {
+    const full = lede.scrollHeight;
+    lede.dataset.clamped = 'true';
+    // Two lines saved is not worth a tap; below that, leave the copy open.
+    if (full - lede.clientHeight < 36) { delete lede.dataset.clamped; continue; }
+
+    const id = `lede-${++uid}`;
+    lede.id = id;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'lede__more';
+    button.setAttribute('aria-controls', id);
+    button.setAttribute('aria-expanded', 'false');
+    button.textContent = 'Read more';
+    lede.after(button);
+    n++;
+
+    button.addEventListener('click', () => {
+      const open = lede.dataset.clamped === 'true';
+      if (open) delete lede.dataset.clamped;
+      else lede.dataset.clamped = 'true';
+      button.setAttribute('aria-expanded', String(open));
+      button.textContent = open ? 'Read less' : 'Read more';
+    });
+  }
+  return n;
+}
+
 export function initDocks() {
   for (const dock of document.querySelectorAll('.dock')) {
     const entry = build(dock);

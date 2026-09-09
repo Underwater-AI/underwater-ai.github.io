@@ -420,12 +420,20 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
   {
     const n = low ? 5 : 10;
     /* Unfogged on purpose. With fog these take the fog colour at distance and
-       stop being silhouettes — a far one turns into a bright blob. Near-black
-       and unfogged, the far ones simply vanish into the dark, which is what a
-       silhouette should do. */
-    const mat = new THREE.MeshBasicMaterial({ color: 0x02080d, fog: false });
+       stop being silhouettes — a far one turns into a bright blob.
+
+       Unfogged alone is not enough, though. It relies on the far ones being
+       lost against dark water, and two chapters in the water is not dark any
+       more: the same shape that framed the murk becomes a black hole punched
+       through a lit reef. So they fade out with distance instead. Close to
+       the lens, where a silhouette does its work, it is solid; by the time it
+       is deep in the scene it is gone. One material each, since the fade is
+       per-mesh — ten unlit materials cost nothing. */
     const shapes = [CORAL_KINDS[0].geo, CORAL_KINDS[1].geo, CORAL_KINDS[4].geo];
     for (let i = 0; i < n; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0x02080d, fog: false, transparent: true, depthWrite: false,
+      });
       const m = new THREE.Mesh(shapes[i % shapes.length], mat);
       // Alternating sides, hugging the channel walls so they frame the shot.
       const side = i % 2 === 0 ? -1 : 1;
@@ -501,6 +509,7 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
   const _orbitPos = new THREE.Vector3();
   const _divePos = new THREE.Vector3();
   const _proj = new THREE.Vector3();
+  const _pull = new THREE.Vector3();
   const _centre = new THREE.Vector3();
   const _hbox = new THREE.Box3();
   const WORLD_UP = new THREE.Vector3(0, 1, 0);
@@ -518,6 +527,43 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
 
   /* The orbit begins exactly where the pull-back ended, so the two moves read
      as one continuous camera rather than a cut. */
+  /* ── Framing for the screen it is on ──────────────────────────────────
+     The flight is composed for a wide screen. A fixed *vertical* field of
+     view means the horizontal one collapses as the screen narrows: 58° at
+     16:10 is ~85° across, but only ~29° on a portrait phone. The subject
+     stays the same size in world units, so on a phone it simply runs off
+     both sides — which is exactly what the rover and the tagged creatures
+     were doing.
+
+     Recovering the full width would need a ~130° lens, which is a fisheye.
+     So the shortfall is paid in two currencies: widen the lens as far as
+     still looks like a camera, and back the rig off for the rest. At 16:10
+     and wider both are 1, so the desktop composition is untouched. */
+  /* 16:10, not 16:9 — the widest common laptop is the shape the flight was
+     composed against, and treating one as narrow would hand every MacBook a
+     lens it does not need. Anything this wide or wider is left exactly alone. */
+  const DESIGN_ASPECT = 16 / 10;
+  const BASE_FOV = 58;
+  const FOV_CAP = 72;    // beyond this the perspective starts to bow
+  const FIT_CAP = 1.32;  // a phone is portrait; a panorama will never fit
+  let frameFov = BASE_FOV;
+  let frameDist = 1;     // pull-back multiplier on the subject-framing poses
+  let frameShift = 1;    // world units per screen fraction, relative to design
+
+  function reframe(aspect) {
+    const need = Math.min(FIT_CAP, Math.max(1, DESIGN_ASPECT / Math.max(aspect, 0.2)));
+    const fovBoost = Math.min(need, FOV_CAP / BASE_FOV);
+    frameFov = BASE_FOV * fovBoost;
+    frameDist = need / fovBoost;
+    // A wider, further lens covers more world per pixel, so any offset
+    // measured in world units has to grow to shift the frame as much.
+    const half = (f) => Math.tan((f * Math.PI) / 360);
+    frameShift = frameDist * (half(frameFov) / half(BASE_FOV));
+  }
+
+  const SIL_SOLID = 14;  // within this the silhouette is fully opaque
+  const SIL_GONE = 34;   // beyond this it has faded out entirely
+
   const ORBIT_R0 = 12.24;
   const ORBIT_A0 = 0.35;
 
@@ -655,7 +701,10 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
         // Flip earlier on narrow screens, where a label is a bigger share of
         // the frame and would otherwise run off the edge.
         const flip = x > w * (w < 700 ? 0.46 : 0.58);
-        const visible = onScreen && !overlapsPanel(el, x, y, flip);
+        /* Below the breakpoint the caption is docked in its own band rather
+           than hung off the marker, so it cannot land on the panel — and
+           testing a position it no longer uses would drop good callouts. */
+        const visible = onScreen && (w <= 736 || !overlapsPanel(el, x, y, flip));
         el.classList.toggle('is-on', visible);
         if (!visible) continue;
         el.classList.toggle('hotspot--flip', flip);
@@ -682,6 +731,7 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
     },
     resize(w, h) {
       camera.aspect = w / Math.max(1, h);
+      reframe(camera.aspect);
       camera.updateProjectionMatrix();
     },
     update(t, dt) {
@@ -751,6 +801,18 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
         camera.position.lerp(_divePos, dive);
       }
 
+      /* Back the rig off far enough that the vehicle fits the narrow screen.
+         Only while it is the subject: inside the cockpit there is nothing to
+         frame, and the dive has to actually reach the glass. */
+      if (frameDist > 1.001) {
+        const fit = Math.max(reveal, orbit) * (1 - dive);
+        if (fit > 0.0005) {
+          _pull.copy(camera.position).sub(_rov);
+          camera.position.copy(_rov)
+            .addScaledVector(_pull, 1 + (frameDist - 1) * fit);
+        }
+      }
+
       /* Vehicle motion. A real ROV is never still: it breathes on its
          thrusters, rolls slightly into a turn, and the whole rig shakes a
          little more the faster it moves. All three are scaled down while
@@ -773,14 +835,24 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
          collapses to a heading on a phone and expands on demand, so a fixed
          offset would either waste the screen or hide the subject. */
       if (innerWidth < 700) {
-        _look.y -= panelCover() * 4.2 * Math.max(reveal, orbit) * (1 - dive);
+        _look.y -= panelCover() * 4.2 * frameShift
+          * Math.max(reveal, orbit) * (1 - dive);
       }
       camera.lookAt(_look);
+      /* A wider lens on a tall screen opens up as much empty water above the
+         reef as reef, and an unbalanced frame reads as a mistake rather than
+         as depth. Spend part of the extra field by aiming a little lower.
+         Only in first person: once the vehicle is the subject the lookAt is
+         already centred on it, and tilting would slide it off frame. */
+      if (frameFov > BASE_FOV + 0.01) {
+        camera.rotation.x -= ((frameFov - BASE_FOV) * 0.5 * 0.55 * Math.PI) / 180
+          * (1 - Math.max(reveal, orbit, dive));
+      }
       // Roll into the direction of travel, plus a slow idle list.
       camera.rotation.z += (Math.sin(t * 0.31) * 0.012 * AMBIENT
         + mouse.x * 0.022 * AMBIENT - _fwd.x * 0.035 * sway) * sway;
       // Narrow the lens on the way in, the way a camera pushing in behaves.
-      const fov = 58 - dive * 16;
+      const fov = frameFov - dive * 16;
       if (Math.abs(camera.fov - fov) > 0.01) {
         camera.fov = fov;
         camera.updateProjectionMatrix();
@@ -790,6 +862,15 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
       // beams leaving the rover rather than flaring at the lens.
       lampL.position.copy(_rov).addScaledVector(_fwd, 7).add(_side.set(-3, -0.6, 0));
       lampR.position.copy(_rov).addScaledVector(_fwd, 7).add(_side.set(3, -0.6, 0));
+
+      /* Silhouettes hold at full strength while they are foreground and are
+         gone before they become scenery. */
+      for (const sil of foreground.children) {
+        const o = THREE.MathUtils.clamp((SIL_GONE - sil.position.distanceTo(camera.position))
+          / (SIL_GONE - SIL_SOLID), 0, 1);
+        sil.material.opacity = o;
+        sil.visible = o > 0.01;
+      }
 
       for (let i = 0; i < FISH; i++) {
         const f = fishState[i];

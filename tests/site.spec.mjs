@@ -537,6 +537,64 @@ try {
     others[0] === 'true' && others.slice(1).every((v) => v === 'false'),
     others.join(','));
 
+  /* Section ledes: three lines, then the rest on request. */
+  await goTo(md, 'perception', 0.05);
+  const ledeBefore = await md.evaluate(() =>
+    Math.round(document.querySelector('#perception .chapter-sub').getBoundingClientRect().height));
+  ok('long ledes are clamped', await md.locator('.lede__more').count() > 0);
+  eq('a clamped lede starts closed',
+    await md.getAttribute('#perception .lede__more', 'aria-expanded'), 'false');
+  await md.click('#perception .lede__more');
+  await md.waitForTimeout(350);
+  const ledeAfter = await md.evaluate(() =>
+    Math.round(document.querySelector('#perception .chapter-sub').getBoundingClientRect().height));
+  ok('reading more shows the rest', ledeAfter > ledeBefore, `${ledeBefore}px -> ${ledeAfter}px`);
+  eq('the control reports it is open',
+    await md.getAttribute('#perception .lede__more', 'aria-expanded'), 'true');
+
+  /* The detector is the centrepiece, and it is where a phone frame breaks
+     first: a full-width tag has nowhere to sit near its own box, so labels
+     used to end up pinned to the edge, annotating whatever was behind them. */
+  await goTo(md, 'identify', 0.55);
+  const liveLocks = await md.evaluate(() => {
+    const on = [...document.querySelectorAll('.det--live.is-on')];
+    return on.map((el) => {
+      const b = el.getBoundingClientRect();
+      const t = el.querySelector('.det__tag').getBoundingClientRect();
+      return {
+        boxRight: b.right, tagW: t.width,
+        // Attached: the tag shares horizontal run with the box it names.
+        overlap: Math.min(b.right, t.right) - Math.max(b.left, t.left),
+        inFrame: t.left >= -1 && t.right <= innerWidth + 1,
+      };
+    });
+  });
+  ok('the detector locks on', liveLocks.length > 0);
+  ok('a phone shows at most three locks at once', liveLocks.length <= 3, `${liveLocks.length} locks`);
+  ok('every label stays attached to its own box',
+    liveLocks.every((l) => l.overlap > 0), JSON.stringify(liveLocks.map((l) => Math.round(l.overlap))));
+  ok('no label is clipped by the frame', liveLocks.every((l) => l.inFrame));
+  ok('labels leave the frame room', liveLocks.every((l) => l.tagW < 390 * 0.62),
+    JSON.stringify(liveLocks.map((l) => Math.round(l.tagW))));
+
+  /* Vehicle callouts dock into a band instead of hanging off the marker:
+     beside the vehicle on a phone there is no clear space to hang one in. */
+  await goTo(md, 'vehicle', 0.55);
+  const callout = await md.evaluate(() => {
+    const on = document.querySelector('.hotspot.is-on');
+    if (!on) return null;
+    const r = on.querySelector('.hotspot__label').getBoundingClientRect();
+    return { x: r.x, w: r.width, y: r.y };
+  });
+  ok('a vehicle part is called out', callout !== null);
+  if (callout) {
+    ok('the callout uses the width of the frame', callout.w > 390 * 0.8,
+      `${Math.round(callout.w)}px`);
+    ok('the callout stays inside the frame',
+      callout.x >= 0 && callout.x + callout.w <= 391, `x=${Math.round(callout.x)}`);
+  }
+
+  eq('no horizontal scroll anywhere in the story', await overflowPx(md), 0);
   ok('no console errors', md.errors.length === 0, md.errors.slice(0, 2).join(' | '));
   await md.context().close();
 
@@ -550,6 +608,15 @@ try {
   });
   eq('panels are open at full width', deskPanel.expanded, 'true');
   eq('the heading is not a tab stop at full width', deskPanel.tab, -1);
+  /* The flight is composed for this shape of screen. Narrow screens buy their
+     width with a wider lens and a longer lens-to-subject distance; at 16:10
+     and wider both are supposed to be no-ops, so the desktop shot never
+     drifts — and 1440x900 is exactly 16:10. */
+  const lens = await wd.evaluate(() => window.UnderwaterAI?.ocean?.camera?.fov);
+  ok('the desktop lens is the one the shot was composed for',
+    Math.abs(lens - 58) < 0.01, String(lens));
+  eq('no lede is clamped at full width', await wd.locator('.lede__more').count(), 0);
+  eq('no card is collapsed at full width', await wd.locator('.card__more:visible').count(), 0);
   await wd.context().close();
 
   /* 10 — Reduced motion --------------------------------------------------- */

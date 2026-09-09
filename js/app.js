@@ -15,7 +15,7 @@ import { initWorkstation } from './workstation.js';
 import { initSmoothScroll, initStory, playIntro } from './story.js';
 import { createLiveDetect } from './livedetect.js';
 import { initMenu, applyDownloadSizes, applyManifest } from './ui.js';
-import { initDocks, initCardDetails } from './dock.js';
+import { initDocks, initCardDetails, initLedes } from './dock.js';
 import { initTheme, onThemeChange } from './theme.js';
 
 const HULL = 'assets/models/rov.draco.glb';
@@ -88,6 +88,7 @@ async function boot() {
   initMenu();
   initDocks();
   initCardDetails();
+  initLedes();
   initTypography();
 
   // 1 — animation libraries (deferred classic scripts, already in flight)

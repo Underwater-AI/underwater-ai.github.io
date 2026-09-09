@@ -108,6 +108,59 @@ function syncToBreakpoint() {
   document.documentElement.dataset.dockMode = small ? 'disclosure' : 'open';
 }
 
+/**
+ * The platform cards carry a description, a three-item list and a row of tags.
+ * Four of those stacked is most of a phone screen of text before the reader has
+ * decided they care. The description stays — it is what the card is for — and
+ * the list and tags go behind a tap.
+ *
+ * Independent per card, unlike the chapter panels: these four are parallel
+ * things a reader may want to compare, not a sequence being stepped through.
+ */
+export function initCardDetails() {
+  if (!SMALL.matches) return 0;
+  let n = 0;
+
+  for (const card of document.querySelectorAll('.stage-card')) {
+    const list = card.querySelector('.stage-card__list');
+    const tags = card.querySelector('.tags');
+    if (!list && !tags) continue;
+
+    const id = `card-detail-${++uid}`;
+    const detail = document.createElement('div');
+    detail.className = 'card__detail';
+    detail.id = id;
+    const inner = document.createElement('div');
+    inner.className = 'card__detail-inner';
+    detail.append(inner);
+    if (list) inner.append(list);
+    if (tags) inner.append(tags);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'card__more';
+    button.setAttribute('aria-controls', id);
+    button.setAttribute('aria-expanded', 'false');
+    button.innerHTML =
+      '<span>Details</span>' +
+      '<svg class="card__more-chev" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" ' +
+      'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    card.dataset.expanded = 'false';
+    card.append(button, detail);
+    n++;
+
+    button.addEventListener('click', () => {
+      const open = card.dataset.expanded !== 'true';
+      card.dataset.expanded = String(open);
+      button.setAttribute('aria-expanded', String(open));
+      button.querySelector('span').textContent = open ? 'Less' : 'Details';
+    });
+  }
+  return n;
+}
+
 export function initDocks() {
   for (const dock of document.querySelectorAll('.dock')) {
     const entry = build(dock);

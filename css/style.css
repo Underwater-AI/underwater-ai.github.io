@@ -664,6 +664,11 @@ p { text-wrap: pretty; }
 
 .dock__detail { display: grid; grid-template-rows: 1fr; }
 .dock__detail-inner { min-height: 0; display: grid; gap: 0.8rem; }
+
+/* The platform-card toggle only exists on small screens. Hiding it here as
+   well means a reader who resizes past the breakpoint sees the full card and
+   no orphaned control, rather than a stray unstyled button. */
+.card__more { display: none; }
 .dock__body { font-size: var(--fs-sm); color: var(--t-mid); }
 .dock__body strong { color: var(--t-hi); font-weight: 600; }
 
@@ -1612,6 +1617,32 @@ p { text-wrap: pretty; }
 .stagger.is-in > *:nth-child(4) { transition-delay: 0.24s; }
 .stagger.is-in > *:nth-child(5) { transition-delay: 0.32s; }
 .stagger.is-in > *:nth-child(6) { transition-delay: 0.40s; }
+
+/* Platform cards on a phone: description visible, supporting detail on tap. */
+@media (max-width: 46rem) {
+  .card__detail { display: grid; grid-template-rows: 1fr;
+    transition: grid-template-rows 0.35s var(--ease-out), opacity 0.25s var(--ease); }
+  .card__detail-inner { min-height: 0; display: grid; gap: 0.5rem; }
+  .stage-card[data-expanded='false'] .card__detail { grid-template-rows: 0fr; opacity: 0; }
+  .stage-card[data-expanded='false'] .card__detail-inner { overflow: hidden; }
+
+  .card__more {
+    justify-self: start;
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    margin-top: 0.15rem; padding: 0.4rem 0;
+    font-family: var(--font-mono); font-size: var(--fs-mono);
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--cyan);
+  }
+  .card__more-chev {
+    width: 15px; height: 15px;
+    transition: transform 0.35s var(--ease-out);
+  }
+  .stage-card[data-expanded='true'] .card__more-chev { transform: rotate(180deg); }
+
+  .stage-card { padding: 1rem 1.05rem; gap: 0.5rem; }
+  .stage-card__d { font-size: var(--fs-xs); }
+}
 
 /* Abyssal Studio on a phone. Placed after the component's own rules in
    section 14 — an override earlier in the file loses to a later rule of equal

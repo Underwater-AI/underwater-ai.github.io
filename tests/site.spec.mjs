@@ -510,6 +510,33 @@ try {
   await md.waitForTimeout(700);
   ok('and collapsing carries too', (await panel()).expanded === 'false');
   eq('no horizontal scroll with a panel open', await overflowPx(md), 0);
+
+  /* The platform cards carry a list and a tag row on top of their description.
+     Four of those stacked is most of a screen of text before the reader has
+     decided they care about any of them. */
+  await goTo(md, 'suite', 0.2);
+  const cardBefore = await md.evaluate(() =>
+    Math.round(document.querySelector('.stage-card').getBoundingClientRect().height));
+  eq('every platform card offers its detail', await md.locator('.card__more').count(), 4);
+  eq('platform cards start collapsed',
+    await md.getAttribute('.stage-card .card__more', 'aria-expanded'), 'false');
+
+  await md.click('.stage-card .card__more');
+  await md.waitForTimeout(650);
+  const cardAfter = await md.evaluate(() =>
+    Math.round(document.querySelector('.stage-card').getBoundingClientRect().height));
+  ok('tapping a card reveals its detail', cardAfter > cardBefore,
+    `${cardBefore}px -> ${cardAfter}px`);
+  ok('the list is actually revealed',
+    await md.locator('.stage-card .stage-card__list').first().isVisible());
+  /* Parallel content, so each card is independent — a reader comparing two of
+     them should not have the first close when they open the second. */
+  const others = await md.evaluate(() =>
+    [...document.querySelectorAll('.stage-card')].map((c) => c.dataset.expanded));
+  ok('cards open independently of each other',
+    others[0] === 'true' && others.slice(1).every((v) => v === 'false'),
+    others.join(','));
+
   ok('no console errors', md.errors.length === 0, md.errors.slice(0, 2).join(' | '));
   await md.context().close();
 

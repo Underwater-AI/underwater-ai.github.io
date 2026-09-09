@@ -843,14 +843,7 @@ p { text-wrap: pretty; }
   .det__tag { max-width: 78vw; }
   .det__meta { display: none; }
 
-  /* Abyssal Studio: give the frame room and stop the inspector from pushing
-     the console off the end of the panel. */
-  .ws { min-height: auto; }
-  .ws__viewport { min-height: 19rem; }
-  .ws__inspector { max-height: 15rem; padding: 0.7rem; }
-  .ws__console { height: 4.2em; padding: 0.5rem 0.7rem; }
-  .hit { padding: 0.4rem 0.5rem; gap: 0.5rem; }
-  .hit__swatch { height: 20px; width: 6px; }
+
 }
 
 /* ── 8. Navigation ───────────────────────────────────────────────────────── */
@@ -1265,6 +1258,10 @@ p { text-wrap: pretty; }
   background: var(--abyss); overflow: hidden;
   display: grid; place-items: center;
 }
+/* <picture> is inline by default, so `height: 100%` on the image resolves
+   against the picture rather than the viewport and the frame keeps a black
+   band wherever the box is taller than the image's natural ratio. */
+.ws__viewport picture { display: block; width: 100%; height: 100%; }
 .ws__viewport img { width: 100%; height: 100%; object-fit: cover; }
 .ws__overlay { position: absolute; inset: 0; pointer-events: none; }
 .det {
@@ -1615,6 +1612,91 @@ p { text-wrap: pretty; }
 .stagger.is-in > *:nth-child(4) { transition-delay: 0.24s; }
 .stagger.is-in > *:nth-child(5) { transition-delay: 0.32s; }
 .stagger.is-in > *:nth-child(6) { transition-delay: 0.40s; }
+
+/* Abyssal Studio on a phone. Placed after the component's own rules in
+   section 14 — an override earlier in the file loses to a later rule of equal
+   specificity, which is how the panel kept its 38rem min-height here. */
+@media (max-width: 46rem) {
+  /* Seven three-line rows pushed the frame into a third of the panel; the
+     rows become one-line chips in a sideways scroller instead. */
+  .ws { min-height: auto; }
+  .ws__viewport { min-height: 22rem; }
+  .ws__inspector {
+    max-height: none;
+    padding: 0.6rem 0.7rem;
+    gap: 0.45rem;
+  }
+  #ws-hits {
+    display: flex; gap: 0.4rem;
+    overflow-x: auto; overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    mask-image: linear-gradient(90deg, #000 0, #000 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 88%, transparent 100%);
+  }
+  #ws-hits::-webkit-scrollbar { display: none; }
+
+  .hit {
+    flex: none;
+    grid-template-columns: auto auto auto;
+    align-items: center;
+    padding: 0.32rem 0.5rem;
+    gap: 0.45rem;
+  }
+  .hit__swatch { height: 16px; width: 5px; }
+  .hit__name { white-space: nowrap; font-size: 0.6875rem; }
+  /* The species name and its score carry the result; the binomial is detail,
+     and it is already on the box in the frame. */
+  .hit br, .hit__latin { display: none; }
+
+  .ws__console { height: 3.4em; padding: 0.45rem 0.7rem; }
+}
+
+/* Reconstruction steps on a phone. Four stacked cards took the whole lower
+   half of the screen to describe a process the 3D above them is already
+   showing. They become a single rail: a number for each stage, and the copy
+   for the one currently playing. */
+@media (max-width: 46rem) {
+  .recon-steps {
+    display: flex; align-items: stretch; gap: 0.4rem;
+    overflow-x: auto; overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    margin-top: var(--gap);
+  }
+  .recon-steps::-webkit-scrollbar { display: none; }
+
+  .step {
+    flex: 0 0 auto;
+    padding: 0.5rem 0.65rem;
+    gap: 0.15rem;
+    justify-content: center;
+    transition: flex-basis 0.4s var(--ease-out), border-color 0.4s var(--ease);
+  }
+  .step__t, .step__d { display: none; }
+
+  .step.is-on { flex: 1 1 auto; min-width: 0; }
+  .step.is-on .step__t {
+    display: block; font-size: var(--fs-xs); line-height: 1.2;
+  }
+  .step.is-on .step__d {
+    display: block; font-size: 0.625rem; line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  }
+
+  /* Export formats scroll rather than wrapping to three rows. */
+  .chips {
+    display: flex; flex-wrap: nowrap; gap: 0.4rem;
+    overflow-x: auto; scrollbar-width: none;
+    mask-image: linear-gradient(90deg, #000 0, #000 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 88%, transparent 100%);
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; }
+
+  /* A shorter rail needs less room reserved under it. */
+  .recon-rail { top: calc(100svh - 13rem); }
+}
 
 /* Hotspot callouts on a phone. These live here, after the base rules in the
    vehicle section — an override earlier in the file loses to a later rule of

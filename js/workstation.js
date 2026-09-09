@@ -146,22 +146,34 @@ export function initWorkstation(root) {
 
     btn?.classList.remove('is-busy');
 
+    /* On a narrow screen seven boxes over a small frame is a thicket, not a
+       result. Draw the most confident few instead — the inspector still lists
+       every hit, so nothing is lost, it just stops shouting. */
+    const narrow = innerWidth < 560;
+    const drawn = narrow
+      ? [...pass.hits].sort((a, b) => b.conf - a.conf).slice(0, 4)
+      : pass.hits;
+
     // Land the boxes and inspector rows together, staggered.
     let shown = 0;
     for (const hit of pass.hits) {
+      const withBox = drawn.includes(hit);
       if (id !== runId) return;
 
-      const [x, y, w, h] = hit.box;
-      const box = document.createElement('div');
-      box.className = `det${hit.kind ? ` det--${hit.kind}` : ''}`;
-      box.style.cssText = `left:${x}%;top:${y}%;width:${w}%;height:${h}%`;
-      const tag = document.createElement('span');
-      tag.className = 'det__tag';
-      tag.innerHTML =
-        `<span class="det__name">${hit.name}</span>` +
-        `<b class="det__conf">${hit.conf.toFixed(1)}%</b>`;
-      box.append(tag);
-      overlay.append(box);
+      let box = null;
+      if (withBox) {
+        const [x, y, w, h] = hit.box;
+        box = document.createElement('div');
+        box.className = `det${hit.kind ? ` det--${hit.kind}` : ''}`;
+        box.style.cssText = `left:${x}%;top:${y}%;width:${w}%;height:${h}%`;
+        const tag = document.createElement('span');
+        tag.className = 'det__tag';
+        tag.innerHTML =
+          `<span class="det__name">${hit.name}</span>` +
+          `<b class="det__conf">${hit.conf.toFixed(1)}%</b>`;
+        box.append(tag);
+        overlay.append(box);
+      }
 
       const row = document.createElement('div');
       row.className = `hit${hit.kind ? ` hit--${hit.kind}` : ''}`;
@@ -174,10 +186,10 @@ export function initWorkstation(root) {
 
       await sleep(90);
       if (id !== runId) return;
-      box.classList.add('is-on');
+      box?.classList.add('is-on');
       row.classList.add('is-on');
       countEl.textContent = String(++shown);
-      repack();
+      if (box) repack();
     }
   }
 
@@ -190,7 +202,7 @@ export function initWorkstation(root) {
       const r = el.getBoundingClientRect();
       return { el, x: r.left - host.left, y: r.top - host.top, w: r.width, h: r.height };
     });
-    packLabels(boxes, { height: 22, gap: 6, bounds: { w: host.width, h: host.height } });
+    packLabels(boxes, { height: 24, gap: 6, bounds: { w: host.width, h: host.height } });
   }
 
   let repackRaf = 0;

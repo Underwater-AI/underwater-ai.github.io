@@ -86,17 +86,17 @@ void main() {
   // Marine snow drifting through the beam — murky water only.
   float snow = 0.0;
   if (murk > 0.01) {
-  vec2 sp = vUv * vec2(uAspect, 1.0) * 26.0;
-  for (int i = 0; i < 3; i++) {
-    float fi = float(i);
-    vec2 q = sp * (1.0 + fi * 0.6);
-    q.y += uTime * (0.06 + fi * 0.05);
-    vec2 id = floor(q);
-    vec2 f = fract(q) - 0.5;
-    float h = hash(id + fi * 17.0);
-    vec2 off = (vec2(hash(id + 3.1), hash(id + 7.7)) - 0.5) * 0.6;
-    snow += step(0.87, h) * smoothstep(0.10, 0.0, length(f - off));
-  }
+    vec2 sp = vUv * vec2(uAspect, 1.0) * 26.0;
+    for (int i = 0; i < 3; i++) {
+      float fi = float(i);
+      vec2 q = sp * (1.0 + fi * 0.6);
+      q.y += uTime * (0.06 + fi * 0.05);
+      vec2 id = floor(q);
+      vec2 f = fract(q) - 0.5;
+      float h = hash(id + fi * 17.0);
+      vec2 off = (vec2(hash(id + 3.1), hash(id + 7.7)) - 0.5) * 0.6;
+      snow += step(0.87, h) * smoothstep(0.10, 0.0, length(f - off));
+    }
   }
   col += snow * murk * 0.45;
 

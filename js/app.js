@@ -107,12 +107,6 @@ async function boot() {
     const buf = await fetchWithProgress(HULL, (f) => loader.set('hull', f * 0.85));
     if (vehicle) await vehicle.load(buf);
     loader.set('hull', 0.95);
-    // The same hull also flies in the reef scene for the pull-back reveal, and
-    // shares the studio's environment map so its metals read in both places.
-    if (ocean && vehicle) {
-      ocean.attachVehicle(vehicle.makeWorldInstance(1.35));
-      if (vehicle.environment) ocean.scene.environment = vehicle.environment;
-    }
     manifest = await fetch('assets/models/rov.json').then((r) => r.json()).catch(() => null);
     vehicle?.setManifest(manifest);
     applyManifest(manifest);
@@ -122,6 +116,15 @@ async function boot() {
     console.warn('[UnderwaterAI] hull load failed, using fallback:', err);
     vehicle?.loadFallback();
     bootLog('Hull geometry · fallback', false);
+  }
+
+  /* Attach whichever hull we ended up with — the real one or the stand-in.
+     This sits outside the try so a failed download still leaves something for
+     the pull-back reveal to show; an empty reveal would be worse than a crude
+     one. The studio's environment map is shared so the metals read in both. */
+  if (ocean && vehicle?.ready) {
+    ocean.attachVehicle(vehicle.makeWorldInstance(1.35));
+    if (vehicle.environment) ocean.scene.environment = vehicle.environment;
   }
   loader.set('hull', 1);
 

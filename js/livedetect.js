@@ -142,7 +142,7 @@ export function createLiveDetect({ overlay, ocean, avoid = '.dock' }) {
 
       // Labels are packed by the shared helper, the same one Abyssal Studio
       // uses, so both detectors behave identically.
-      packLabels(placed, { height: 22, gap: 6, bounds: { w, h } });
+      packLabels(placed, { height: 24, gap: 6, bounds: { w, h } });
 
       revealed = live;
     },

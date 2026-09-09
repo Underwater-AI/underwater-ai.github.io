@@ -81,10 +81,70 @@ export function createOcean({ quality = 'high' } = {}) {
     bedGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     bedGeo.computeVertexNormals();
   }
-  const bed = new THREE.Mesh(
-    bedGeo,
-    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.96, metalness: 0.02 })
-  );
+  /* Caustics. Sunlight refracted through a moving surface is the single most
+     recognisable thing about shallow water, and the seabed is the only surface
+     large enough to show it — so the pattern is injected into that one
+     material rather than paid for over the whole frame. */
+  const causticUniforms = {
+    uTime: { value: 0 },
+    uCaustic: { value: 1 },
+    uCausticColor: { value: new THREE.Color(0x8fe4ff) },
+  };
+  const bedMat = new THREE.MeshStandardMaterial({
+    vertexColors: true, roughness: 0.96, metalness: 0.02,
+  });
+  bedMat.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = causticUniforms.uTime;
+    sh.uniforms.uCaustic = causticUniforms.uCaustic;
+    sh.uniforms.uCausticColor = causticUniforms.uCausticColor;
+
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+varying vec3 vWorld;
+varying vec3 vWorldN;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+vWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
+vWorldN = normalize(mat3(modelMatrix) * objectNormal);`);
+
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+varying vec3 vWorld;
+varying vec3 vWorldN;
+uniform float uTime;
+uniform float uCaustic;
+uniform vec3 uCausticColor;
+
+/* Two folds of a classic caustic field. Three looks marginally better and
+   costs 50% more; at this scale nobody can tell. */
+float caustic(vec2 p, float t) {
+  vec2 i = p;
+  float c = 1.0;
+  const float inten = 0.0055;
+  for (int n = 0; n < 2; n++) {
+    float tt = t * (1.0 - (3.5 / float(n + 1)));
+    i = p + vec2(cos(tt - i.x) + sin(tt + i.y), sin(tt - i.y) + cos(tt + i.x));
+    c += 1.0 / length(vec2(p.x / (sin(i.x + tt) / inten),
+                           p.y / (cos(i.y + tt) / inten)));
+  }
+  c *= 0.5;
+  c = 1.17 - pow(c, 1.4);
+  // This field is unbounded at its peaks; without a clamp the highlights
+  // blow the whole seabed to white.
+  return clamp(pow(abs(c), 8.0), 0.0, 1.0);
+}`)
+      .replace('#include <dithering_fragment>', `#include <dithering_fragment>
+{
+  // Fades with depth — caustics need a surface to be refracted through — and
+  // with slope, since a vertical wall catches almost none of it.
+  float depthFade = smoothstep(-30.0, -4.0, vWorld.y);
+  float facing = clamp(vWorldN.y, 0.0, 1.0);
+  float k = caustic(vWorld.xz * 0.34, uTime * 0.35)
+          * uCaustic * depthFade * facing * facing;
+  gl_FragColor.rgb += uCausticColor * k * 0.20;
+}`);
+  };
+
+  const bed = new THREE.Mesh(bedGeo, bedMat);
   bed.rotation.x = -Math.PI / 2;
   bed.position.y = -13;
   scene.add(bed);
@@ -345,6 +405,36 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
   }
   scene.add(rays);
 
+  /* ── Foreground silhouettes ───────────────────────────────────────────
+     Near-black shapes strung along the flight corridor, close enough to the
+     lens to sweep past. Parallax against the mid-ground is what makes a scene
+     read as deep rather than as a painted backdrop, and it costs almost
+     nothing: unlit material, a handful of low-poly forms. */
+  const foreground = new THREE.Group();
+  {
+    const n = low ? 5 : 10;
+    /* Unfogged on purpose. With fog these take the fog colour at distance and
+       stop being silhouettes — a far one turns into a bright blob. Near-black
+       and unfogged, the far ones simply vanish into the dark, which is what a
+       silhouette should do. */
+    const mat = new THREE.MeshBasicMaterial({ color: 0x02080d, fog: false });
+    const shapes = [CORAL_KINDS[0].geo, CORAL_KINDS[1].geo, CORAL_KINDS[4].geo];
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Mesh(shapes[i % shapes.length], mat);
+      // Alternating sides, hugging the channel walls so they frame the shot.
+      const side = i % 2 === 0 ? -1 : 1;
+      const z = -6 - i * 7.5 + rand(-2.5, 2.5);
+      // Out at the channel walls, framing the shot rather than blocking it.
+      const x = side * rand(7.5, 11.5);
+      m.position.set(x, bedHeight(x, z) + rand(-1.5, 2.2), z);
+      m.rotation.set(rand(-0.3, 0.3), rand(0, Math.PI * 2), rand(-0.3, 0.3));
+      m.scale.setScalar(rand(1.9, 3.4));
+      m.renderOrder = 2;
+      foreground.add(m);
+    }
+  }
+  scene.add(foreground);
+
   /* ── Creatures ────────────────────────────────────────────────────────── */
   const creatures = createCreatures(scene, { low });
 
@@ -352,6 +442,8 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
   // p: 0 at the surface hero shot, 1 at the restored reef bank.
   let progress = 0;
   let targetProgress = 0;
+  let lastProgress = 0;
+  let surge = 0;              // eased travel speed, drives the rig shake
   const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
 
   addEventListener('pointermove', (e) => {
@@ -436,6 +528,8 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
       sun.intensity = light ? 3.6 : 2.9;
       bounce.intensity = light ? 1.1 : 0.55;
       lampL.intensity = lampR.intensity = light ? 26 : 55;
+      causticUniforms.uCaustic.value = light ? 1.3 : 0.7;
+      causticUniforms.uCausticColor.value.set(light ? 0xdff4ff : 0x8fe4ff);
     },
     /** Story hook: 0 = first-person inside the rover, 1 = third-person reveal. */
     setReveal(v) { targetReveal = THREE.MathUtils.clamp(v, 0, 1); },
@@ -502,19 +596,28 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
       };
 
       /* Each part is called out at the point in the turn where it faces the
-         camera, one at a time. Showing all seven at once collapses into a
-         stacked list that annotates nothing; showing one gives it a moment. */
-      const WINDOW = 0.085;
+         camera — and only one at a time. Showing all seven at once collapses
+         into a stacked list that annotates nothing, and even two overlapping
+         cue windows read as a mistake, so the nearest cue wins outright. */
+      const WINDOW = 0.09;
 
+      let best = null;
+      let bestD = Infinity;
       for (const el of nodes) {
-        const part = roverParts.get(el.dataset.hotspot);
         const at = parseFloat(el.dataset.at);
-        if (!part) { el.classList.remove('is-on'); continue; }
-
         // Distance around the loop, so the first and last cues wrap correctly.
         let d = Math.abs(orbit - at);
         if (d > 0.5) d = 1 - d;
-        if (d > WINDOW) { el.classList.remove('is-on'); continue; }
+        if (d < bestD) { bestD = d; best = el; }
+      }
+
+      for (const el of nodes) {
+        const part = roverParts.get(el.dataset.hotspot);
+        if (!part || el !== best || bestD > WINDOW) {
+          el.classList.remove('is-on');
+          continue;
+        }
+        const d = bestD;
 
         _hbox.setFromObject(part).getCenter(_centre);
         _proj.copy(_centre).project(camera);
@@ -550,6 +653,7 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
       progress += (targetProgress - progress) * Math.min(1, dt * 3.2);
       kelpUniforms.uTime.value = t;
       creatures.update(t, dt);
+      causticUniforms.uTime.value = t;
 
       mouse.x += (mouse.tx - mouse.x) * Math.min(1, dt * 2.2);
       mouse.y += (mouse.ty - mouse.y) * Math.min(1, dt * 2.2);
@@ -612,10 +716,21 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
         camera.position.lerp(_divePos, dive);
       }
 
-      // A little drift so the shot never feels locked to a rail.
-      const sway = 1 - Math.max(orbit, dive) * 0.8;
-      camera.position.x += (mouse.x * 1.5 + Math.sin(t * 0.42) * 0.35) * sway;
-      camera.position.y += (-mouse.y * 0.9 + Math.sin(t * 0.63) * 0.28) * sway;
+      /* Vehicle motion. A real ROV is never still: it breathes on its
+         thrusters, rolls slightly into a turn, and the whole rig shakes a
+         little more the faster it moves. All three are scaled down while
+         inspecting, where a steady frame matters more than atmosphere. */
+      const sway = 1 - Math.max(orbit, dive) * 0.82;
+      const speed = Math.min(1, Math.abs(progress - lastProgress) / Math.max(dt, 1e-4) * 12);
+      lastProgress = progress;
+      surge += (speed - surge) * Math.min(1, dt * 1.5);
+
+      const breathe = Math.sin(t * 0.63) * 0.28 + Math.sin(t * 1.9) * 0.05;
+      const shake = surge * 0.09;
+      camera.position.x += (mouse.x * 1.5 + Math.sin(t * 0.42) * 0.35
+        + Math.sin(t * 5.1) * shake) * sway;
+      camera.position.y += (-mouse.y * 0.9 + breathe
+        + Math.sin(t * 4.3) * shake) * sway;
 
       // Aim shifts from "where the pilot was looking" to the vehicle itself.
       _look.lerpVectors(_l, _rov, Math.max(reveal, orbit, dive));
@@ -624,13 +739,15 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
          the copy. */
       if (innerWidth < 700) _look.y -= 1.7 * Math.max(reveal, orbit) * (1 - dive);
       camera.lookAt(_look);
+      // Roll into the direction of travel, plus a slow idle list.
+      camera.rotation.z += (Math.sin(t * 0.31) * 0.012 + mouse.x * 0.022
+        - _fwd.x * 0.035 * sway) * sway;
       // Narrow the lens on the way in, the way a camera pushing in behaves.
       const fov = 58 - dive * 16;
       if (Math.abs(camera.fov - fov) > 0.01) {
         camera.fov = fov;
         camera.updateProjectionMatrix();
       }
-      camera.rotation.z = Math.sin(t * 0.31) * 0.012 + mouse.x * 0.02;
 
       // Lamps stay bolted to the vehicle, so during the reveal you see the
       // beams leaving the rover rather than flaring at the lens.

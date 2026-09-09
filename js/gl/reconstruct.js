@@ -57,11 +57,14 @@ void main() {
   float m = smoothstep(0.5, 0.18, length(d));
   if (m < 0.02) discard;
 
-  // Depth ramp: near is cyan, far is deep violet-blue.
-  vec3 ramp = mix(vec3(0.05, 0.16, 0.42), vec3(0.22, 0.90, 1.0), vDepth);
+  // Depth ramp: far is a deep blue, near is bright cyan. The dark end has to
+  // stay legible against a near-black page, so it starts well above zero.
+  vec3 ramp = mix(vec3(0.09, 0.30, 0.66), vec3(0.35, 0.98, 1.0), vDepth);
   vec3 col = mix(vColor, ramp, uDepthView);
 
-  gl_FragColor = vec4(col, m * uOpacity);
+  // Lift the whole cloud slightly: individual points are small, and a dot
+  // matrix reads as noise unless each dot carries enough light.
+  gl_FragColor = vec4(col * 1.25, m * uOpacity);
 }
 `;
 
@@ -74,15 +77,15 @@ export function createReconstruct({ src }) {
   group.rotation.x = -0.12;
   scene.add(group);
 
-  scene.add(new THREE.HemisphereLight(0x9fd8ff, 0x04121c, 0.9));
-  const key = new THREE.DirectionalLight(0xcfeeff, 1.5);
+  scene.add(new THREE.HemisphereLight(0x9fd8ff, 0x0a2634, 1.8));
+  const key = new THREE.DirectionalLight(0xcfeeff, 2.6);
   key.position.set(3, 6, 5);
   scene.add(key);
 
   const uniforms = {
     uLift: { value: 0 },
     uScatter: { value: 0 },
-    uSize: { value: 2.6 },
+    uSize: { value: 3.4 },
     uTime: { value: 0 },
     uDepthView: { value: 0 },
     uOpacity: { value: 1 },
@@ -209,7 +212,8 @@ export function createReconstruct({ src }) {
   return {
     scene,
     camera,
-    clearColor: 0x03060b,
+    // No clearColor: the stage's themed default applies, so this act follows
+    // the light/dark switch like everything else.
     build,
     get built() { return built; },
     /** Story hook: 0..1 across the reconstruction chapter. */
@@ -234,7 +238,7 @@ export function createReconstruct({ src }) {
       uniforms.uLift.value = s3;
       uniforms.uScatter.value = Math.sin(s3 * Math.PI) * 0.5;
       uniforms.uOpacity.value = 1 - s4 * 0.85;
-      uniforms.uSize.value = 2.6 + s3 * 1.2;
+      uniforms.uSize.value = 3.4 + s3 * 1.6;
 
       meshMat.opacity = s4 * 0.95;
       wire.material.opacity = Math.sin(s4 * Math.PI) * 0.35;

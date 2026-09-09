@@ -1,13 +1,16 @@
 {
   "name": "underwater-ai-site",
-  "version": "5.0.0",
+  "version": "5.2.0",
   "private": true,
   "type": "module",
-  "description": "Underwater AI — cinematic scroll-driven marine intelligence site",
+  "description": "Underwater AI \u2014 cinematic scroll-driven marine intelligence site",
   "scripts": {
     "serve": "node tools/serve.mjs",
+    "test": "node tools/run-tests.mjs",
+    "test:live": "BASE_URL=https://underwaterai.org/ node tests/site.spec.mjs",
     "build:rov": "node tools/build-rov.mjs",
-    "test": "node tools/run-tests.mjs"
+    "tour": "node tools/tour.mjs",
+    "shot": "node tools/shot.mjs"
   },
   "devDependencies": {
     "@chenglou/pretext": "^0.0.9",

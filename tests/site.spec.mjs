@@ -115,7 +115,10 @@ async function useNativeScroll(page) {
 async function scrollToY(page, y) {
   await page.evaluate((v) => window.scrollTo(0, v), y);
   await page
-    .waitForFunction((v) => Math.abs(window.scrollY - v) < 2, y, { timeout: 15000 })
+    // Poll on a timer, not on rAF: frames are scarce in software rendering, so
+    // rAF polling adds half a second of latency to every single scroll.
+    .waitForFunction((v) => Math.abs(window.scrollY - v) < 2, y,
+      { timeout: 15000, polling: 120 })
     .catch(() => { /* clamped at the document edge; carry on */ });
   await page.evaluate(() => window.ScrollTrigger?.update());
 }
@@ -163,7 +166,7 @@ const parseRGB = (s) => (s.match(/\d+(\.\d+)?/g) || []).slice(0, 3).map(Number);
 const CONTRAST_TARGETS = [
   '.hero__sub', '.btn--primary', '.btn--ghost', '.nav__link', '.dock__body',
   '.chapter-sub', '.person__b', '.footer__list a', '.spec__v', '.stage-card__d',
-  '.metric__label', '.app__d', '.goal__d',
+  '.metric__label', '.app__d', '.goal__d', '.skip-link', '.det__name',
 ];
 
 /** Foreground colour plus every background stop actually behind a selector. */
@@ -361,11 +364,19 @@ try {
     const p = await newPage(browser, { width: vp.width, height: vp.height });
     await boot(p);
 
+    /* Sweep the whole document rather than hopping section to section: it is
+       faster, and it also samples the joins between chapters, which is exactly
+       where sticky panels and pinned runways tend to misbehave. */
     let worstOverflow = 0;
     const textProblems = [];
+    const SAMPLES = 14;
 
-    for (const id of SECTIONS) {
-      await goTo(p, id, 0.35);
+    const maxY = await p.evaluate(() =>
+      document.documentElement.scrollHeight - innerHeight);
+
+    for (let i = 0; i <= SAMPLES; i++) {
+      await scrollToY(p, (maxY * i) / SAMPLES);
+      await p.evaluate(() => window.UnderwaterAI?.ocean?.snap?.());
       worstOverflow = Math.max(worstOverflow, await overflowPx(p));
       const found = await p.evaluate(() => window.UWTypography?.auditOverflow?.() ?? []);
       textProblems.push(...found);

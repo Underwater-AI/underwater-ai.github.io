@@ -134,18 +134,18 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
   const hudFields = {};
   for (const el of document.querySelectorAll('[data-hud]')) hudFields[el.dataset.hud] = el;
 
-  let dive = 0;            // 0 at the surface, 1 at the reef floor
+  let depthFrac = 0;       // 0 at the surface, 1 on the reef floor (drives the HUD)
   let restored = 0;        // 0 murky, 1 restored
 
   function paintHUD() {
-    const depth = lerp(12, 2412, dive);
+    const depth = lerp(12, 2412, depthFrac);
     const set = (k, v) => { if (hudFields[k]) hudFields[k].textContent = v; };
 
     set('depth', String(Math.round(depth)).padStart(4, '0'));
     set('tether', String(Math.round(depth * 1.18 + 40)).padStart(4, '0'));
-    set('temp', lerp(27.4, 3.1, dive).toFixed(1));
-    set('ntu', (lerp(0.4, 11.6, dive) * (1 - restored * 0.93)).toFixed(1));
-    set('hdg', String(Math.round(43 + dive * 78) % 360).padStart(3, '0'));
+    set('temp', lerp(27.4, 3.1, depthFrac).toFixed(1));
+    set('ntu', (lerp(0.4, 11.6, depthFrac) * (1 - restored * 0.93)).toFixed(1));
+    set('hdg', String(Math.round(43 + depthFrac * 78) % 360).padStart(3, '0'));
     set('locks', String(liveDetect?.lockCount ?? 0));
   }
 
@@ -208,7 +208,8 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
      So chapters only record their own progress here, and a single function
      derives the whole stage from them. The current chapter is simply the last
      one that has been entered, which is unambiguous however the triggers fire. */
-  const CHAPTERS = ['descent', 'murk', 'enhance', 'identify', 'reveal', 'vehicle', 'perception'];
+  const CHAPTERS = ['descent', 'murk', 'enhance', 'identify', 'reveal',
+                    'vehicle', 'perception', 'suite'];
   const at = Object.fromEntries(CHAPTERS.map((c) => [c, 0]));
 
   function applyStage() {
@@ -224,13 +225,13 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
       case 'descent':
         murkV = lerp(0.58, 0.78, p);
         oceanP = p * 0.16;
-        dive = p * 0.28;
+        depthFrac = p * 0.28;
         break;
 
       case 'murk':
         murkV = lerp(0.78, 1.0, p);
         oceanP = 0.16 + p * 0.30;
-        dive = 0.28 + p * 0.50;
+        depthFrac = 0.28 + p * 0.50;
         break;
 
       case 'enhance': {
@@ -241,7 +242,7 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
         else if (sweep < 0.999) { murkV = 1; wipeV = 1 - sweep; ai = 'armed'; }
         else { murkV = 0; wipeV = -1; ai = 'active'; }
         oceanP = 0.46 + p * 0.40;
-        dive = 0.78 + p * 0.22;
+        depthFrac = 0.78 + p * 0.22;
         break;
       }
 
@@ -251,7 +252,7 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
         restored = 1;
         engage = clamp01(p / 0.66);
         oceanP = 0.86 + p * 0.10;
-        dive = 1;
+        depthFrac = 1;
         break;
 
       case 'reveal': {
@@ -261,7 +262,7 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
         murkV = 0;
         ai = 'active';
         restored = 1;
-        dive = 1;
+        depthFrac = 1;
         pixelV = Math.max(0, step(p, 0.30, 0.46) - step(p, 0.66, 0.88));
         irisV = Math.max(0, step(p, 0.44, 0.55) - step(p, 0.60, 0.73));
         revealV = step(p, 0.50, 0.66);
@@ -275,7 +276,7 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
         murkV = 0;
         ai = 'active';
         restored = 1;
-        dive = 1;
+        depthFrac = 1;
         canopy = 0;
         revealV = 1;
         orbitV = clamp01(p / 0.72);
@@ -290,13 +291,29 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
         murkV = 0;
         ai = 'active';
         restored = 1;
-        dive = 1;
+        depthFrac = 1;
         canopy = 0;
         revealV = 1;
         orbitV = 1;
         diveV = 1;
         tunnelV = 1 - p;
         pixelV = 0.9 * (1 - p);
+        oceanP = 1;
+        break;
+
+      case 'suite':
+        /* Everything past the workbench is ordinary page. Back the camera out
+           of the dome and leave a calm third-person shot of the vehicle over
+           the reef — parked inside the lens, the rest of the site would sit on
+           a blurred close-up of the hull. */
+        murkV = 0;
+        ai = 'active';
+        restored = 1;
+        depthFrac = 1;
+        canopy = 0;
+        revealV = 1;
+        orbitV = 0;
+        diveV = 0;
         oceanP = 1;
         break;
     }
@@ -349,6 +366,7 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
   chapter('reveal', { start: 'top bottom', end: 'bottom bottom' });
   chapter('vehicle', { start: 'top bottom', end: 'bottom bottom' });
   chapter('perception', { start: 'top 85%', end: 'top 30%' });
+  chapter('suite', { start: 'top bottom', end: 'bottom bottom' });
 
   applyStage();
 
@@ -414,7 +432,7 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
     /** Per-chapter scroll progress — the single source the stage derives from. */
     beats: at,
     applyStage,
-    get dive() { return dive; },
+    get depthFrac() { return depthFrac; },
     get restored() { return restored; },
     refresh: () => ScrollTrigger.refresh(),
   };

@@ -50,8 +50,15 @@ export function packLabels(boxes, opts = {}) {
     // Never push a label off the bottom of its own frame.
     if (bounds && y + H > bounds.h - 2) y = Math.max(2, bounds.h - H - 2);
 
-    placed.push({ x, y, w: it.tw, h: H });
+    /* A box can start off the left edge, or run past the right one, and its
+       label would then be clipped. Slide the label back inside and record the
+       offset relative to its box. */
+    let lx = x;
+    if (bounds) lx = Math.max(2, Math.min(lx, bounds.w - it.tw - 2));
+
+    placed.push({ x: lx, y, w: it.tw, h: H });
     it.el.style.setProperty('--tag-y', `${y - it.y}px`);
+    it.el.style.setProperty('--tag-x', `${lx - it.x}px`);
   }
 
   return placed.length;

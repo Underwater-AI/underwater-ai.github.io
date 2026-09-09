@@ -34,10 +34,15 @@ are no purchased models and no megabyte texture downloads.
 | 03 | Restoration | A wipe sweeps the frame and the water gets out of the way |
 | 04 | Identify | Detection locks onto live creatures in the 3D scene |
 | 05 | The reveal | Readout coarsens, the lids close, the camera leaves the rover's eye |
-| 06 | The vehicle | ABYSS-1 on a turntable, with hotspots on real named parts |
+| 06 | The vehicle | The same camera orbits the hull it just revealed; parts are called out one at a time, then it flies back in through the dome port |
 | 07 | Abyssal Studio | The analysis workbench: species, geology and threat passes |
 | 08 | Reconstruction | One frame becomes a depth field, a point cloud, then a mesh |
 | 09–12 | Platform, deployment, team, contact | The company behind it |
+
+Chapters 04 to 07 are one unbroken camera move. There is no cut between "inside
+the rover" and "looking at the rover" — the exit is hidden inside a blink, and
+the vehicle inspection happens in the same water, with the same camera, before
+it flies back into the lens it started behind.
 
 ## The vehicle is real geometry
 
@@ -59,15 +64,18 @@ no longer matches what the generator produces.
 
 ```bash
 npm install
-npm run serve     # http://localhost:4173
-npm test          # full end-to-end suite (starts its own server)
-npm run build:rov # regenerate the ABYSS-1 model and its exports
+npm run serve      # http://localhost:4173
+npm test           # full end-to-end suite (starts its own server)
+npm run test:live  # the same suite, against production
+npm run build:rov  # regenerate the ABYSS-1 model and its exports
 ```
 
-Test a deployed origin instead of localhost:
+Two capture tools are included for looking at changes rather than asserting on
+them — both write PNGs to `/tmp/uw-shots`:
 
 ```bash
-BASE_URL=https://underwaterai.org/ node tests/site.spec.mjs
+npm run tour 1440 900   # screenshot every beat of the film at a given size
+npm run shot hero 0.4   # one shot, at a fraction of the page
 ```
 
 ## What the tests actually check
@@ -80,7 +88,7 @@ the things this design depends on:
 - **No chapter introduces horizontal scroll**, at any of those widths
 - **WCAG AA contrast** for body copy in both themes, including gradient fills
 - Every story beat reaches its intended state: the water clears, the detector
-  locks on, the camera pulls back, each 3D act takes the stage
+  locks on, the camera pulls back, orbits the hull and flies into its lens
 - The downloadable models are served, non-trivial and have valid headers
 - Draw-call and triangle budgets (frame rate is meaningless in CI's software
   renderer; these are the portable numbers)
@@ -107,7 +115,7 @@ js/
     core.js           One renderer, several acts, one post pass
     ocean.js          The reef: seabed, coral, kelp, schools, light shafts
     creatures.js      Jellyfish, turtles, manta, seahorses — built from anatomy
-    vehicle.js        ABYSS-1: Draco decode, studio IBL, hotspot projection
+    vehicle.js        ABYSS-1: Draco decode, normalise, studio IBL
     reconstruct.js    Image to depth field to point cloud to mesh
 vendor/               Pretext and the Draco decoder, vendored for offline use
 tools/                Model generator, dev server, test runner, capture tools
@@ -118,9 +126,20 @@ tools/                Model generator, dev server, test runner, capture tools
 `uMurk` in [`js/gl/core.js`](js/gl/core.js) — a single uniform that takes the
 scene from "drowned in water" to "restored". It models what water actually does:
 wavelength-dependent absorption, additive backscatter haze, turbidity blur and
-marine snow. The restoration chapter animates a wipe edge across it. When it
-reaches zero the entire post-processing pass is skipped, so the rest of the page
-costs nothing to render.
+marine snow. The restoration chapter animates a wipe edge across it.
+
+Three more uniforms in the same pass carry the rest of the film: `uPixel`
+coarsens the sensor readout, `uIris` closes a pair of eyelids, and `uTunnel`
+narrows the frame to a lens barrel. When all four are idle the entire pass and
+its render-target round trip are skipped, so most of the page costs nothing.
+
+### One writer for the stage
+
+Chapters do not set the camera or the water themselves. Each records only its own
+scroll progress, and one function derives the whole stage from them. Five
+chapters writing the same globals meant the result depended on the order
+ScrollTrigger happened to fire — which changes with the document height, and
+fails silently when it does.
 
 ## Credits
 

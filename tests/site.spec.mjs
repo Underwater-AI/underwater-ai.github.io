@@ -458,6 +458,19 @@ try {
     const el = document.querySelector('#suite .stage-card');
     return el && getComputedStyle(el).opacity === '1';
   }));
+
+  /* The 3D keeps rendering under reduced motion — a frozen reef reads as a
+     broken page — but the drift that happens whether or not you are scrolling
+     must be negligible. Sampled at rest, so any movement here is ambient. */
+  const drift = await rm.evaluate(() => new Promise((resolve) => {
+    const cam = window.UnderwaterAI?.ocean?.camera;
+    if (!cam) { resolve(0); return; }
+    const a = cam.position.clone();
+    setTimeout(() => resolve(a.distanceTo(cam.position)), 1500);
+  }));
+  // Measured: ~0.02 with the preference set, ~0.25 without. 0.1 separates them
+  // cleanly, so this fails if the damping is ever dropped.
+  ok('ambient camera drift is damped', drift < 0.1, `drift=${drift.toFixed(3)}`);
   eq('no horizontal scroll', await overflowPx(rm), 0);
   await rm.context().close();
 

@@ -594,6 +594,29 @@ try {
       callout.x >= 0 && callout.x + callout.w <= 391, `x=${Math.round(callout.x)}`);
   }
 
+  /* Leaving the chapter must take its callouts with it. The camera eases out
+     over a couple of seconds, and while it did the callouts kept drawing —
+     landing, now that they dock into a fixed band, straight on the heading of
+     whatever section the reader had just scrolled into. */
+  await goTo(md, 'deploy', 0.05);
+  eq('callouts leave with the chapter that owns them',
+    await md.locator('.hotspot.is-on').count(), 0);
+
+  /* The reef is still being rendered behind the reading sections — the story
+     parks the camera rather than cutting to black. So the copy has to bring
+     its own surface; legibility must never depend on what the 3D is doing. */
+  const surfaces = await md.evaluate(() =>
+    ['#suite', '#deploy', '#team', '#contact'].map((sel) => {
+      const bg = getComputedStyle(document.querySelector(sel)).backgroundImage;
+      const stops = (bg.match(/rgba?\([^)]+\)/g) || [])
+        .map((f) => (f.match(/[\d.]+/g) || []).map(Number))
+        .map((a) => (a.length < 4 ? 1 : a[3]));
+      return { sel, weakest: stops.length ? Math.min(...stops) : 0 };
+    }));
+  ok('every reading section carries its own surface',
+    surfaces.every((s2) => s2.weakest >= 0.75),
+    surfaces.map((s2) => `${s2.sel} ${s2.weakest}`).join(', '));
+
   eq('no horizontal scroll anywhere in the story', await overflowPx(md), 0);
   ok('no console errors', md.errors.length === 0, md.errors.slice(0, 2).join(' | '));
   await md.context().close();

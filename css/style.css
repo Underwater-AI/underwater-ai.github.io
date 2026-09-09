@@ -995,7 +995,23 @@ p { text-wrap: pretty; }
   padding-block: calc(var(--nav-h) + 3.5rem) 10rem;
 }
 /* Reading scrim. Legibility must never depend on what the 3D happens to be
-   doing behind the copy, so the text side of the frame is always weighted. */
+   doing behind the copy, so the text side of the frame is always weighted.
+
+   Past the workbench the page is ordinary reading, but the reef is still being
+   rendered behind it — the story parks the camera on a calm third-person shot
+   rather than cutting to black. These sections therefore carry their own
+   surface: opaque enough to read on at any point in that shot, translucent
+   enough that the shot is still worth rendering. A real background rather than
+   a pseudo-element, so the contrast audit can see it. */
+.chapter--scrim {
+  background:
+    linear-gradient(180deg,
+      rgb(var(--bg-rgb) / 0.80) 0%,
+      rgb(var(--bg-rgb) / 0.93) 10%,
+      rgb(var(--bg-rgb) / 0.93) 90%,
+      rgb(var(--bg-rgb) / 0.80) 100%);
+}
+
 .hero::before {
   content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background:

@@ -632,7 +632,11 @@ transformed.z += cos(uTime * 0.7 + ph * 1.3) * sway * sway * 0.35;`);
      * off-frame, so a label never points at something you cannot see.
      */
     projectHotspots(nodes) {
-      if (!rover || !rover.visible || orbit < 0.02) {
+      /* Gate on the target, not the eased value. Leaving the chapter sets the
+         target to zero but the camera takes a couple of seconds to ease out,
+         and for that whole time the callouts kept drawing — over the heading
+         of whatever section the reader had just scrolled into. */
+      if (!rover || !rover.visible || orbit < 0.02 || targetOrbit < 0.02) {
         for (const el of nodes) el.classList.remove('is-on');
         return 0;
       }

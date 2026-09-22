@@ -316,8 +316,16 @@ try {
   await goTo(page, 'reveal', 1.3);
   const reveal = await page.evaluate(() => window.UnderwaterAI.ocean.reveal);
   ok('camera pulls back to third person', reveal > 0.75, `reveal=${reveal}`);
-  eq('canopy has retired', await page.evaluate(() =>
-    Number(getComputedStyle(document.getElementById('cockpit')).opacity) < 0.2), true);
+  /* The canopy fades over a second, so reading its opacity the instant the
+     scroll lands catches it mid-transition. `reveal > 0.75` above already
+     proves the chapter state; this waits for the paint to agree. */
+  const canopyRetired = await page
+    .waitForFunction(() =>
+      Number(getComputedStyle(document.getElementById('cockpit')).opacity) < 0.2,
+      null, { timeout: 5000 })
+    .then(() => true)
+    .catch(() => false);
+  eq('canopy has retired', canopyRetired, true);
 
   /* The vehicle is no longer a separate stage — the camera simply orbits it
      in the same reef, which is what makes the journey continuous. */
@@ -620,6 +628,92 @@ try {
   eq('no horizontal scroll anywhere in the story', await overflowPx(md), 0);
   ok('no console errors', md.errors.length === 0, md.errors.slice(0, 2).join(' | '));
   await md.context().close();
+
+  /* 9c — Mobile scroll integrity ----------------------------------------- */
+  /* ScrollTrigger measures by jumping the scroll position to the top and back.
+     If the document still has `scroll-behavior: smooth` those jumps animate, so
+     every start/end is measured from the wrong offset — and on a phone, where
+     the address bar resizes the viewport while you scroll, the whole score
+     re-measures itself mid-scroll and drifts out from under the reader. Lenis
+     only overrides native smoothing while it is actually smoothing, which it is
+     not on touch, so the override has to come from the app. A touch context is
+     the only one that reproduces this; on desktop Lenis supplies it itself.
+     Deliberately no useNativeScroll() here: that workaround is exactly what
+     hid the bug from this suite while phones were broken. */
+  g('Mobile scroll integrity');
+  const sc = await newPage(browser, { width: 390, height: 844 },
+    { hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  await sc.goto(BASE, { waitUntil: 'load' });
+  await sc.waitForFunction(() => document.documentElement.dataset.uwReady === 'true',
+    { timeout: 60000 });
+  await sc.waitForTimeout(1200);
+
+  eq('native smooth scrolling is off where ScrollTrigger measures',
+    await sc.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior), 'auto');
+  eq('the immersive mode owns the mobile viewport chrome',
+    await sc.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY), 'none');
+  eq('a reload is told not to restore a scroll position',
+    await sc.evaluate(() => history.scrollRestoration), 'manual');
+
+  const landOn = (y) => sc.evaluate((v) => new Promise((resolve) => {
+    const to = Math.min(v, document.documentElement.scrollHeight - innerHeight);
+    if (window.UWLenis) window.UWLenis.scrollTo(to, { immediate: true });
+    else window.scrollTo(0, to);
+    const t = setInterval(() => {
+      if (Math.abs(window.scrollY - to) < 3) {
+        clearInterval(t);
+        window.ScrollTrigger.update();
+        resolve();
+      }
+    }, 50);
+    setTimeout(() => { clearInterval(t); window.ScrollTrigger.update(); resolve(); }, 3000);
+  }), y);
+
+  const geometry = () => sc.evaluate(() => {
+    const trig = window.ScrollTrigger.getAll().find((t) => t.trigger?.id === 'identify');
+    const top = document.getElementById('identify').getBoundingClientRect().top + scrollY;
+    return { start: Math.round(trig.start), expected: Math.round(top - innerHeight) };
+  });
+
+  await landOn(3000);
+  const geoBefore = await geometry();
+  ok('a chapter trigger sits where its section does',
+    Math.abs(geoBefore.start - geoBefore.expected) <= 2,
+    `start=${geoBefore.start} expected=${geoBefore.expected}`);
+
+  /* The address-bar resize: same width, different height. */
+  await sc.evaluate(() => window.dispatchEvent(new Event('resize')));
+  await sc.waitForTimeout(700);
+  const geoAfter = await geometry();
+  ok('a mobile resize does not move the score',
+    geoAfter.start === geoBefore.start, `${geoBefore.start} -> ${geoAfter.start}`);
+
+  /* The state at a position must be the same whichever way you arrive. */
+  const beatsAt = async (y) => {
+    await landOn(y);
+    await sc.waitForTimeout(350);
+    return sc.evaluate(() => ({ ...window.UnderwaterAI.story.beats }));
+  };
+  const forward = await beatsAt(2000);
+  await beatsAt(9000);
+  const backward = await beatsAt(2000);
+  const beatDrift = Object.keys(forward)
+    .filter((k) => Math.abs(forward[k] - backward[k]) > 0.02)
+    .map((k) => `${k}:${forward[k].toFixed(2)}->${backward[k].toFixed(2)}`);
+  ok('scrolling back up restores the same chapter state', beatDrift.length === 0, beatDrift.join(' '));
+
+  /* A reload must open at the surface, not halfway down the film. */
+  await landOn(6000);
+  await sc.reload({ waitUntil: 'load' });
+  await sc.waitForFunction(() => document.documentElement.dataset.uwReady === 'true',
+    { timeout: 60000 });
+  await sc.waitForTimeout(900);
+  const reloadedY = await sc.evaluate(() => Math.round(window.scrollY));
+  ok('a reload opens the film at the surface', reloadedY < 8, `y=${reloadedY}`);
+
+  eq('no horizontal scroll on the phone', await overflowPx(sc), 0);
+  ok('no console errors on the phone', sc.errors.length === 0, sc.errors.slice(0, 2).join(' | '));
+  await sc.context().close();
 
   /* At full width there is room for both, so the panel is simply open and its
      heading is not a control. */

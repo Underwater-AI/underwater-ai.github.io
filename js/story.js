@@ -20,6 +20,12 @@ export function initSmoothScroll() {
   if (!gsap || !ScrollTrigger) return null;
   gsap.registerPlugin(ScrollTrigger);
 
+  /* ScrollTrigger is in charge from here, so native smooth scrolling has to
+     go: it turns each of ScrollTrigger's measurement jumps into an animation,
+     and the whole score gets measured from the wrong offset. (See the
+     `html.uw-scroll` rule in the stylesheet for the full story.) */
+  document.documentElement.classList.add('uw-scroll');
+
   if (reduced || !Lenis) return null;
 
   const lenis = new Lenis({
@@ -122,6 +128,14 @@ function initNavState() {
 /* ── The score ────────────────────────────────────────────────────────────── */
 export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetect }) {
   const { gsap, ScrollTrigger } = window;
+
+  if (gsap && ScrollTrigger) {
+    /* The address bar hides and shows while a phone scrolls, and each of those
+       fires a resize. ScrollTrigger's own auto-refresh already skips vertical
+       mobile resizes; this covers the refresh this file asks for below. */
+    ScrollTrigger.config({ ignoreMobileResize: true });
+    document.documentElement.classList.add('uw-scroll');
+  }
 
   initReveals();
   initNavState();
@@ -444,7 +458,17 @@ export function initStory({ stage, ocean, vehicle, recon, workstation, liveDetec
     clearTimeout(rt);
     rt = setTimeout(() => ScrollTrigger.refresh(), 200);
   };
-  addEventListener('resize', refreshSoon, { passive: true });
+  /* Only a width change is a real relayout on a phone. A vertical resize is the
+     address bar, and re-measuring there recalculates every trigger against a
+     viewport the reader is in the middle of — the one time the cached positions
+     are better than the fresh ones. */
+  const touchOnly = matchMedia('(hover: none) and (pointer: coarse)');
+  let lastWidth = innerWidth;
+  addEventListener('resize', () => {
+    if (touchOnly.matches && innerWidth === lastWidth) return;
+    lastWidth = innerWidth;
+    refreshSoon();
+  }, { passive: true });
 
   /* A ResizeObserver on the body was tried here and removed: ScrollTrigger's
      refresh re-runs trigger callbacks, so a height change mid-scroll could

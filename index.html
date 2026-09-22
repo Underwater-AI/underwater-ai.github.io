@@ -39,6 +39,12 @@
     } catch (e) {
       document.documentElement.dataset.theme = 'dark';
     }
+    /* The film opens at the surface. Restoring a previous scroll position would
+       drop the reader into the middle of a chapter behind the boot screen, at
+       an offset the score was never measured against. This has to run before
+       the browser decides where to restore to, which is why it lives here and
+       not in the module. */
+    try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
   })();
 </script>
 

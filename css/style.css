@@ -68,7 +68,7 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease:     cubic-bezier(0.4, 0, 0.2, 1);
 
-  --nav-h: 62px;
+  --nav-h: calc(62px + env(safe-area-inset-top, 0px));
   color-scheme: dark;
 }
 
@@ -145,6 +145,23 @@ html {
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 .lenis.lenis-stopped { overflow: hidden; }
+
+/* ScrollTrigger measures by jumping the scroll position to the top and back.
+   With `scroll-behavior: smooth` those jumps animate, so every start/end gets
+   measured from wherever the page happened to be — and on a phone, where the
+   address bar resizes the viewport as you scroll, the whole score re-measured
+   itself mid-scroll and drifted out from under the reader. Lenis only adds
+   `lenis-smooth` when it is actually smoothing, which it is not on touch
+   (`syncTouch: false`), so the switch is keyed off a class the app sets when
+   ScrollTrigger takes over, not off Lenis's own. */
+html.uw-scroll {
+  scroll-behavior: auto;
+  /* Pull-to-refresh sits exactly where the film begins. A reader who drags down
+     at the surface to look around reloads the page instead — mid-boot, at a
+     scroll position the score was never measured against. The immersive mode
+     owns the viewport chrome, so the gesture is off while it is running. */
+  overscroll-behavior-y: none;
+}
 
 body {
   background: var(--abyss);
@@ -414,7 +431,7 @@ p { text-wrap: pretty; }
 .cockpit__frame {
   position: absolute;
   inset: calc(var(--nav-h) + 0.5rem) clamp(0.75rem, 2.2vw, 2.25rem)
-         clamp(3.75rem, 6vw, 5rem);
+         calc(clamp(3.75rem, 6vw, 5rem) + env(safe-area-inset-bottom, 0px));
   border-radius: clamp(1rem, 2.4vw, 2.25rem);
   box-shadow:
     0 0 0 100vmax rgb(var(--bg-rgb) / 0.97),
@@ -426,7 +443,7 @@ p { text-wrap: pretty; }
 .cockpit__glass {
   position: absolute;
   inset: calc(var(--nav-h) + 0.5rem) clamp(0.75rem, 2.2vw, 2.25rem)
-         clamp(3.75rem, 6vw, 5rem);
+         calc(clamp(3.75rem, 6vw, 5rem) + env(safe-area-inset-bottom, 0px));
   border-radius: clamp(1rem, 2.4vw, 2.25rem);
   overflow: hidden;
 }
@@ -458,7 +475,7 @@ p { text-wrap: pretty; }
 .cockpit__view {
   position: absolute;
   inset: calc(var(--nav-h) + 0.5rem) clamp(0.75rem, 2.2vw, 2.25rem)
-         clamp(3.75rem, 6vw, 5rem);
+         calc(clamp(3.75rem, 6vw, 5rem) + env(safe-area-inset-bottom, 0px));
   border-radius: clamp(1rem, 2.4vw, 2.25rem);
   overflow: hidden;
 }
@@ -524,7 +541,7 @@ p { text-wrap: pretty; }
 /* Instrument strip along the bottom bezel. */
 .cockpit__readout {
   position: absolute;
-  bottom: clamp(0.9rem, 1.8vw, 1.5rem);
+  bottom: calc(clamp(0.9rem, 1.8vw, 1.5rem) + env(safe-area-inset-bottom, 0px));
   left: clamp(1rem, 2.6vw, 2.5rem); right: clamp(1rem, 2.6vw, 2.5rem);
   display: flex; flex-wrap: wrap; justify-content: center;
   gap: 0.3rem clamp(0.8rem, 2.4vw, 2.25rem);
@@ -732,7 +749,12 @@ p { text-wrap: pretty; }
   .dock {
     width: auto;
     margin-inline: clamp(0.75rem, 3.5vw, 1.5rem);
-    top: auto; bottom: clamp(3.4rem, 8svh, 5rem);
+    /* Room to leave before the next chapter. Without it the panel's sticky
+       range ends flush with the runway, so it rides up over the heading of
+       whatever section comes next. */
+    margin-block-end: clamp(1.75rem, 6svh, 3.25rem);
+    top: auto;
+    bottom: calc(clamp(3.4rem, 8svh, 5rem) + env(safe-area-inset-bottom, 0px));
     position: sticky;
     max-height: none;
     padding: 0.7rem 0.85rem;
@@ -873,6 +895,9 @@ p { text-wrap: pretty; }
 .nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   height: var(--nav-h);
+  /* The bar is full-bleed on a notched phone, so its own content has to clear
+     the status bar even though its background does not. */
+  padding-top: env(safe-area-inset-top, 0px);
   display: flex; align-items: center;
   transition: background 0.4s var(--ease), border-color 0.4s var(--ease),
               backdrop-filter 0.4s var(--ease);
@@ -945,7 +970,13 @@ p { text-wrap: pretty; }
   background: rgb(var(--bg-rgb) / 0.97);
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   display: grid; align-content: center; gap: 0.25rem;
-  padding: var(--edge);
+  /* The overlay is full-bleed, so its links have to clear the notch and the
+     home indicator even though its background does not. */
+  padding:
+    calc(var(--edge) + env(safe-area-inset-top, 0px))
+    calc(var(--edge) + env(safe-area-inset-right, 0px))
+    calc(var(--edge) + env(safe-area-inset-bottom, 0px))
+    calc(var(--edge) + env(safe-area-inset-left, 0px));
   clip-path: circle(0% at calc(100% - 3rem) 2rem);
   transition: clip-path 0.6s var(--ease-out);
   visibility: hidden;
@@ -1831,7 +1862,7 @@ p { text-wrap: pretty; }
      the chapter panel above them. Depth, heading, temperature and lock count
      are the ones that carry the story; the rest are detail. */
   .cockpit__opt { display: none; }
-  .dock { bottom: clamp(4rem, 9svh, 5.5rem); }
+  .dock { bottom: calc(clamp(4rem, 9svh, 5.5rem) + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* Touch targets need real area regardless of how small the icon looks. */

@@ -224,6 +224,29 @@ const sampleContrast = (page) => page.evaluate((sels) => sels.map((sel) => {
 const overflowPx = (page) => page.evaluate(() =>
   document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
+/**
+ * Wait for an element to grow past a height, then report the new height.
+ *
+ * The disclosures expand by animating `grid-template-rows`, and a transition is
+ * time-based only while the main thread is free. Under a loaded CI or a live
+ * network the first frame can start late, so sampling a fixed delay after the
+ * tap catches the panel mid-animation — which reads as "the tap did nothing"
+ * even though it did. Poll until it has actually grown; the timeout keeps the
+ * assertion honest if it never does.
+ */
+async function grewPast(page, selector, from, timeout = 4000) {
+  return page.evaluate(([sel, base, t]) => new Promise((resolve) => {
+    const el = document.querySelector(sel);
+    const t0 = performance.now();
+    const tick = () => {
+      const h = el.getBoundingClientRect().height;
+      if (h > base + 1 || performance.now() - t0 > t) resolve(Math.round(h));
+      else requestAnimationFrame(tick);
+    };
+    tick();
+  }), [selector, from, timeout]);
+}
+
 /* ── Suite ───────────────────────────────────────────────────────────────── */
 const browser = await chromium.launch({
   headless: !HEADFUL,
@@ -530,9 +553,7 @@ try {
     await md.getAttribute('.stage-card .card__more', 'aria-expanded'), 'false');
 
   await md.click('.stage-card .card__more');
-  await md.waitForTimeout(650);
-  const cardAfter = await md.evaluate(() =>
-    Math.round(document.querySelector('.stage-card').getBoundingClientRect().height));
+  const cardAfter = await grewPast(md, '.stage-card', cardBefore);
   ok('tapping a card reveals its detail', cardAfter > cardBefore,
     `${cardBefore}px -> ${cardAfter}px`);
   ok('the list is actually revealed',
@@ -553,9 +574,7 @@ try {
   eq('a clamped lede starts closed',
     await md.getAttribute('#perception .lede__more', 'aria-expanded'), 'false');
   await md.click('#perception .lede__more');
-  await md.waitForTimeout(350);
-  const ledeAfter = await md.evaluate(() =>
-    Math.round(document.querySelector('#perception .chapter-sub').getBoundingClientRect().height));
+  const ledeAfter = await grewPast(md, '#perception .chapter-sub', ledeBefore);
   ok('reading more shows the rest', ledeAfter > ledeBefore, `${ledeBefore}px -> ${ledeAfter}px`);
   eq('the control reports it is open',
     await md.getAttribute('#perception .lede__more', 'aria-expanded'), 'true');

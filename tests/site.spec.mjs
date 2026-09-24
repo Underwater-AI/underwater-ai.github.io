@@ -607,12 +607,19 @@ try {
   /* Vehicle callouts dock into a band instead of hanging off the marker:
      beside the vehicle on a phone there is no clear space to hang one in. */
   await goTo(md, 'vehicle', 0.55);
-  const callout = await md.evaluate(() => {
-    const on = document.querySelector('.hotspot.is-on');
-    if (!on) return null;
-    const r = on.querySelector('.hotspot__label').getBoundingClientRect();
-    return { x: r.x, w: r.width, y: r.y };
-  });
+  /* A callout is live only for the slice of the orbit where its part faces the
+     camera, and the class is written on a frame. Sampling once straight after
+     the scroll catches it between frames on a loaded runner, which reads as "no
+     part was ever called out"; wait for one instead. */
+  const callout = await md
+    .waitForFunction(() => {
+      const on = document.querySelector('.hotspot.is-on');
+      if (!on) return null;
+      const r = on.querySelector('.hotspot__label').getBoundingClientRect();
+      return { x: r.x, w: r.width, y: r.y };
+    }, null, { timeout: 6000, polling: 100 })
+    .then((h) => h.jsonValue())
+    .catch(() => null);
   ok('a vehicle part is called out', callout !== null);
   if (callout) {
     ok('the callout uses the width of the frame', callout.w > 390 * 0.8,
@@ -626,8 +633,14 @@ try {
      landing, now that they dock into a fixed band, straight on the heading of
      whatever section the reader had just scrolled into. */
   await goTo(md, 'deploy', 0.05);
-  eq('callouts leave with the chapter that owns them',
-    await md.locator('.hotspot.is-on').count(), 0);
+  /* Same frame-timing risk as above, in reverse: the class is cleared on a
+     frame, so wait for it to be gone rather than reading once. */
+  const calloutsLeft = await md
+    .waitForFunction(() => document.querySelectorAll('.hotspot.is-on').length === 0,
+      null, { timeout: 6000, polling: 100 })
+    .then(() => true)
+    .catch(() => false);
+  eq('callouts leave with the chapter that owns them', calloutsLeft, true);
 
   /* The reef is still being rendered behind the reading sections — the story
      parks the camera rather than cutting to black. So the copy has to bring

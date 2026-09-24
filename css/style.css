@@ -661,6 +661,15 @@ p { text-wrap: pretty; }
 }
 .dock--right { margin-left: auto; margin-right: clamp(2.5rem, 5vw, 4.5rem); }
 
+/* A short viewport — a landscape phone, or a desktop window dragged short — is
+   wide enough for the full panel but not tall enough for it. The panel was
+   capped to the viewport and then clipped, so the meters and the list at the
+   bottom could not be reached at all: this mode has no disclosure to open. Let
+   it scroll instead of hiding them. */
+@media (max-height: 34rem) {
+  .dock { overflow-y: auto; overscroll-behavior: contain; }
+}
+
 .dock__tag {
   display: flex; align-items: center; gap: 0.5rem;
   font-family: var(--font-mono); font-size: var(--fs-mono);

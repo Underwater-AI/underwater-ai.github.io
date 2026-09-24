@@ -648,6 +648,34 @@ try {
   ok('no console errors', md.errors.length === 0, md.errors.slice(0, 2).join(' | '));
   await md.context().close();
 
+  /* 9b2 — Short viewports ------------------------------------------------ */
+  /* A landscape phone is wider than the phone breakpoint but far shorter than
+     the panel assumes, so it gets the full desktop panel — capped to the
+     viewport and, before this, clipped: the meters and the list at the bottom
+     of the panel could not be reached at all, and this mode has no disclosure
+     to open. The panel itself has to scroll. */
+  g('Short viewports');
+  const short = await newPage(browser, { width: 844, height: 390 },
+    { hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  await boot(short);
+  await goTo(short, 'murk', 0.8);
+  const shortDock = await short.evaluate(() => {
+    const d = document.querySelector('.dock.is-current') || document.querySelector('.dock');
+    const cs = getComputedStyle(d);
+    return {
+      overflowY: cs.overflowY,
+      scrollH: d.scrollHeight, clientH: d.clientHeight,
+      cover: Math.round((d.getBoundingClientRect().height / innerHeight) * 100),
+    };
+  });
+  ok('a short viewport scrolls the panel rather than clipping it',
+    shortDock.overflowY === 'auto' && shortDock.scrollH > shortDock.clientH,
+    JSON.stringify(shortDock));
+  ok('the panel still leaves the frame room', shortDock.cover < 60, `cover=${shortDock.cover}%`);
+  eq('no horizontal scroll on a short viewport', await overflowPx(short), 0);
+  ok('no console errors on a short viewport', short.errors.length === 0, short.errors.slice(0, 2).join(' | '));
+  await short.context().close();
+
   /* 9c — Mobile scroll integrity ----------------------------------------- */
   /* ScrollTrigger measures by jumping the scroll position to the top and back.
      If the document still has `scroll-behavior: smooth` those jumps animate, so

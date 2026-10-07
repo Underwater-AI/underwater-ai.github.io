@@ -166,7 +166,7 @@ Built by the Underwater AI team. Funded by MeitY, Government of India.
 
 - **Gautam Singh** — Cofounder
 - **Shuvam Banerji Seal** — Cofounder
-- **Youktik Sajjan** — Cofounder (Prototyping, hardware, and marketing/sales)
+- **Youktik Sajjan** — Cofounder
 
 Third-party code vendored under `vendor/` keeps its own licence.
 Everything else is MIT — see [LICENSE](LICENSE).

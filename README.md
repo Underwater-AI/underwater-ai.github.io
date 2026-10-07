@@ -164,10 +164,9 @@ fails silently when it does.
 
 Built by the Underwater AI team. Funded by MeitY, Government of India.
 
-- **Gautam Singh** — Chief Executive Officer
-- **Shuvam Banerji Seal** — Chief Technology Officer
-- **Youktik Sajjan** — Chief Operating Officer
-- **Aman Kumar** — Chief Product Officer
+- **Gautam Singh** — Cofounder
+- **Shuvam Banerji Seal** — Cofounder
+- **Youktik Sajjan** — Cofounder (Prototyping, hardware, and marketing/sales)
 
 Third-party code vendored under `vendor/` keeps its own licence.
 Everything else is MIT — see [LICENSE](LICENSE).
